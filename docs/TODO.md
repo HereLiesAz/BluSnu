@@ -26,26 +26,26 @@ This document outlines the development tasks required to implement the Blu Snu f
 -   [X] **Task 2.2: Implement Target Management UI**
     -   [X] Design and implement the filterable and sortable list for discovered devices.
     -   [X] Implement filtering logic for protocol, RSSI, and vendor.
--   [ ] **Task 2.3: Service Enumeration**
-    -   [ ] Implement SDP enumeration for Classic devices (`fetchUuidsWithSdp()`).
-    -   [ ] Implement GATT service discovery for BLE devices (`bluetoothGatt.discoverServices()`).
-    -   [ ] Display discovered services in the expandable target profile view.
--   [ ] **Task 2.4: Device Fingerprinting and Vulnerability Correlation**
-    -   [ ] Create an initial internal database (e.g., in SQLite or as a bundled JSON file) for device fingerprints and known CVEs.
-    -   [ ] Implement the fingerprinting engine to match discovered services/UUIDs against the database.
-    -   [ ] Implement the vulnerability correlation engine to query the database and flag vulnerable devices in the UI.
+-   [X] **Task 2.3: Service Enumeration**
+    -   [X] Implement SDP enumeration for Classic devices (`fetchUuidsWithSdp()`).
+    -   [X] Implement GATT service discovery for BLE devices (`bluetoothGatt.discoverServices()`).
+    -   [X] Display discovered services in the expandable target profile view.
+-   [X] **Task 2.4: Device Fingerprinting and Vulnerability Correlation**
+    -   [X] Create an initial internal database (e.g., in SQLite or as a bundled JSON file) for device fingerprints and known CVEs.
+    -   [X] Implement the fingerprinting engine to match discovered services/UUIDs against the database.
+    -   [X] Implement the vulnerability correlation engine to query the database and flag vulnerable devices in the UI.
 
 ## Milestone 3: Bluetooth Classic (BR/EDR) Attack Modules
 
--   [ ] **Task 3.1: Bluesnarfing Module**
-    -   [ ] Create the UI for the Bluesnarfing attack.
-    -   [ ] Implement the logic to connect to a target's OBEX service and retrieve data (e.g., phonebook).
--   [ ] **Task 3.2: Bluebugging Module**
-    -   [ ] Create the UI for the Bluebugging attack.
-    -   [ ] Implement the logic to establish a serial connection and inject AT commands. (Requires Elevated Mode)
--   [ ] **Task 3.3: BlueSmack (L2CAP Flood) Module**
-    -   [ ] Create the UI for the L2CAP flood attack with controls for packet size and rate.
-    -   [ ] Implement the logic to open an L2CAP socket and send oversized echo requests. (Requires Elevated Mode)
+-   [X] **Task 3.1: Bluesnarfing Module**
+    -   [X] Create the UI for the Bluesnarfing attack.
+    -   [X] Implement the logic to connect to a target's OBEX service and retrieve data (e.g., phonebook).
+-   [X] **Task 3.2: Bluebugging Module**
+    -   [X] Create the UI for the Bluebugging attack.
+    -   [X] Implement the logic to establish a serial connection and inject AT commands. (Requires Elevated Mode)
+-   [X] **Task 3.3: BlueSmack (L2CAP Flood) Module**
+    -   [X] Create the UI for the L2CAP flood attack with controls for packet size and rate.
+    -   [X] Implement the logic to open an L2CAP socket and send oversized echo requests. (Requires Elevated Mode)
 
 ## Milestone 4: Bluetooth Low Energy (BLE) Attack Modules
 

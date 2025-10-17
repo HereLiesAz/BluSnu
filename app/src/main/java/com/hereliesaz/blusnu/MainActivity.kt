@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -37,6 +38,7 @@ import androidx.compose.material3.Button
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -44,11 +46,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
 import android.bluetooth.BluetoothAdapter
 import com.hereliesaz.blusnu.data.DeviceRepository
+import com.hereliesaz.blusnu.correlator.VulnerabilityCorrelator
 import com.hereliesaz.blusnu.scanner.BluetoothScanner
+import com.hereliesaz.blusnu.ui.attack.BlueSmackScreen
+import com.hereliesaz.blusnu.ui.attack.BluebuggingScreen
+import com.hereliesaz.blusnu.ui.attack.BluesnarfingScreen
 import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 
@@ -67,6 +74,18 @@ class MainActivity : ComponentActivity() {
     }
     private val bluetoothScanner by lazy {
         BluetoothScanner(this, deviceRepository, bluetoothAdapter)
+    }
+    private val vulnerabilityCorrelator by lazy {
+        VulnerabilityCorrelator(this)
+    }
+    private val bluesnarfing by lazy {
+        com.hereliesaz.blusnu.attack.Bluesnarfing(this, bluetoothAdapter)
+    }
+    private val bluebugging by lazy {
+        com.hereliesaz.blusnu.attack.Bluebugging(this, bluetoothAdapter)
+    }
+    private val blueSmack by lazy {
+        com.hereliesaz.blusnu.attack.BlueSmack(this, bluetoothAdapter)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -107,10 +126,31 @@ class MainActivity : ComponentActivity() {
                             }
                             composable("targets") {
                                 val devices by deviceRepository.discoveredDevices.collectAsState()
-                                TargetManagementScreen(devices = devices)
+                                TargetManagementScreen(
+                                    devices = devices,
+                                    vulnerabilityCorrelator = vulnerabilityCorrelator,
+                                    onDeviceClick = { device ->
+                                        bluetoothScanner.connectToDevice(device)
+                                    }
+                                )
                             }
-                            composable("attacks") { AttackModulesScreen() }
+                            composable("attacks") { AttackModulesScreen(navController = navController) }
                             composable("settings") { SettingsScreen() }
+                            composable("bluesnarfing") {
+                                BluesnarfingScreen(onAttack = { macAddress ->
+                                    bluesnarfing.attack(macAddress)
+                                })
+                            }
+                            composable("bluebugging") {
+                                BluebuggingScreen(onAttack = { macAddress, command ->
+                                    bluebugging.attack(macAddress, command)
+                                })
+                            }
+                            composable("bluesmack") {
+                                BlueSmackScreen(onAttack = { macAddress, packetSize, packetCount ->
+                                    blueSmack.attack(macAddress, packetSize, packetCount)
+                                })
+                            }
                         }
                     }
                 }
@@ -157,7 +197,12 @@ fun DashboardScreen(
 }
 
 @Composable
-fun TargetManagementScreen(modifier: Modifier = Modifier, devices: List<com.hereliesaz.blusnu.data.TargetDevice>) {
+fun TargetManagementScreen(
+    modifier: Modifier = Modifier,
+    devices: List<com.hereliesaz.blusnu.data.TargetDevice>,
+    vulnerabilityCorrelator: VulnerabilityCorrelator,
+    onDeviceClick: (com.hereliesaz.blusnu.data.TargetDevice) -> Unit
+) {
     var filteredDevices by remember { mutableStateOf(devices) }
     var sortByRssi by remember { mutableStateOf(false) }
 
@@ -196,11 +241,45 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, devices: List<com.here
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(devicesToShow) { device ->
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = device.name ?: "Unknown Device")
+                var expanded by remember { mutableStateOf(false) }
+                val vulnerabilities = vulnerabilityCorrelator.correlate(device)
+                val isVulnerable = vulnerabilities.isNotEmpty()
+
+                Column(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .clickable {
+                            if (device.protocol == com.hereliesaz.blusnu.data.Protocol.BLE) {
+                                onDeviceClick(device)
+                            }
+                            expanded = !expanded
+                        }
+                ) {
+                    Row {
+                        Text(text = device.name ?: "Unknown Device")
+                        if (isVulnerable) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = "Vulnerable",
+                                tint = Color.Red,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                    }
                     Text(text = device.macAddress)
                     Text(text = "RSSI: ${device.rssi}")
                     Text(text = "Protocol: ${device.protocol}")
+                    if (expanded) {
+                        device.services.forEach { service ->
+                            Text(text = "  - $service")
+                        }
+                        if (isVulnerable) {
+                            Text("Vulnerabilities:")
+                            vulnerabilities.forEach { vulnerability ->
+                                Text("  - ${vulnerability.description}")
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -208,11 +287,18 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, devices: List<com.here
 }
 
 @Composable
-fun AttackModulesScreen(modifier: Modifier = Modifier) {
-    Text(
-        text = "Attack Modules",
-        modifier = modifier
-    )
+fun AttackModulesScreen(modifier: Modifier = Modifier, navController: NavController) {
+    Column(modifier = modifier) {
+        Button(onClick = { navController.navigate("bluesnarfing") }) {
+            Text("Bluesnarfing")
+        }
+        Button(onClick = { navController.navigate("bluebugging") }) {
+            Text("Bluebugging")
+        }
+        Button(onClick = { navController.navigate("bluesmack") }) {
+            Text("BlueSmack")
+        }
+    }
 }
 
 @Composable
@@ -266,6 +352,6 @@ fun BottomNavigationBar(navController: NavController) {
 @Composable
 fun DashboardScreenPreview() {
     BluSnuTheme {
-        DashboardScreen()
+        DashboardScreen(onStartScan = {}, onStopScan = {})
     }
 }

@@ -24,6 +24,37 @@ class BluetoothScanner(
     private val bleScanner = bluetoothAdapter?.bluetoothLeScanner
     private var isScanning = false
 
+    private val gattCallback = object : android.bluetooth.BluetoothGattCallback() {
+        override fun onConnectionStateChange(gatt: android.bluetooth.BluetoothGatt?, status: Int, newState: Int) {
+            if (newState == android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
+                if (ActivityCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.BLUETOOTH_CONNECT
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    gatt?.discoverServices()
+                }
+            }
+        }
+
+        override fun onServicesDiscovered(gatt: android.bluetooth.BluetoothGatt?, status: Int) {
+            if (status == android.bluetooth.BluetoothGatt.GATT_SUCCESS) {
+                val services = gatt?.services?.map { it.uuid.toString() } ?: emptyList()
+                val device = deviceRepository.discoveredDevices.value.find { it.macAddress == gatt?.device?.address }
+                device?.let {
+                    deviceRepository.updateDevice(it.copy(services = services))
+                }
+            }
+            if (ActivityCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                gatt?.close()
+            }
+        }
+    }
+
     private val bleScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             result?.device?.let {
@@ -32,14 +63,13 @@ class BluetoothScanner(
                         Manifest.permission.BLUETOOTH_CONNECT
                     ) == PackageManager.PERMISSION_GRANTED
                 ) {
-                    deviceRepository.addDevice(
-                        TargetDevice(
-                            macAddress = it.address,
-                            name = it.name,
-                            rssi = result.rssi,
-                            protocol = Protocol.BLE
-                        )
+                    val newDevice = TargetDevice(
+                        macAddress = it.address,
+                        name = it.name,
+                        rssi = result.rssi,
+                        protocol = Protocol.BLE
                     )
+                    deviceRepository.addDevice(newDevice)
                 }
             }
         }
@@ -55,14 +85,24 @@ class BluetoothScanner(
                             Manifest.permission.BLUETOOTH_CONNECT
                         ) == PackageManager.PERMISSION_GRANTED
                     ) {
-                        deviceRepository.addDevice(
-                            TargetDevice(
-                                macAddress = it.address,
-                                name = it.name,
-                                rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt(),
-                                protocol = Protocol.CLASSIC
-                            )
+                        val newDevice = TargetDevice(
+                            macAddress = it.address,
+                            name = it.name,
+                            rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt(),
+                            protocol = Protocol.CLASSIC
                         )
+                        deviceRepository.addDevice(newDevice)
+                        it.fetchUuidsWithSdp()
+                    }
+                }
+            } else if (BluetoothDevice.ACTION_UUID == intent.action) {
+                val device: BluetoothDevice? = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                val uuidExtra = intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID)
+                device?.let { foundDevice ->
+                    val services = uuidExtra?.map { it.toString() } ?: emptyList()
+                    val existingDevice = deviceRepository.discoveredDevices.value.find { it.macAddress == foundDevice.address }
+                    existingDevice?.let {
+                        deviceRepository.updateDevice(it.copy(services = services))
                     }
                 }
             }
@@ -104,5 +144,17 @@ class BluetoothScanner(
         // Stop Classic Discovery
         bluetoothAdapter?.cancelDiscovery()
         context.unregisterReceiver(classicDiscoveryReceiver)
+    }
+
+    fun connectToDevice(device: TargetDevice) {
+        if (ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        val bluetoothDevice = bluetoothAdapter?.getRemoteDevice(device.macAddress)
+        bluetoothDevice?.connectGatt(context, false, gattCallback)
     }
 }
