@@ -4,28 +4,28 @@ This document outlines the development tasks required to implement the Blu Snu f
 
 ## Milestone 1: Project Setup and Core Framework
 
--   [ ] **Task 1.1: Initialize Android Project**
-    -   [ ] Set up a new Android project with the package name `com.hereliesaz.blusnu`.
-    -   [ ] Configure required permissions (`BLUETOOTH_SCAN`, `BLUETOOTH_CONNECT`, `BLUETOOTH_ADVERTISE`, `ACCESS_FINE_LOCATION`, `INTERNET`, `WRITE_EXTERNAL_STORAGE`) in `AndroidManifest.xml`.
-    -   [ ] Implement runtime permission handling for all required permissions.
--   [ ] **Task 1.2: Implement Core UI Shell**
-    -   [ ] Create the main dashboard layout with placeholders for key widgets (Nearby Devices, Active Tasks, etc.).
-    -   [ ] Set up navigation between the main dashboard and placeholder views for Target Management, Attack Modules, and Settings.
--   [ ] **Task 1.3: Implement Unified Protocol Abstraction Layer (Initial)**
-    -   [ ] Define a `TargetDevice` data class to hold information for both Classic and BLE devices (MAC, name, RSSI, protocol type, etc.).
-    -   [ ] Create a repository or service class to manage the list of discovered devices.
--   [ ] **Task 1.4: Implement Ethical Use Disclaimer**
-    -   [ ] Create a non-skippable disclaimer dialog that appears on the first launch of the application.
+-   [X] **Task 1.1: Initialize Android Project**
+    -   [X] Set up a new Android project with the package name `com.hereliesaz.blusnu`.
+    -   [X] Configure required permissions (`BLUETOOTH_SCAN`, `BLUETOOTH_CONNECT`, `BLUETOOTH_ADVERTISE`, `ACCESS_FINE_LOCATION`, `INTERNET`, `WRITE_EXTERNAL_STORAGE`) in `AndroidManifest.xml`.
+    -   [X] Implement runtime permission handling for all required permissions.
+-   [X] **Task 1.2: Implement Core UI Shell**
+    -   [X] Create the main dashboard layout with placeholders for key widgets (Nearby Devices, Active Tasks, etc.).
+    -   [X] Set up navigation between the main dashboard and placeholder views for Target Management, Attack Modules, and Settings.
+-   [X] **Task 1.3: Implement Unified Protocol Abstraction Layer (Initial)**
+    -   [X] Define a `TargetDevice` data class to hold information for both Classic and BLE devices (MAC, name, RSSI, protocol type, etc.).
+    -   [X] Create a repository or service class to manage the list of discovered devices.
+-   [X] **Task 1.4: Implement Ethical Use Disclaimer**
+    -   [X] Create a non-skippable disclaimer dialog that appears on the first launch of the application.
 
 ## Milestone 2: Reconnaissance Module
 
--   [ ] **Task 2.1: Multi-Protocol Device Discovery**
-    -   [ ] Implement Bluetooth Classic (BR/EDR) discovery using `BluetoothAdapter.startDiscovery()`.
-    -   [ ] Implement Bluetooth Low Energy (BLE) scanning using `BluetoothLeScanner`.
-    -   [ ] Populate the Target Management View with discovered devices in real-time.
--   [ ] **Task 2.2: Implement Target Management UI**
-    -   [ ] Design and implement the filterable and sortable list for discovered devices.
-    -   [ ] Implement filtering logic for protocol, RSSI, and vendor.
+-   [X] **Task 2.1: Multi-Protocol Device Discovery**
+    -   [X] Implement Bluetooth Classic (BR/EDR) discovery using `BluetoothAdapter.startDiscovery()`.
+    -   [X] Implement Bluetooth Low Energy (BLE) scanning using `BluetoothLeScanner`.
+    -   [X] Populate the Target Management View with discovered devices in real-time.
+-   [X] **Task 2.2: Implement Target Management UI**
+    -   [X] Design and implement the filterable and sortable list for discovered devices.
+    -   [X] Implement filtering logic for protocol, RSSI, and vendor.
 -   [ ] **Task 2.3: Service Enumeration**
     -   [ ] Implement SDP enumeration for Classic devices (`fetchUuidsWithSdp()`).
     -   [ ] Implement GATT service discovery for BLE devices (`bluetoothGatt.discoverServices()`).
