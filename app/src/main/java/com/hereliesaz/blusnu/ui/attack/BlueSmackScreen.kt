@@ -9,8 +9,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import android.widget.Toast
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -19,7 +21,8 @@ fun BlueSmackScreen(
 ) {
     var macAddress by remember { mutableStateOf("") }
     var packetSize by remember { mutableStateOf("1024") }
-    var packetCount by remember { mutableState of("100") }
+    var packetCount by remember { mutableStateOf("100") }
+    val context = LocalContext.current
 
     Column(modifier = Modifier.padding(16.dp)) {
         TextField(
@@ -37,7 +40,15 @@ fun BlueSmackScreen(
             onValueChange = { packetCount = it },
             label = { Text("Packet Count") }
         )
-        Button(onClick = { onAttack(macAddress, packetSize.toInt(), packetCount.toInt()) }) {
+        Button(onClick = {
+            val size = packetSize.toIntOrNull()
+            val count = packetCount.toIntOrNull()
+            if (size != null && count != null) {
+                onAttack(macAddress, size, count)
+            } else {
+                Toast.makeText(context, "Invalid input", Toast.LENGTH_SHORT).show()
+            }
+        }) {
             Text("Attack")
         }
     }

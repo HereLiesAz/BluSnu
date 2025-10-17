@@ -75,7 +75,7 @@ class BluetoothScanner(
         }
     }
 
-    private val classicDiscoveryReceiver = object : BroadcastReceiver() {
+    val classicDiscoveryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (BluetoothDevice.ACTION_FOUND == intent.action) {
                 val device: BluetoothDevice? = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
@@ -124,7 +124,6 @@ class BluetoothScanner(
 
 
         // Start Classic Discovery
-        context.registerReceiver(classicDiscoveryReceiver, IntentFilter(BluetoothDevice.ACTION_FOUND))
         bluetoothAdapter?.startDiscovery()
     }
 
@@ -143,7 +142,6 @@ class BluetoothScanner(
 
         // Stop Classic Discovery
         bluetoothAdapter?.cancelDiscovery()
-        context.unregisterReceiver(classicDiscoveryReceiver)
     }
 
     fun connectToDevice(device: TargetDevice) {

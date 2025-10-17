@@ -44,6 +44,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
@@ -57,14 +58,18 @@ import com.hereliesaz.blusnu.ui.attack.BlueSmackScreen
 import com.hereliesaz.blusnu.ui.attack.BluebuggingScreen
 import com.hereliesaz.blusnu.ui.attack.BluesnarfingScreen
 import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
+import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
     private val requestPermissionsLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-            permissions.entries.forEach {
-                // Log or handle individual permission results
+            val allPermissionsGranted = permissions.all { it.value }
+            if (!allPermissionsGranted) {
+                Toast.makeText(this, "All permissions are required for the app to function properly.", Toast.LENGTH_LONG).show()
             }
         }
 
@@ -93,6 +98,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         requestRequiredPermissions()
+
+        lifecycleScope.launch {
+            vulnerabilityCorrelator.loadVulnerabilities()
+        }
 
         setContent {
             BluSnuTheme {
@@ -137,18 +146,27 @@ class MainActivity : ComponentActivity() {
                             composable("attacks") { AttackModulesScreen(navController = navController) }
                             composable("settings") { SettingsScreen() }
                             composable("bluesnarfing") {
+                                val scope = rememberCoroutineScope()
                                 BluesnarfingScreen(onAttack = { macAddress ->
-                                    bluesnarfing.attack(macAddress)
+                                    scope.launch {
+                                        bluesnarfing.attack(macAddress)
+                                    }
                                 })
                             }
                             composable("bluebugging") {
+                                val scope = rememberCoroutineScope()
                                 BluebuggingScreen(onAttack = { macAddress, command ->
-                                    bluebugging.attack(macAddress, command)
+                                    scope.launch {
+                                        bluebugging.attack(macAddress, command)
+                                    }
                                 })
                             }
                             composable("bluesmack") {
+                                val scope = rememberCoroutineScope()
                                 BlueSmackScreen(onAttack = { macAddress, packetSize, packetCount ->
-                                    blueSmack.attack(macAddress, packetSize, packetCount)
+                                    scope.launch {
+                                        blueSmack.attack(macAddress, packetSize, packetCount)
+                                    }
                                 })
                             }
                         }
@@ -172,6 +190,22 @@ class MainActivity : ComponentActivity() {
         }
 
         requestPermissionsLauncher.launch(requiredPermissions.toTypedArray())
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
+        filter.addAction(BluetoothDevice.ACTION_UUID)
+        registerReceiver(bluetoothScanner.classicDiscoveryReceiver, filter)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        unregisterReceiver(bluetoothScanner.classicDiscoveryReceiver)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
     }
 }
 
@@ -203,8 +237,12 @@ fun TargetManagementScreen(
     vulnerabilityCorrelator: VulnerabilityCorrelator,
     onDeviceClick: (com.hereliesaz.blusnu.data.TargetDevice) -> Unit
 ) {
-    var filteredDevices by remember { mutableStateOf(devices) }
+    var protocolFilter by remember { mutableStateOf<com.hereliesaz.blusnu.data.Protocol?>(null) }
     var sortByRssi by remember { mutableStateOf(false) }
+
+    val devicesToShow = devices
+        .filter { protocolFilter == null || it.protocol == protocolFilter }
+        .let { if (sortByRssi) it.sortedByDescending { device -> device.rssi } else it }
 
     Column(modifier = modifier.fillMaxSize()) {
         Row(
@@ -213,30 +251,18 @@ fun TargetManagementScreen(
                 .padding(8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Button(onClick = {
-                filteredDevices = devices.filter { it.protocol == com.hereliesaz.blusnu.data.Protocol.CLASSIC }
-            }) {
+            Button(onClick = { protocolFilter = com.hereliesaz.blusnu.data.Protocol.CLASSIC }) {
                 Text("Classic")
             }
-            Button(onClick = {
-                filteredDevices = devices.filter { it.protocol == com.hereliesaz.blusnu.data.Protocol.BLE }
-            }) {
+            Button(onClick = { protocolFilter = com.hereliesaz.blusnu.data.Protocol.BLE }) {
                 Text("BLE")
             }
-            Button(onClick = {
-                filteredDevices = devices
-            }) {
+            Button(onClick = { protocolFilter = null }) {
                 Text("All")
             }
             Button(onClick = { sortByRssi = !sortByRssi }) {
                 Text(if (sortByRssi) "Sorted by RSSI" else "Sort by RSSI")
             }
-        }
-
-        val devicesToShow = if (sortByRssi) {
-            filteredDevices.sortedByDescending { it.rssi }
-        } else {
-            filteredDevices
         }
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
