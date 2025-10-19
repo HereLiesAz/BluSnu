@@ -37,9 +37,9 @@ This document outlines the development tasks required to implement the Blu Snu f
 
 ## Milestone 3: Bluetooth Classic (BR/EDR) Attack Modules
 
--   [ ] **Task 3.1: Bluesnarfing Module**
-    -   [ ] Create the UI for the Bluesnarfing attack.
-    -   [ ] Implement the logic to connect to a target's OBEX service and retrieve data (e.g., phonebook).
+-   [x] **Task 3.1: Bluesnarfing Module**
+    -   [x] Create the UI for the Bluesnarfing attack.
+    -   [x] Implement the logic to connect to a target's OBEX service and retrieve data (e.g., phonebook).
 -   [ ] **Task 3.2: Bluebugging Module**
     -   [ ] Create the UI for the Bluebugging attack.
     -   [ ] Implement the logic to establish a serial connection and inject AT commands. (Requires Elevated Mode)

@@ -35,6 +35,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.navigation.compose.rememberNavController
 import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
+import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen
+import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingViewModel
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 
 class MainActivity : ComponentActivity() {
@@ -83,8 +85,13 @@ class MainActivity : ComponentActivity() {
                                 viewModel.isBluetoothEnabled = isBluetoothEnabled()
                                 TargetManagementScreen(viewModel = viewModel)
                             }
-                            composable("attacks") { AttackModulesScreen() }
+                            composable("attacks") { AttackModulesScreen(navController = navController) }
                             composable("settings") { SettingsScreen() }
+                            composable("bluesnarfing") {
+                                val viewModel: BluesnarfingViewModel = viewModel()
+                                viewModel.hasPermissions = hasBluetoothPermissions()
+                                BluesnarfingScreen(viewModel = viewModel)
+                            }
                         }
                     }
                 }
@@ -187,11 +194,12 @@ fun DeviceListItem(device: TargetDevice) {
 }
 
 @Composable
-fun AttackModulesScreen(modifier: Modifier = Modifier) {
-    Text(
-        text = "Attack Modules",
-        modifier = modifier
-    )
+fun AttackModulesScreen(modifier: Modifier = Modifier, navController: NavController) {
+    Column(modifier = modifier) {
+        Button(onClick = { navController.navigate("bluesnarfing") }) {
+            Text("Bluesnarfing")
+        }
+    }
 }
 
 @Composable
