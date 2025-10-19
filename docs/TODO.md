@@ -15,17 +15,17 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Define a `TargetDevice` data class to hold information for both Classic and BLE devices (MAC, name, RSSI, protocol type, etc.).
     -   [x] Create a repository or service class to manage the list of discovered devices.
 -   [x] **Task 1.4: Implement Ethical Use Disclaimer**
-    -   [ ] Create a non-skippable disclaimer dialog that appears on the first launch of the application.
+    -   [x] Create a non-skippable disclaimer dialog that appears on the first launch of the application.
 
 ## Milestone 2: Reconnaissance Module
 
--   [ ] **Task 2.1: Multi-Protocol Device Discovery**
-    -   [ ] Implement Bluetooth Classic (BR/EDR) discovery using `BluetoothAdapter.startDiscovery()`.
-    -   [ ] Implement Bluetooth Low Energy (BLE) scanning using `BluetoothLeScanner`.
-    -   [ ] Populate the Target Management View with discovered devices in real-time.
--   [ ] **Task 2.2: Implement Target Management UI**
-    -   [ ] Design and implement the filterable and sortable list for discovered devices.
-    -   [ ] Implement filtering logic for protocol, RSSI, and vendor.
+-   [x] **Task 2.1: Multi-Protocol Device Discovery**
+    -   [x] Implement Bluetooth Classic (BR/EDR) discovery using `BluetoothAdapter.startDiscovery()`.
+    -   [x] Implement Bluetooth Low Energy (BLE) scanning using `BluetoothLeScanner`.
+    -   [x] Populate the Target Management View with discovered devices in real-time.
+-   [x] **Task 2.2: Implement Target Management UI**
+    -   [x] Design and implement the filterable and sortable list for discovered devices.
+    -   [x] Implement filtering logic for protocol, RSSI, and vendor.
 -   [ ] **Task 2.3: Service Enumeration**
     -   [ ] Implement SDP enumeration for Classic devices (`fetchUuidsWithSdp()`).
     -   [ ] Implement GATT service discovery for BLE devices (`bluetoothGatt.discoverServices()`).
