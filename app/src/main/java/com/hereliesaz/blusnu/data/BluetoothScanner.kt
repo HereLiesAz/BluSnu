@@ -11,11 +11,15 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCallback
+import android.bluetooth.BluetoothProfile
 
 class BluetoothScanner(
     private val context: Context,
     private val deviceRepository: DeviceRepository,
-    private val bluetoothAdapter: BluetoothAdapter
+    private val bluetoothAdapter: BluetoothAdapter,
+    private val onClassicServicesDiscovered: (String, List<String>) -> Unit
 ) {
 
     private var isClassicReceiverRegistered = false
@@ -45,6 +49,21 @@ class BluetoothScanner(
                         deviceRepository.addDevice(targetDevice)
                     }
                 }
+                BluetoothDevice.ACTION_UUID -> {
+                    val device: BluetoothDevice? =
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                        }
+                    val uuidExtra = intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID)
+                    device?.let {
+                        val services = uuidExtra?.map { it.toString() } ?: emptyList()
+                        deviceRepository.updateDeviceServices(it.address, services)
+                        onClassicServicesDiscovered(it.address, services)
+                    }
+                }
             }
         }
     }
@@ -67,6 +86,7 @@ class BluetoothScanner(
     fun startClassicDiscovery() {
         if (!isClassicReceiverRegistered) {
             val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
+            filter.addAction(BluetoothDevice.ACTION_UUID)
             context.registerReceiver(classicDiscoveryReceiver, filter)
             isClassicReceiverRegistered = true
         }
@@ -83,6 +103,11 @@ class BluetoothScanner(
     }
 
     @SuppressLint("MissingPermission")
+    fun fetchUuids(device: BluetoothDevice) {
+        device.fetchUuidsWithSdp()
+    }
+
+    @SuppressLint("MissingPermission")
     fun startBleScan() {
         bleScanner.startScan(bleScanCallback)
     }
@@ -90,5 +115,26 @@ class BluetoothScanner(
     @SuppressLint("MissingPermission")
     fun stopBleScan() {
         bleScanner.stopScan(bleScanCallback)
+    }
+
+    @SuppressLint("MissingPermission")
+    fun discoverGattServices(device: BluetoothDevice, onServicesDiscovered: (List<String>) -> Unit) {
+        val gattCallback = object : BluetoothGattCallback() {
+            @SuppressLint("MissingPermission")
+            override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+                if (newState == BluetoothProfile.STATE_CONNECTED) {
+                    gatt.discoverServices()
+                }
+            }
+
+            override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    val services = gatt.services.map { it.uuid.toString() }
+                    onServicesDiscovered(services)
+                }
+                gatt.close()
+            }
+        }
+        device.connectGatt(context, false, gattCallback)
     }
 }

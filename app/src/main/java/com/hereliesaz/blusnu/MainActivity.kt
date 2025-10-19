@@ -51,7 +51,18 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hereliesaz.blusnu.data.TargetDevice
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.hereliesaz.blusnu.ui.TargetManagementViewModel
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.clickable
 
 class MainActivity : ComponentActivity() {
 
@@ -160,6 +171,22 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
             }
         }
 
+        Row {
+            Button(onClick = { viewModel.onFilterSelected(com.hereliesaz.blusnu.ui.FilterProtocol.ALL) }) {
+                Text("All")
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { viewModel.onFilterSelected(com.hereliesaz.blusnu.ui.FilterProtocol.CLASSIC) }) {
+                Text("Classic")
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { viewModel.onFilterSelected(com.hereliesaz.blusnu.ui.FilterProtocol.BLE) }) {
+                Text("BLE")
+            }
+        }
+
+        SortDropDown(onSortSelected = { viewModel.onSortSelected(it) })
+
         if (!state.hasPermissions) {
             Text("Permissions not granted")
         } else if (!state.isBluetoothEnabled) {
@@ -171,7 +198,9 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
         } else {
             LazyColumn {
                 items(state.devices) { device ->
-                    DeviceListItem(device = device)
+                    DeviceListItem(device = device) {
+                        viewModel.discoverServices(device)
+                    }
                 }
             }
         }
@@ -179,15 +208,80 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
 }
 
 @Composable
-fun DeviceListItem(device: TargetDevice) {
-    Row {
-        Text(text = device.name ?: "Unknown")
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(text = device.macAddress)
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(text = "${device.rssi} dBm")
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(text = device.protocol.name)
+fun DeviceListItem(device: TargetDevice, onDeviceClick: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.clickable {
+        onDeviceClick()
+        expanded = !expanded
+    }) {
+        Row {
+            Text(text = device.name ?: "Unknown")
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = device.macAddress)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = "${device.rssi} dBm")
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = device.protocol.name)
+        }
+
+        if (expanded) {
+            if (device.services.isNotEmpty()) {
+                Column {
+                    device.services.forEach { service ->
+                        Text(text = "Service: $service")
+                    }
+                }
+            }
+            if (device.vulnerabilities.isNotEmpty()) {
+                Column {
+                    device.vulnerabilities.forEach { vulnerability ->
+                        Text(
+                            text = "Vulnerability: ${vulnerability.vulnerabilityName} (${vulnerability.cve})",
+                            color = Color.Red
+                        )
+                    }
+                }
+            }
+        }
+        if (device.vulnerabilities.isNotEmpty()) {
+            Text("Vulnerable", color = Color.Red)
+        }
+    }
+}
+
+@Composable
+fun SortDropDown(onSortSelected: (com.hereliesaz.blusnu.ui.SortOption) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val items = com.hereliesaz.blusnu.ui.SortOption.values()
+    var selectedText by remember { mutableStateOf(items[0].name) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        TextField(
+            value = selectedText,
+            onValueChange = {},
+            readOnly = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.menuAnchor()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            items.forEach { item ->
+                DropdownMenuItem(
+                    text = { Text(text = item.name) },
+                    onClick = {
+                        selectedText = item.name
+                        expanded = false
+                        onSortSelected(item)
+                    }
+                )
+            }
+        }
     }
 }
 
