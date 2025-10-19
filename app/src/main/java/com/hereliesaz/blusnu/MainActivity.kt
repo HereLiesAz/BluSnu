@@ -3,6 +3,7 @@ package com.hereliesaz.blusnu
 import android.Manifest
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -10,19 +11,18 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
@@ -30,38 +30,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import android.content.Context
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Button
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
-import android.bluetooth.BluetoothAdapter
-import com.hereliesaz.blusnu.data.DeviceRepository
-import com.hereliesaz.blusnu.correlator.VulnerabilityCorrelator
-import com.hereliesaz.blusnu.scanner.BluetoothScanner
-import com.hereliesaz.blusnu.ui.attack.BlueSmackScreen
-import com.hereliesaz.blusnu.ui.attack.BluebuggingScreen
-import com.hereliesaz.blusnu.ui.attack.BluesnarfingScreen
 import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
-import android.widget.Toast
-import androidx.lifecycle.lifecycleScope
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -73,35 +46,11 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-    private val deviceRepository = DeviceRepository()
-    private val bluetoothAdapter: BluetoothAdapter? by lazy(LazyThreadSafetyMode.NONE) {
-        (getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
-    }
-    private val bluetoothScanner by lazy {
-        BluetoothScanner(this, deviceRepository, bluetoothAdapter)
-    }
-    private val vulnerabilityCorrelator by lazy {
-        VulnerabilityCorrelator(this)
-    }
-    private val bluesnarfing by lazy {
-        com.hereliesaz.blusnu.attack.Bluesnarfing(this, bluetoothAdapter)
-    }
-    private val bluebugging by lazy {
-        com.hereliesaz.blusnu.attack.Bluebugging(this, bluetoothAdapter)
-    }
-    private val blueSmack by lazy {
-        com.hereliesaz.blusnu.attack.BlueSmack(this, bluetoothAdapter)
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         requestRequiredPermissions()
-
-        lifecycleScope.launch {
-            vulnerabilityCorrelator.loadVulnerabilities()
-        }
 
         setContent {
             BluSnuTheme {
@@ -118,57 +67,17 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
-                        bottomBar = {
-                            BottomNavigationBar(navController = navController)
-                        }
+                        bottomBar = { BottomNavigationBar(navController = navController) }
                     ) { innerPadding ->
                         NavHost(
                             navController = navController,
                             startDestination = "dashboard",
                             modifier = Modifier.padding(innerPadding)
                         ) {
-                            composable("dashboard") {
-                                DashboardScreen(
-                                    onStartScan = { bluetoothScanner.startScan() },
-                                    onStopScan = { bluetoothScanner.stopScan() }
-                                )
-                            }
-                            composable("targets") {
-                                val devices by deviceRepository.discoveredDevices.collectAsState()
-                                TargetManagementScreen(
-                                    devices = devices,
-                                    vulnerabilityCorrelator = vulnerabilityCorrelator,
-                                    onDeviceClick = { device ->
-                                        bluetoothScanner.connectToDevice(device)
-                                    }
-                                )
-                            }
-                            composable("attacks") { AttackModulesScreen(navController = navController) }
+                            composable("dashboard") { DashboardScreen() }
+                            composable("targets") { TargetManagementScreen() }
+                            composable("attacks") { AttackModulesScreen() }
                             composable("settings") { SettingsScreen() }
-                            composable("bluesnarfing") {
-                                val scope = rememberCoroutineScope()
-                                BluesnarfingScreen(onAttack = { macAddress ->
-                                    scope.launch {
-                                        bluesnarfing.attack(macAddress)
-                                    }
-                                })
-                            }
-                            composable("bluebugging") {
-                                val scope = rememberCoroutineScope()
-                                BluebuggingScreen(onAttack = { macAddress, command ->
-                                    scope.launch {
-                                        bluebugging.attack(macAddress, command)
-                                    }
-                                })
-                            }
-                            composable("bluesmack") {
-                                val scope = rememberCoroutineScope()
-                                BlueSmackScreen(onAttack = { macAddress, packetSize, packetCount ->
-                                    scope.launch {
-                                        blueSmack.attack(macAddress, packetSize, packetCount)
-                                    }
-                                })
-                            }
                         }
                     }
                 }
@@ -191,148 +100,26 @@ class MainActivity : ComponentActivity() {
 
         requestPermissionsLauncher.launch(requiredPermissions.toTypedArray())
     }
-
-    override fun onResume() {
-        super.onResume()
-        val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
-        filter.addAction(BluetoothDevice.ACTION_UUID)
-        registerReceiver(bluetoothScanner.classicDiscoveryReceiver, filter)
-    }
-
-    override fun onPause() {
-        super.onPause()
-        unregisterReceiver(bluetoothScanner.classicDiscoveryReceiver)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-    }
 }
 
 @Composable
-fun DashboardScreen(
-    modifier: Modifier = Modifier,
-    onStartScan: () -> Unit,
-    onStopScan: () -> Unit
-) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Button(onClick = onStartScan) {
-            Text("Start Scan")
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onStopScan) {
-            Text("Stop Scan")
-        }
-    }
+fun DashboardScreen(modifier: Modifier = Modifier) {
+    Text(text = "Dashboard", modifier = modifier)
 }
 
 @Composable
-fun TargetManagementScreen(
-    modifier: Modifier = Modifier,
-    devices: List<com.hereliesaz.blusnu.data.TargetDevice>,
-    vulnerabilityCorrelator: VulnerabilityCorrelator,
-    onDeviceClick: (com.hereliesaz.blusnu.data.TargetDevice) -> Unit
-) {
-    var protocolFilter by remember { mutableStateOf<com.hereliesaz.blusnu.data.Protocol?>(null) }
-    var sortByRssi by remember { mutableStateOf(false) }
-
-    val devicesToShow = devices
-        .filter { protocolFilter == null || it.protocol == protocolFilter }
-        .let { if (sortByRssi) it.sortedByDescending { device -> device.rssi } else it }
-
-    Column(modifier = modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            Button(onClick = { protocolFilter = com.hereliesaz.blusnu.data.Protocol.CLASSIC }) {
-                Text("Classic")
-            }
-            Button(onClick = { protocolFilter = com.hereliesaz.blusnu.data.Protocol.BLE }) {
-                Text("BLE")
-            }
-            Button(onClick = { protocolFilter = null }) {
-                Text("All")
-            }
-            Button(onClick = { sortByRssi = !sortByRssi }) {
-                Text(if (sortByRssi) "Sorted by RSSI" else "Sort by RSSI")
-            }
-        }
-
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            items(devicesToShow) { device ->
-                var expanded by remember { mutableStateOf(false) }
-                val vulnerabilities = vulnerabilityCorrelator.correlate(device)
-                val isVulnerable = vulnerabilities.isNotEmpty()
-
-                Column(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .clickable {
-                            if (device.protocol == com.hereliesaz.blusnu.data.Protocol.BLE) {
-                                onDeviceClick(device)
-                            }
-                            expanded = !expanded
-                        }
-                ) {
-                    Row {
-                        Text(text = device.name ?: "Unknown Device")
-                        if (isVulnerable) {
-                            Icon(
-                                imageVector = Icons.Default.Warning,
-                                contentDescription = "Vulnerable",
-                                tint = Color.Red,
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
-                        }
-                    }
-                    Text(text = device.macAddress)
-                    Text(text = "RSSI: ${device.rssi}")
-                    Text(text = "Protocol: ${device.protocol}")
-                    if (expanded) {
-                        device.services.forEach { service ->
-                            Text(text = "  - $service")
-                        }
-                        if (isVulnerable) {
-                            Text("Vulnerabilities:")
-                            vulnerabilities.forEach { vulnerability ->
-                                Text("  - ${vulnerability.description}")
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+fun TargetManagementScreen(modifier: Modifier = Modifier) {
+    Text(text = "Target Management", modifier = modifier)
 }
 
 @Composable
-fun AttackModulesScreen(modifier: Modifier = Modifier, navController: NavController) {
-    Column(modifier = modifier) {
-        Button(onClick = { navController.navigate("bluesnarfing") }) {
-            Text("Bluesnarfing")
-        }
-        Button(onClick = { navController.navigate("bluebugging") }) {
-            Text("Bluebugging")
-        }
-        Button(onClick = { navController.navigate("bluesmack") }) {
-            Text("BlueSmack")
-        }
-    }
+fun AttackModulesScreen(modifier: Modifier = Modifier) {
+    Text(text = "Attack Modules", modifier = modifier)
 }
 
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
-    Text(
-        text = "Settings",
-        modifier = modifier
-    )
+    Text(text = "Settings", modifier = modifier)
 }
 
 sealed class BottomNavItem(val route: String, val icon: ImageVector, val label: String) {
@@ -378,6 +165,6 @@ fun BottomNavigationBar(navController: NavController) {
 @Composable
 fun DashboardScreenPreview() {
     BluSnuTheme {
-        DashboardScreen(onStartScan = {}, onStopScan = {})
+        DashboardScreen()
     }
 }

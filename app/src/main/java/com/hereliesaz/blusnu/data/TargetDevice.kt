@@ -10,6 +10,5 @@ data class TargetDevice(
 
 enum class Protocol {
     CLASSIC,
-    BLE,
-    DUAL
+    BLE
 }
