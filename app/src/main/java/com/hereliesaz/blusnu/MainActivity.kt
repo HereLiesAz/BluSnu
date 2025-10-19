@@ -38,6 +38,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
+import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen
+import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingViewModel
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -122,8 +124,13 @@ class MainActivity : ComponentActivity() {
                                 val viewModel: TargetManagementViewModel = viewModel(factory = viewModelFactory)
                                 TargetManagementScreen(viewModel = viewModel)
                             }
-                            composable("attacks") { AttackModulesScreen() }
+                            composable("attacks") { AttackModulesScreen(navController = navController) }
                             composable("settings") { SettingsScreen() }
+                            composable("bluesnarfing") {
+                                val viewModel: BluesnarfingViewModel = viewModel()
+                                viewModel.hasPermissions = hasBluetoothPermissions()
+                                BluesnarfingScreen(viewModel = viewModel)
+                            }
                         }
                     }
                 }
@@ -286,11 +293,12 @@ fun SortDropDown(onSortSelected: (com.hereliesaz.blusnu.ui.SortOption) -> Unit) 
 }
 
 @Composable
-fun AttackModulesScreen(modifier: Modifier = Modifier) {
-    Text(
-        text = "Attack Modules",
-        modifier = modifier
-    )
+fun AttackModulesScreen(modifier: Modifier = Modifier, navController: NavController) {
+    Column(modifier = modifier) {
+        Button(onClick = { navController.navigate("bluesnarfing") }) {
+            Text("Bluesnarfing")
+        }
+    }
 }
 
 @Composable

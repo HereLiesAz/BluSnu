@@ -4,9 +4,11 @@ import android.bluetooth.BluetoothAdapter
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.BluesnarfingModule
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class BluesnarfingViewModel : ViewModel() {
 
@@ -39,10 +41,18 @@ class BluesnarfingViewModel : ViewModel() {
             return
         }
 
-        val device = bluetoothAdapter.getRemoteDevice(_macAddress.value)
+        val device = try {
+            bluetoothAdapter.getRemoteDevice(_macAddress.value)
+        } catch (e: IllegalArgumentException) {
+            _status.value = "Invalid MAC address"
+            return
+        }
+
         viewModelScope.launch {
             _status.value = "Connecting..."
-            val result = bluesnarfingModule.getPhonebook(device)
+            val result = withContext(Dispatchers.IO) {
+                bluesnarfingModule.getPhonebook(device)
+            }
             _status.value = "Finished"
             _result.value = result
         }
