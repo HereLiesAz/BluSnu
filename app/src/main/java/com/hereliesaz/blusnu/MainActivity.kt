@@ -28,14 +28,46 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import android.bluetooth.BluetoothManager
 import android.content.Context
+import android.content.pm.PackageManager
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.hereliesaz.blusnu.data.TargetDevice
+import com.hereliesaz.blusnu.ui.TargetManagementViewModel
 
 class MainActivity : ComponentActivity() {
+
+    private val deviceRepository by lazy { DeviceRepository() }
+
+    private val viewModelFactory by lazy {
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                if (modelClass.isAssignableFrom(TargetManagementViewModel::class.java)) {
+                    @Suppress("UNCHECKED_CAST")
+                    return TargetManagementViewModel(application, deviceRepository) as T
+                }
+                throw IllegalArgumentException("Unknown ViewModel class")
+            }
+        }
+    }
 
     private val requestPermissionsLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
@@ -75,7 +107,10 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.padding(innerPadding)
                         ) {
                             composable("dashboard") { DashboardScreen() }
-                            composable("targets") { TargetManagementScreen() }
+                            composable("targets") {
+                                val viewModel: TargetManagementViewModel = viewModel(factory = viewModelFactory)
+                                TargetManagementScreen(viewModel = viewModel)
+                            }
                             composable("attacks") { AttackModulesScreen() }
                             composable("settings") { SettingsScreen() }
                         }
@@ -111,11 +146,49 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun TargetManagementScreen(modifier: Modifier = Modifier) {
-    Text(
-        text = "Target Management",
-        modifier = modifier
-    )
+fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManagementViewModel) {
+    val state by viewModel.state.collectAsState()
+
+    Column(modifier = modifier) {
+        Row {
+            Button(onClick = { viewModel.startScan() }, enabled = !state.isScanning) {
+                Text("Start Scan")
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { viewModel.stopScan() }, enabled = state.isScanning) {
+                Text("Stop Scan")
+            }
+        }
+
+        if (!state.hasPermissions) {
+            Text("Permissions not granted")
+        } else if (!state.isBluetoothEnabled) {
+            Text("Bluetooth is not enabled")
+        } else if (state.isScanning && state.devices.isEmpty()) {
+            CircularProgressIndicator()
+        } else if (!state.isScanning && state.devices.isEmpty()) {
+            Text("No devices found. Click 'Start Scan' to begin.")
+        } else {
+            LazyColumn {
+                items(state.devices) { device ->
+                    DeviceListItem(device = device)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DeviceListItem(device: TargetDevice) {
+    Row {
+        Text(text = device.name ?: "Unknown")
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = device.macAddress)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = "${device.rssi} dBm")
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = device.protocol.name)
+    }
 }
 
 @Composable
