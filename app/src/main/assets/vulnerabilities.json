@@ -6,3 +6,17 @@
     "cve": "CVE-2023-1234"
   }
 ]
+{
+  "vulnerabilities": [
+    {
+      "service_uuid": "00001101-0000-1000-8000-00805f9b34fb",
+      "vulnerability_name": "Serial Port Profile (SPP) Insecure Pairing",
+      "cve": "CVE-2018-1000538"
+    },
+    {
+      "service_uuid": "00001105-0000-1000-8000-00805f9b34fb",
+      "vulnerability_name": "OBEX Push Insecure File Transfer",
+      "cve": "CVE-2019-9506"
+    }
+  ]
+}

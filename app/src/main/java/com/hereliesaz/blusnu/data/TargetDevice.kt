@@ -1,5 +1,11 @@
 package com.hereliesaz.blusnu.data
 
+data class Vulnerability(
+    val serviceUuid: String,
+    val vulnerabilityName: String,
+    val cve: String
+)
+
 data class TargetDevice(
     val macAddress: String,
     val name: String?,

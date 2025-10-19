@@ -1,8 +1,12 @@
 package com.hereliesaz.blusnu.ui
 
+import android.Manifest
 import android.app.Application
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.BluetoothScanner
@@ -16,13 +20,18 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
-class TargetManagementViewModel(application: Application) : AndroidViewModel(application) {
+class TargetManagementViewModel(
+    application: Application,
+    private val deviceRepository: DeviceRepository
+) : AndroidViewModel(application) {
+
+    private val _state = MutableStateFlow(TargetManagementScreenState())
+    val state: StateFlow<TargetManagementScreenState> = _state
 
     private val bluetoothManager =
         application.getSystemService(BluetoothManager::class.java)
     private val bluetoothAdapter: BluetoothAdapter? = bluetoothManager.adapter
 
-    private val deviceRepository = DeviceRepository()
     private val bluetoothScanner =
         bluetoothAdapter?.let { BluetoothScanner(application, deviceRepository, it) }
     private val vulnerabilityCorrelator = VulnerabilityCorrelator(application)
@@ -47,8 +56,9 @@ class TargetManagementViewModel(application: Application) : AndroidViewModel(app
             }
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    var hasPermissions = false
-    var isBluetoothEnabled = false
+        updatePermissionsState()
+        updateBluetoothState()
+    }
 
     fun startScan() {
         if (hasPermissions && isBluetoothEnabled) {
@@ -59,6 +69,7 @@ class TargetManagementViewModel(application: Application) : AndroidViewModel(app
     }
 
     fun stopScan() {
+        _state.update { it.copy(isScanning = false) }
         bluetoothScanner?.stopClassicDiscovery()
         bluetoothScanner?.stopBleScan()
     }
