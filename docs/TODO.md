@@ -19,21 +19,21 @@ This document outlines the development tasks required to implement the Blu Snu f
 
 ## Milestone 2: Reconnaissance Module
 
--   [ ] **Task 2.1: Multi-Protocol Device Discovery**
-    -   [ ] Implement Bluetooth Classic (BR/EDR) discovery using `BluetoothAdapter.startDiscovery()`.
-    -   [ ] Implement Bluetooth Low Energy (BLE) scanning using `BluetoothLeScanner`.
-    -   [ ] Populate the Target Management View with discovered devices in real-time.
--   [ ] **Task 2.2: Implement Target Management UI**
-    -   [ ] Design and implement the filterable and sortable list for discovered devices.
-    -   [ ] Implement filtering logic for protocol, RSSI, and vendor.
--   [ ] **Task 2.3: Service Enumeration**
-    -   [ ] Implement SDP enumeration for Classic devices (`fetchUuidsWithSdp()`).
-    -   [ ] Implement GATT service discovery for BLE devices (`bluetoothGatt.discoverServices()`).
-    -   [ ] Display discovered services in the expandable target profile view.
--   [ ] **Task 2.4: Device Fingerprinting and Vulnerability Correlation**
-    -   [ ] Create an initial internal database (e.g., in SQLite or as a bundled JSON file) for device fingerprints and known CVEs.
-    -   [ ] Implement the fingerprinting engine to match discovered services/UUIDs against the database.
-    -   [ ] Implement the vulnerability correlation engine to query the database and flag vulnerable devices in the UI.
+-   [x] **Task 2.1: Multi-Protocol Device Discovery**
+    -   [x] Implement Bluetooth Classic (BR/EDR) discovery using `BluetoothAdapter.startDiscovery()`.
+    -   [x] Implement Bluetooth Low Energy (BLE) scanning using `BluetoothLeScanner`.
+    -   [x] Populate the Target Management View with discovered devices in real-time.
+-   [x] **Task 2.2: Implement Target Management UI**
+    -   [x] Design and implement the filterable and sortable list for discovered devices.
+    -   [x] Implement filtering logic for protocol, RSSI, and vendor.
+-   [x] **Task 2.3: Service Enumeration**
+    -   [x] Implement SDP enumeration for Classic devices (`fetchUuidsWithSdp()`).
+    -   [x] Implement GATT service discovery for BLE devices (`bluetoothGatt.discoverServices()`).
+    -   [x] Display discovered services in the expandable target profile view.
+-   [x] **Task 2.4: Device Fingerprinting and Vulnerability Correlation**
+    -   [x] Create an initial internal database (e.g., in SQLite or as a bundled JSON file) for device fingerprints and known CVEs.
+    -   [x] Implement the fingerprinting engine to match discovered services/UUIDs against the database.
+    -   [x] Implement the vulnerability correlation engine to query the database and flag vulnerable devices in the UI.
 
 ## Milestone 3: Bluetooth Classic (BR/EDR) Attack Modules
 
