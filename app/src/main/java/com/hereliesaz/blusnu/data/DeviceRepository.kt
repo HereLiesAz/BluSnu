@@ -43,7 +43,7 @@ class DeviceRepository {
     fun updateDeviceServices(macAddress: String, services: List<String>) {
         _discoveredDevices.value = _discoveredDevices.value.map {
             if (it.macAddress == macAddress) {
-                it.copy(services = services)
+                it.copy(services = (it.services + services).distinct())
             } else {
                 it
             }
