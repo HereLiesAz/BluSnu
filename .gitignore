@@ -608,5 +608,6 @@ hs_err_pid*
 replay_pid*
 
 /.kotlin/*
-.gradle/buildOutputCleanup*
+.gradle/*
 *.lock
+.gradle/

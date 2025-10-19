@@ -22,13 +22,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.compose.runtime.mutableStateOf
@@ -55,9 +55,16 @@ import com.hereliesaz.blusnu.data.TargetDevice
 import com.hereliesaz.blusnu.ui.TargetManagementViewModel
 import androidx.compose.foundation.layout.fillMaxWidth
 import com.hereliesaz.blusnu.data.Protocol
-import androidx.compose.foundation.background
-import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.TextField
+import androidx.compose.foundation.clickable
+import androidx.core.content.ContextCompat
+
 
 class MainActivity : ComponentActivity() {
 
@@ -90,14 +97,12 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             BluSnuTheme {
-                val sharedPreferences = getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE)
-                val disclaimerAccepted = sharedPreferences.getBoolean("disclaimer_accepted", false)
-                val showDisclaimer = remember { mutableStateOf(!disclaimerAccepted) }
+                var showDisclaimer by remember { mutableStateOf(!getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).getBoolean("disclaimer_accepted", false)) }
 
-                if (showDisclaimer.value) {
+                if (showDisclaimer) {
                     DisclaimerDialog {
-                        sharedPreferences.edit().putBoolean("disclaimer_accepted", true).apply()
-                        showDisclaimer.value = false
+                        getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).edit().putBoolean("disclaimer_accepted", true).apply()
+                        showDisclaimer = false
                     }
                 } else {
                     val navController = rememberNavController()
@@ -131,6 +136,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun hasBluetoothPermissions(): Boolean {
+        val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            listOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+        } else {
+            listOf(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+        return requiredPermissions.all { permission ->
+            ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
     private fun requestRequiredPermissions() {
         val requiredPermissions = mutableListOf(
             Manifest.permission.BLUETOOTH_SCAN,
@@ -148,6 +164,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+enum class SortOption {
+    NAME,
+    RSSI,
+    PROTOCOL
+}
+
 @Composable
 fun DashboardScreen(modifier: Modifier = Modifier) {
     Text(
@@ -156,12 +178,13 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManagementViewModel = viewModel()) {
-    val devices by viewModel.filteredDevices.collectAsState()
-    val filterText by viewModel.filterText.collectAsState()
+fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManagementViewModel) {
+    val state by viewModel.state.collectAsState()
+    var filterText by remember { mutableStateOf("") }
 
-    Column(modifier = modifier) {
+    Column(modifier = modifier.padding(16.dp)) {
         Row {
             Button(onClick = { viewModel.startScan() }, enabled = !state.isScanning) {
                 Text("Start Scan")
@@ -186,45 +209,29 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        androidx.compose.material3.TextField(
+        TextField(
             value = filterText,
-            onValueChange = { viewModel.setFilterText(it) },
+            onValueChange = { 
+                filterText = it
+                viewModel.setFilterText(it) 
+            },
             label = { Text("Filter by name or MAC") },
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
 
-
-        Row {
-            Button(onClick = { viewModel.onFilterSelected(com.hereliesaz.blusnu.ui.FilterProtocol.ALL) }) {
-                Text("All")
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = { viewModel.onFilterSelected(com.hereliesaz.blusnu.ui.FilterProtocol.CLASSIC) }) {
-                Text("Classic")
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = { viewModel.onFilterSelected(com.hereliesaz.blusnu.ui.FilterProtocol.BLE) }) {
-                Text("BLE")
-            }
-        }
-
-        SortDropDown(onSortSelected = { viewModel.onSortSelected(it) })
-
         if (!state.hasPermissions) {
             Text("Permissions not granted")
         } else if (!state.isBluetoothEnabled) {
             Text("Bluetooth is not enabled")
-        } else if (state.isScanning && state.devices.isEmpty()) {
+        } else if (state.isScanning && state.discoveredDevices.isEmpty()) {
             CircularProgressIndicator()
-        } else if (!state.isScanning && state.devices.isEmpty()) {
+        } else if (!state.isScanning && state.discoveredDevices.isEmpty()) {
             Text("No devices found. Click 'Start Scan' to begin.")
         } else {
             LazyColumn {
-                items(state.devices) { device ->
-                    DeviceListItem(device = device) {
-                        viewModel.discoverServices(device)
-                    }
+                items(state.discoveredDevices) { device ->
+                    DeviceListItem(device = device, viewModel = viewModel)
                 }
             }
         }
@@ -232,13 +239,10 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
 }
 
 @Composable
-fun DeviceListItem(device: TargetDevice, onDeviceClick: () -> Unit) {
+fun DeviceListItem(device: TargetDevice, viewModel: TargetManagementViewModel) {
     var expanded by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.clickable {
-        onDeviceClick()
-        expanded = !expanded
-    }) {
+    Column(modifier = Modifier.clickable { expanded = !expanded }) {
         Row {
             Text(text = device.name ?: "Unknown")
             Spacer(modifier = Modifier.width(8.dp))
@@ -256,27 +260,30 @@ fun DeviceListItem(device: TargetDevice, onDeviceClick: () -> Unit) {
                 Text("Check Vulns")
             }
         }
-        if (device.services.isNotEmpty()) {
-            Column {
-                device.services.forEach { service ->
-                    Text(text = "Service: $service")
+        if (expanded) {
+            if (device.services.isNotEmpty()) {
+                Column {
+                    device.services.forEach { service ->
+                        Text(text = "Service: $service")
+                    }
                 }
             }
-        }
-        if (device.vulnerabilities.isNotEmpty()) {
-            Column {
-                device.vulnerabilities.forEach { vulnerability ->
-                    Text(text = "Vulnerability: ${vulnerability.name} (${vulnerability.cve})")
+            if (device.vulnerabilities.isNotEmpty()) {
+                Column {
+                    device.vulnerabilities.forEach { vulnerability ->
+                        Text(text = "Vulnerability: ${vulnerability.name} (${vulnerability.cve})")
+                    }
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SortDropDown(onSortSelected: (com.hereliesaz.blusnu.ui.SortOption) -> Unit) {
+fun SortDropDown(onSortSelected: (SortOption) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    val items = com.hereliesaz.blusnu.ui.SortOption.values()
+    val items = SortOption.values()
     var selectedText by remember { mutableStateOf(items[0].name) }
 
     ExposedDropdownMenuBox(
@@ -284,11 +291,11 @@ fun SortDropDown(onSortSelected: (com.hereliesaz.blusnu.ui.SortOption) -> Unit) 
         onExpandedChange = { expanded = !expanded }
     ) {
         TextField(
+            modifier = Modifier.fillMaxWidth(),
             value = selectedText,
             onValueChange = {},
             readOnly = true,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor()
         )
         ExposedDropdownMenu(
             expanded = expanded,

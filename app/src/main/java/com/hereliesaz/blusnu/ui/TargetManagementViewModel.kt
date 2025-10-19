@@ -4,9 +4,9 @@ import android.Manifest
 import android.app.Application
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
-import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.BluetoothScanner
@@ -19,6 +19,14 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+
+data class TargetManagementScreenState(
+    val isScanning: Boolean = false,
+    val hasPermissions: Boolean = false,
+    val isBluetoothEnabled: Boolean = false,
+    val discoveredDevices: List<TargetDevice> = emptyList(),
+)
 
 class TargetManagementViewModel(
     application: Application,
@@ -26,24 +34,25 @@ class TargetManagementViewModel(
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(TargetManagementScreenState())
-    val state: StateFlow<TargetManagementScreenState> = _state
+    val state: StateFlow<TargetManagementScreenState>
 
     private val bluetoothManager =
         application.getSystemService(BluetoothManager::class.java)
     private val bluetoothAdapter: BluetoothAdapter? = bluetoothManager.adapter
 
     private val bluetoothScanner =
-        bluetoothAdapter?.let { BluetoothScanner(application, deviceRepository, it) }
+        bluetoothAdapter?.let {
+            BluetoothScanner(application, deviceRepository, it) { macAddress, _ ->
+                deviceRepository.discoveredDevices.value.find { it.macAddress == macAddress }?.let(::checkForVulnerabilities)
+            }
+        }
     private val vulnerabilityCorrelator = VulnerabilityCorrelator(application)
 
     private val _filter = MutableStateFlow<Protocol?>(null)
-    val filter: StateFlow<Protocol?> = _filter
-
     private val _filterText = MutableStateFlow("")
-    val filterText: StateFlow<String> = _filterText
 
-    val filteredDevices: StateFlow<List<TargetDevice>> =
-        combine(
+    init {
+        val filteredDevices: StateFlow<List<TargetDevice>> = combine(
             deviceRepository.discoveredDevices,
             _filter,
             _filterText
@@ -56,12 +65,45 @@ class TargetManagementViewModel(
             }
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+        state = combine(
+            _state,
+            filteredDevices,
+            _filter,
+            _filterText
+        ) { state, devices, filter, filterText ->
+            state.copy(discoveredDevices = devices)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TargetManagementScreenState())
+
         updatePermissionsState()
         updateBluetoothState()
     }
 
+    private fun updatePermissionsState() {
+        val hasPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(
+                getApplication(),
+                Manifest.permission.BLUETOOTH_SCAN
+            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                getApplication(),
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            ContextCompat.checkSelfPermission(
+                getApplication(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+        _state.update { it.copy(hasPermissions = hasPermissions) }
+    }
+
+    private fun updateBluetoothState() {
+        _state.update { it.copy(isBluetoothEnabled = bluetoothAdapter?.isEnabled == true) }
+    }
+
+
     fun startScan() {
-        if (hasPermissions && isBluetoothEnabled) {
+        if (_state.value.hasPermissions && _state.value.isBluetoothEnabled) {
+            _state.update { it.copy(isScanning = true) }
             deviceRepository.clearDevices()
             bluetoothScanner?.startClassicDiscovery()
             bluetoothScanner?.startBleScan()
