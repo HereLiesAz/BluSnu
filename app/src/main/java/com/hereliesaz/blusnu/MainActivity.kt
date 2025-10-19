@@ -35,7 +35,26 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.navigation.compose.rememberNavController
 import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
+import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen
+import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingViewModel
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.hereliesaz.blusnu.data.TargetDevice
+import com.hereliesaz.blusnu.ui.TargetManagementViewModel
+import androidx.compose.foundation.layout.fillMaxWidth
+import com.hereliesaz.blusnu.data.Protocol
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.height
 
 class MainActivity : ComponentActivity() {
 
@@ -83,8 +102,13 @@ class MainActivity : ComponentActivity() {
                                 viewModel.isBluetoothEnabled = isBluetoothEnabled()
                                 TargetManagementScreen(viewModel = viewModel)
                             }
-                            composable("attacks") { AttackModulesScreen() }
+                            composable("attacks") { AttackModulesScreen(navController = navController) }
                             composable("settings") { SettingsScreen() }
+                            composable("bluesnarfing") {
+                                val viewModel: BluesnarfingViewModel = viewModel()
+                                viewModel.hasPermissions = hasBluetoothPermissions()
+                                BluesnarfingScreen(viewModel = viewModel)
+                            }
                         }
                     }
                 }
@@ -132,23 +156,10 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
     )
 }
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.hereliesaz.blusnu.data.TargetDevice
-import com.hereliesaz.blusnu.ui.TargetManagementViewModel
-
 @Composable
 fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManagementViewModel = viewModel()) {
-    val devices by viewModel.discoveredDevices.collectAsState()
+    val devices by viewModel.filteredDevices.collectAsState()
+    val filterText by viewModel.filterText.collectAsState()
 
     Column(modifier = modifier) {
         Row {
@@ -160,13 +171,36 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
                 Text("Stop Scan")
             }
         }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row {
+            Button(onClick = { viewModel.setFilter(Protocol.CLASSIC) }) {
+                Text("Classic")
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { viewModel.setFilter(Protocol.BLE) }) {
+                Text("BLE")
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { viewModel.setFilter(null) }) {
+                Text("All")
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        androidx.compose.material3.TextField(
+            value = filterText,
+            onValueChange = { viewModel.setFilterText(it) },
+            label = { Text("Filter by name or MAC") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
 
         if (devices.isEmpty()) {
             Text("No devices found")
         } else {
             LazyColumn {
                 items(devices) { device ->
-                    DeviceListItem(device = device)
+                    DeviceListItem(device = device, viewModel = viewModel)
                 }
             }
         }
@@ -174,24 +208,53 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
 }
 
 @Composable
-fun DeviceListItem(device: TargetDevice) {
-    Row {
-        Text(text = device.name ?: "Unknown")
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(text = device.macAddress)
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(text = "${device.rssi} dBm")
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(text = device.protocol.name)
+fun DeviceListItem(device: TargetDevice, viewModel: TargetManagementViewModel) {
+    Column(
+        modifier = Modifier.background(
+            if (device.vulnerabilities.isNotEmpty()) Color.Red.copy(alpha = 0.5f) else Color.Transparent
+        )
+    ) {
+        Row {
+            Text(text = device.name ?: "Unknown")
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = device.macAddress)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = "${device.rssi} dBm")
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = device.protocol.name)
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { viewModel.discoverServices(device) }) {
+                Text("Services")
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { viewModel.checkForVulnerabilities(device) }) {
+                Text("Check Vulns")
+            }
+        }
+        if (device.services.isNotEmpty()) {
+            Column {
+                device.services.forEach { service ->
+                    Text(text = "Service: $service")
+                }
+            }
+        }
+        if (device.vulnerabilities.isNotEmpty()) {
+            Column {
+                device.vulnerabilities.forEach { vulnerability ->
+                    Text(text = "Vulnerability: ${vulnerability.name} (${vulnerability.cve})")
+                }
+            }
+        }
     }
 }
 
 @Composable
-fun AttackModulesScreen(modifier: Modifier = Modifier) {
-    Text(
-        text = "Attack Modules",
-        modifier = modifier
-    )
+fun AttackModulesScreen(modifier: Modifier = Modifier, navController: NavController) {
+    Column(modifier = modifier) {
+        Button(onClick = { navController.navigate("bluesnarfing") }) {
+            Text("Bluesnarfing")
+        }
+    }
 }
 
 @Composable
@@ -200,13 +263,6 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         text = "Settings",
         modifier = modifier
     )
-}
-
-sealed class BottomNavItem(val route: String, val icon: ImageVector, val label: String) {
-    object Dashboard : BottomNavItem("dashboard", Icons.Default.Home, "Dashboard")
-    object Targets : BottomNavItem("targets", Icons.Default.List, "Targets")
-    object Attacks : BottomNavItem("attacks", Icons.Default.Send, "Attacks")
-    object Settings : BottomNavItem("settings", Icons.Default.Settings, "Settings")
 }
 
 @Composable
@@ -239,6 +295,13 @@ fun BottomNavigationBar(navController: NavController) {
             )
         }
     }
+}
+
+sealed class BottomNavItem(val route: String, val icon: ImageVector, val label: String) {
+    object Dashboard : BottomNavItem("dashboard", Icons.Default.Home, "Dashboard")
+    object Targets : BottomNavItem("targets", Icons.Default.List, "Targets")
+    object Attacks : BottomNavItem("attacks", Icons.Default.Send, "Attacks")
+    object Settings : BottomNavItem("settings", Icons.Default.Settings, "Settings")
 }
 
 @Preview(showBackground = true)

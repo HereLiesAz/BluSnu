@@ -4,42 +4,42 @@ This document outlines the development tasks required to implement the Blu Snu f
 
 ## Milestone 1: Project Setup and Core Framework
 
--   [ ] **Task 1.1: Initialize Android Project**
-    -   [ ] Set up a new Android project with the package name `com.hereliesaz.blusnu`.
-    -   [ ] Configure required permissions (`BLUETOOTH_SCAN`, `BLUETOOTH_CONNECT`, `BLUETOOTH_ADVERTISE`, `ACCESS_FINE_LOCATION`, `INTERNET`, `WRITE_EXTERNAL_STORAGE`) in `AndroidManifest.xml`.
-    -   [ ] Implement runtime permission handling for all required permissions.
--   [ ] **Task 1.2: Implement Core UI Shell**
-    -   [ ] Create the main dashboard layout with placeholders for key widgets (Nearby Devices, Active Tasks, etc.).
-    -   [ ] Set up navigation between the main dashboard and placeholder views for Target Management, Attack Modules, and Settings.
--   [ ] **Task 1.3: Implement Unified Protocol Abstraction Layer (Initial)**
-    -   [ ] Define a `TargetDevice` data class to hold information for both Classic and BLE devices (MAC, name, RSSI, protocol type, etc.).
-    -   [ ] Create a repository or service class to manage the list of discovered devices.
--   [ ] **Task 1.4: Implement Ethical Use Disclaimer**
-    -   [ ] Create a non-skippable disclaimer dialog that appears on the first launch of the application.
+-   [x] **Task 1.1: Initialize Android Project**
+    -   [x] Set up a new Android project with the package name `com.hereliesaz.blusnu`.
+    -   [x] Configure required permissions (`BLUETOOTH_SCAN`, `BLUETOOTH_CONNECT`, `BLUETOOTH_ADVERTISE`, `ACCESS_FINE_LOCATION`, `INTERNET`, `WRITE_EXTERNAL_STORAGE`) in `AndroidManifest.xml`.
+    -   [x] Implement runtime permission handling for all required permissions.
+-   [x] **Task 1.2: Implement Core UI Shell**
+    -   [x] Create the main dashboard layout with placeholders for key widgets (Nearby Devices, Active Tasks, etc.).
+    -   [x] Set up navigation between the main dashboard and placeholder views for Target Management, Attack Modules, and Settings.
+-   [x] **Task 1.3: Implement Unified Protocol Abstraction Layer (Initial)**
+    -   [x] Define a `TargetDevice` data class to hold information for both Classic and BLE devices (MAC, name, RSSI, protocol type, etc.).
+    -   [x] Create a repository or service class to manage the list of discovered devices.
+-   [x] **Task 1.4: Implement Ethical Use Disclaimer**
+    -   [x] Create a non-skippable disclaimer dialog that appears on the first launch of the application.
 
 ## Milestone 2: Reconnaissance Module
 
--   [ ] **Task 2.1: Multi-Protocol Device Discovery**
-    -   [ ] Implement Bluetooth Classic (BR/EDR) discovery using `BluetoothAdapter.startDiscovery()`.
-    -   [ ] Implement Bluetooth Low Energy (BLE) scanning using `BluetoothLeScanner`.
-    -   [ ] Populate the Target Management View with discovered devices in real-time.
--   [ ] **Task 2.2: Implement Target Management UI**
-    -   [ ] Design and implement the filterable and sortable list for discovered devices.
-    -   [ ] Implement filtering logic for protocol, RSSI, and vendor.
--   [ ] **Task 2.3: Service Enumeration**
-    -   [ ] Implement SDP enumeration for Classic devices (`fetchUuidsWithSdp()`).
-    -   [ ] Implement GATT service discovery for BLE devices (`bluetoothGatt.discoverServices()`).
-    -   [ ] Display discovered services in the expandable target profile view.
--   [ ] **Task 2.4: Device Fingerprinting and Vulnerability Correlation**
-    -   [ ] Create an initial internal database (e.g., in SQLite or as a bundled JSON file) for device fingerprints and known CVEs.
-    -   [ ] Implement the fingerprinting engine to match discovered services/UUIDs against the database.
-    -   [ ] Implement the vulnerability correlation engine to query the database and flag vulnerable devices in the UI.
+-   [x] **Task 2.1: Multi-Protocol Device Discovery**
+    -   [x] Implement Bluetooth Classic (BR/EDR) discovery using `BluetoothAdapter.startDiscovery()`.
+    -   [x] Implement Bluetooth Low Energy (BLE) scanning using `BluetoothLeScanner`.
+    -   [x] Populate the Target Management View with discovered devices in real-time.
+-   [x] **Task 2.2: Implement Target Management UI**
+    -   [x] Design and implement the filterable and sortable list for discovered devices.
+    -   [x] Implement filtering logic for protocol, RSSI, and vendor.
+-   [x] **Task 2.3: Service Enumeration**
+    -   [x] Implement SDP enumeration for Classic devices (`fetchUuidsWithSdp()`).
+    -   [x] Implement GATT service discovery for BLE devices (`bluetoothGatt.discoverServices()`).
+    -   [x] Display discovered services in the expandable target profile view.
+-   [x] **Task 2.4: Device Fingerprinting and Vulnerability Correlation**
+    -   [x] Create an initial internal database (e.g., in SQLite or as a bundled JSON file) for device fingerprints and known CVEs.
+    -   [x] Implement the fingerprinting engine to match discovered services/UUIDs against the database.
+    -   [x] Implement the vulnerability correlation engine to query the database and flag vulnerable devices in the UI.
 
 ## Milestone 3: Bluetooth Classic (BR/EDR) Attack Modules
 
--   [ ] **Task 3.1: Bluesnarfing Module**
-    -   [ ] Create the UI for the Bluesnarfing attack.
-    -   [ ] Implement the logic to connect to a target's OBEX service and retrieve data (e.g., phonebook).
+-   [x] **Task 3.1: Bluesnarfing Module**
+    -   [x] Create the UI for the Bluesnarfing attack.
+    -   [x] Implement the logic to connect to a target's OBEX service and retrieve data (e.g., phonebook).
 -   [ ] **Task 3.2: Bluebugging Module**
     -   [ ] Create the UI for the Bluebugging attack.
     -   [ ] Implement the logic to establish a serial connection and inject AT commands. (Requires Elevated Mode)

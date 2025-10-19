@@ -17,4 +17,24 @@ class DeviceRepository {
     fun clearDevices() {
         _discoveredDevices.value = emptyList()
     }
+
+    fun updateDeviceServices(macAddress: String, services: List<String>) {
+        _discoveredDevices.value = _discoveredDevices.value.map {
+            if (it.macAddress == macAddress) {
+                it.copy(services = services)
+            } else {
+                it
+            }
+        }
+    }
+
+    fun updateDeviceVulnerabilities(macAddress: String, vulnerabilities: List<Vulnerability>) {
+        _discoveredDevices.value = _discoveredDevices.value.map {
+            if (it.macAddress == macAddress) {
+                it.copy(vulnerabilities = vulnerabilities)
+            } else {
+                it
+            }
+        }
+    }
 }
