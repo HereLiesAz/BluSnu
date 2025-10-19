@@ -1,20 +1,24 @@
 package com.hereliesaz.blusnu.data
 
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class DeviceRepository {
 
     private val _discoveredDevices = MutableStateFlow<List<TargetDevice>>(emptyList())
-    val discoveredDevices: StateFlow<List<TargetDevice>> = _discoveredDevices
+    val discoveredDevices = _discoveredDevices.asStateFlow()
 
     fun addDevice(device: TargetDevice) {
-        if (_discoveredDevices.value.none { it.macAddress == device.macAddress }) {
+        if (_discoveredDevices.value.any { it.macAddress == device.macAddress }) {
+            updateDevice(device)
+        } else {
             _discoveredDevices.value = _discoveredDevices.value + device
         }
     }
 
-    fun clearDevices() {
-        _discoveredDevices.value = emptyList()
+    fun updateDevice(device: TargetDevice) {
+        _discoveredDevices.value = _discoveredDevices.value.map {
+            if (it.macAddress == device.macAddress) device else it
+        }
     }
 }
