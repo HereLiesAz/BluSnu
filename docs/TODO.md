@@ -4,17 +4,17 @@ This document outlines the development tasks required to implement the Blu Snu f
 
 ## Milestone 1: Project Setup and Core Framework
 
--   [ ] **Task 1.1: Initialize Android Project**
-    -   [ ] Set up a new Android project with the package name `com.hereliesaz.blusnu`.
-    -   [ ] Configure required permissions (`BLUETOOTH_SCAN`, `BLUETOOTH_CONNECT`, `BLUETOOTH_ADVERTISE`, `ACCESS_FINE_LOCATION`, `INTERNET`, `WRITE_EXTERNAL_STORAGE`) in `AndroidManifest.xml`.
-    -   [ ] Implement runtime permission handling for all required permissions.
--   [ ] **Task 1.2: Implement Core UI Shell**
-    -   [ ] Create the main dashboard layout with placeholders for key widgets (Nearby Devices, Active Tasks, etc.).
-    -   [ ] Set up navigation between the main dashboard and placeholder views for Target Management, Attack Modules, and Settings.
--   [ ] **Task 1.3: Implement Unified Protocol Abstraction Layer (Initial)**
-    -   [ ] Define a `TargetDevice` data class to hold information for both Classic and BLE devices (MAC, name, RSSI, protocol type, etc.).
-    -   [ ] Create a repository or service class to manage the list of discovered devices.
--   [ ] **Task 1.4: Implement Ethical Use Disclaimer**
+-   [x] **Task 1.1: Initialize Android Project**
+    -   [x] Set up a new Android project with the package name `com.hereliesaz.blusnu`.
+    -   [x] Configure required permissions (`BLUETOOTH_SCAN`, `BLUETOOTH_CONNECT`, `BLUETOOTH_ADVERTISE`, `ACCESS_FINE_LOCATION`, `INTERNET`, `WRITE_EXTERNAL_STORAGE`) in `AndroidManifest.xml`.
+    -   [x] Implement runtime permission handling for all required permissions.
+-   [x] **Task 1.2: Implement Core UI Shell**
+    -   [x] Create the main dashboard layout with placeholders for key widgets (Nearby Devices, Active Tasks, etc.).
+    -   [x] Set up navigation between the main dashboard and placeholder views for Target Management, Attack Modules, and Settings.
+-   [x] **Task 1.3: Implement Unified Protocol Abstraction Layer (Initial)**
+    -   [x] Define a `TargetDevice` data class to hold information for both Classic and BLE devices (MAC, name, RSSI, protocol type, etc.).
+    -   [x] Create a repository or service class to manage the list of discovered devices.
+-   [x] **Task 1.4: Implement Ethical Use Disclaimer**
     -   [ ] Create a non-skippable disclaimer dialog that appears on the first launch of the application.
 
 ## Milestone 2: Reconnaissance Module
@@ -37,9 +37,9 @@ This document outlines the development tasks required to implement the Blu Snu f
 
 ## Milestone 3: Bluetooth Classic (BR/EDR) Attack Modules
 
--   [ ] **Task 3.1: Bluesnarfing Module**
-    -   [ ] Create the UI for the Bluesnarfing attack.
-    -   [ ] Implement the logic to connect to a target's OBEX service and retrieve data (e.g., phonebook).
+-   [x] **Task 3.1: Bluesnarfing Module**
+    -   [x] Create the UI for the Bluesnarfing attack.
+    -   [x] Implement the logic to connect to a target's OBEX service and retrieve data (e.g., phonebook).
 -   [ ] **Task 3.2: Bluebugging Module**
     -   [ ] Create the UI for the Bluebugging attack.
     -   [ ] Implement the logic to establish a serial connection and inject AT commands. (Requires Elevated Mode)
