@@ -22,18 +22,21 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
 import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen
 import com.hereliesaz.blusnu.ui.bluebugging.BluebuggingScreen
@@ -64,6 +67,20 @@ import androidx.compose.foundation.layout.height
 
 class MainActivity : ComponentActivity() {
 
+    private val deviceRepository by lazy { DeviceRepository() }
+
+    private val viewModelFactory by lazy {
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                if (modelClass.isAssignableFrom(TargetManagementViewModel::class.java)) {
+                    @Suppress("UNCHECKED_CAST")
+                    return TargetManagementViewModel(application, deviceRepository) as T
+                }
+                throw IllegalArgumentException("Unknown ViewModel class")
+            }
+        }
+    }
+
     private val requestPermissionsLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
             permissions.entries.forEach {
@@ -79,14 +96,12 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             BluSnuTheme {
-                val sharedPreferences = getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE)
-                val disclaimerAccepted = sharedPreferences.getBoolean("disclaimer_accepted", false)
-                val showDisclaimer = remember { mutableStateOf(!disclaimerAccepted) }
+                var showDisclaimer by remember { mutableStateOf(!getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).getBoolean("disclaimer_accepted", false)) }
 
-                if (showDisclaimer.value) {
+                if (showDisclaimer) {
                     DisclaimerDialog {
-                        sharedPreferences.edit().putBoolean("disclaimer_accepted", true).apply()
-                        showDisclaimer.value = false
+                        getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).edit().putBoolean("disclaimer_accepted", true).apply()
+                        showDisclaimer = false
                     }
                 } else {
                     val navController = rememberNavController()
@@ -103,9 +118,7 @@ class MainActivity : ComponentActivity() {
                         ) {
                             composable("dashboard") { DashboardScreen() }
                             composable("targets") {
-                                val viewModel: TargetManagementViewModel = viewModel()
-                                viewModel.hasPermissions = hasBluetoothPermissions()
-                                viewModel.isBluetoothEnabled = isBluetoothEnabled()
+                                val viewModel: TargetManagementViewModel = viewModel(factory = viewModelFactory)
                                 TargetManagementScreen(viewModel = viewModel)
                             }
                             composable("attacks") { AttackModulesScreen(navController = navController) }
@@ -138,18 +151,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun hasBluetoothPermissions(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED &&
-                    checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+        val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            listOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
         } else {
-            checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            listOf(Manifest.permission.ACCESS_FINE_LOCATION)
         }
-    }
-
-    private fun isBluetoothEnabled(): Boolean {
-        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-        val bluetoothAdapter = bluetoothManager.adapter
-        return bluetoothAdapter?.isEnabled ?: false
+        return requiredPermissions.all { permission ->
+            ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+        }
     }
 
     private fun requestRequiredPermissions() {
@@ -169,6 +178,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+enum class SortOption {
+    NAME,
+    RSSI,
+    PROTOCOL
+}
+
 @Composable
 fun DashboardScreen(modifier: Modifier = Modifier) {
     Text(
@@ -182,13 +197,13 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
     val devices by viewModel.filteredDevices.collectAsState()
     val filterText by viewModel.filterText.collectAsState()
 
-    Column(modifier = modifier) {
+    Column(modifier = modifier.padding(16.dp)) {
         Row {
-            Button(onClick = { viewModel.startScan() }) {
+            Button(onClick = { viewModel.startScan() }, enabled = !state.isScanning) {
                 Text("Start Scan")
             }
             Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = { viewModel.stopScan() }) {
+            Button(onClick = { viewModel.stopScan() }, enabled = state.isScanning) {
                 Text("Stop Scan")
             }
         }
@@ -216,8 +231,14 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
         Spacer(modifier = Modifier.height(8.dp))
 
 
-        if (devices.isEmpty()) {
-            Text("No devices found")
+        if (!state.hasPermissions) {
+            Text("Permissions not granted")
+        } else if (!state.isBluetoothEnabled) {
+            Text("Bluetooth is not enabled")
+        } else if (state.isScanning && state.discoveredDevices.isEmpty()) {
+            CircularProgressIndicator()
+        } else if (!state.isScanning && state.discoveredDevices.isEmpty()) {
+            Text("No devices found. Click 'Start Scan' to begin.")
         } else {
             LazyColumn {
                 items(devices) { device ->
@@ -269,6 +290,7 @@ fun DeviceListItem(device: TargetDevice, viewModel: TargetManagementViewModel) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AttackModulesScreen(modifier: Modifier = Modifier, navController: NavController) {
     Column(modifier = modifier) {
