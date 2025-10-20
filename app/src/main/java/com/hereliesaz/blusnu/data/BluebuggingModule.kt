@@ -29,7 +29,7 @@ class BluebuggingModule {
             try {
                 socket?.close()
             } catch (e: IOException) {
-                e.printStackTrace()
+                android.util.Log.e("BluebuggingModule", "Error closing socket", e)
             }
         }
     }
