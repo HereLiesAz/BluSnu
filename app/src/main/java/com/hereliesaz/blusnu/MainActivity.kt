@@ -88,11 +88,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TextField
 import androidx.compose.foundation.clickable
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.ui.Alignment
 import androidx.core.content.ContextCompat
-import androidx.navigation.NavType
-import androidx.navigation.navArgument
-import com.google.gson.Gson
+import com.hereliesaz.aznavrail.model.AzButtonShape
+import androidx.core.content.edit
 
 class MainActivity : ComponentActivity() {
 
@@ -163,7 +163,12 @@ class MainActivity : ComponentActivity() {
 
                 if (showDisclaimer) {
                     DisclaimerDialog {
-                        getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).edit().putBoolean("disclaimer_accepted", true).apply()
+                        getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).edit {
+                            putBoolean(
+                                "disclaimer_accepted",
+                                true
+                            )
+                        }
                         showDisclaimer = false
                     }
                 } else {
@@ -173,17 +178,21 @@ class MainActivity : ComponentActivity() {
                             AzNavRail {
                                 azSettings(
                                     displayAppNameInHeader = false,
-                                    packRailButtons = true
+                                    packRailButtons = true,
+
                                 )
-                                azRailItem(id = "dashboard", text = "Dashboard", onClick = { navController.navigate("dashboard") })
-                                azRailItem(id = "targets", text = "Targets", onClick = { navController.navigate("targets") })
-                                azRailItem(id = "bluebugging", text = "Bugging", onClick = { navController.navigate("bluebugging") })
-                                azRailItem(id = "bluesnarfing", text = "Snarfing", onClick = { navController.navigate("bluesnarfing") })
-                                azRailItem(id = "btlejacking", text = "Jacking", onClick = { navController.navigate("btlejacking") })
-                                azRailItem(id = "geolocation", text = "Location", onClick = { navController.navigate("geolocation") })
-                                azRailItem(id = "keystroke_injection", text = "Injection", onClick = { navController.navigate("keystroke_injection") })
-                                azRailItem(id = "attack_chaining", text = "Chaining", onClick = { navController.navigate("attack_chaining") })
-                                azRailItem(id = "settings", text = "Settings", onClick = { navController.navigate("settings") })
+                                azRailItem(id = "dashboard", text = "Dashboard", onClick = { navController.navigate("dashboard") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "targets", text = "Targets", onClick = { navController.navigate("targets") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "bluebugging", text = "Bugging", onClick = { navController.navigate("bluebugging") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "bluesnarfing", text = "Snarfing", onClick = { navController.navigate("bluesnarfing") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "bluesmack", text = "Smack", onClick = { navController.navigate("bluesmack") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "gattfuzzing", text = "Fuzzing", onClick = { navController.navigate("gattfuzzing") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "btlejacking", text = "Jacking", onClick = { navController.navigate("btlejacking") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "btlejuice", text = "Juice", onClick = { navController.navigate("btlejuice") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "geolocation", text = "Location", onClick = { navController.navigate("geolocation") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "keystroke_injection", text = "Injection", onClick = { navController.navigate("keystroke_injection") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "attack_chaining", text = "Chaining", onClick = { navController.navigate("attack_chaining") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "settings", text = "Settings", onClick = { navController.navigate("settings") }, shape = AzButtonShape.RECTANGLE)
                             }
                             NavHost(
                                 navController = navController,
@@ -361,7 +370,7 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
                     }
                 },
                 label = { Text("Filter by $filterType") },
-                modifier = Modifier.fillMaxWidth().menuAnchor(),
+                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
                 trailingIcon = {
                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterExpanded)
                 }
@@ -421,7 +430,7 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
         } else if (state.isScanning && state.discoveredDevices.isEmpty()) {
             CircularProgressIndicator()
         } else if (!state.isScanning && state.discoveredDevices.isEmpty()) {
-            Text("No devices found. Click \'Start Scan\' to begin.")
+            Text("No devices found. Click 'Start Scan' to begin.")
         } else {
             LazyColumn {
                 items(state.discoveredDevices, key = { it.macAddress }) { device ->
