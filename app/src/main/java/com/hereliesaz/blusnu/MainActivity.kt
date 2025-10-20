@@ -73,6 +73,7 @@ import com.hereliesaz.aznavrail.AzNavRail
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingScreen
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingViewModel
 import com.hereliesaz.blusnu.data.BtlejackingModule
+import com.hereliesaz.blusnu.data.BtlejuiceModule
 import com.hereliesaz.blusnu.data.HardwareManager
 import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingScreen
 import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingViewModel
@@ -89,11 +90,15 @@ import androidx.compose.material3.TextField
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
 import androidx.core.content.ContextCompat
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.google.gson.Gson
 
 class MainActivity : ComponentActivity() {
 
     private val deviceRepository by lazy { DeviceRepository() }
     private val hardwareManager by lazy { HardwareManager() }
+    private val btlejuiceModule by lazy { BtlejuiceModule(hardwareManager) }
 
     private val viewModelFactory by lazy {
         object : ViewModelProvider.Factory {
@@ -120,7 +125,7 @@ class MainActivity : ComponentActivity() {
                         BtlejackingViewModel(application, hardwareManager, btlejackingModule, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BtlejuiceViewModel::class.java) -> {
-                        BtlejuiceViewModel(application) as T
+                        BtlejuiceViewModel(application, btlejuiceModule, hardwareManager) as T
                     }
                     modelClass.isAssignableFrom(GeolocationViewModel::class.java) -> {
                         GeolocationViewModel(application) as T
@@ -173,7 +178,6 @@ class MainActivity : ComponentActivity() {
                                 azRailItem(id = "bluebugging", text = "Bugging", onClick = { navController.navigate("bluebugging") })
                                 azRailItem(id = "bluesnarfing", text = "Snarfing", onClick = { navController.navigate("bluesnarfing") })
                                 azRailItem(id = "btlejacking", text = "Jacking", onClick = { navController.navigate("btlejacking") })
-                                azRailItem(id = "btlejuice", text = "Juice", onClick = { navController.navigate("btlejuice") })
                                 azRailItem(id = "geolocation", text = "Location", onClick = { navController.navigate("geolocation") })
                                 azRailItem(id = "keystroke_injection", text = "Injection", onClick = { navController.navigate("keystroke_injection") })
                                 azRailItem(id = "attack_chaining", text = "Chaining", onClick = { navController.navigate("attack_chaining") })
@@ -186,7 +190,7 @@ class MainActivity : ComponentActivity() {
                                 composable("dashboard") { DashboardScreen() }
                                 composable("targets") {
                                     val viewModel: TargetManagementViewModel = viewModel(factory = viewModelFactory)
-                                    TargetManagementScreen(viewModel = viewModel)
+                                    TargetManagementScreen(viewModel = viewModel, navController = navController)
                                 }
                                 composable("settings") { SettingsScreen() }
                                 composable("bluebugging") {
@@ -201,9 +205,14 @@ class MainActivity : ComponentActivity() {
                                     val viewModel: BtlejackingViewModel = viewModel(factory = viewModelFactory)
                                     BtlejackingScreen(viewModel = viewModel)
                                 }
-                                composable("btlejuice") {
+                                composable(
+                                    "btlejuice/{targetDevice}",
+                                    arguments = listOf(navArgument("targetDevice") { type = NavType.StringType })
+                                ) { backStackEntry ->
+                                    val targetDeviceJson = backStackEntry.arguments?.getString("targetDevice")
+                                    val targetDevice = Gson().fromJson(targetDeviceJson, TargetDevice::class.java)
                                     val viewModel: BtlejuiceViewModel = viewModel(factory = viewModelFactory)
-                                    BtlejuiceScreen(viewModel = viewModel)
+                                    BtlejuiceScreen(viewModel = viewModel, targetDevice = targetDevice)
                                 }
                                 composable("geolocation") {
                                     val viewModel: GeolocationViewModel = viewModel(factory = viewModelFactory)
@@ -266,11 +275,6 @@ fun BtlejackingScreen(viewModel: BtlejackingViewModel) {
 }
 
 @Composable
-fun BtlejuiceScreen(viewModel: BtlejuiceViewModel) {
-    Text(text = "Btlejuice")
-}
-
-@Composable
 fun GeolocationScreen(viewModel: GeolocationViewModel) {
     Text(text = "Geolocation")
 }
@@ -305,7 +309,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManagementViewModel) {
+fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManagementViewModel, navController: NavController) {
     val state by viewModel.state.collectAsState()
     var textFilter by remember { mutableStateOf("") }
     var filterType by remember { mutableStateOf<FilterType>(FilterType.Text) }
@@ -400,7 +404,7 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
         } else {
             LazyColumn {
                 items(state.discoveredDevices, key = { it.macAddress }) { device ->
-                    DeviceListItem(device = device, viewModel = viewModel)
+                    DeviceListItem(device = device, viewModel = viewModel, navController = navController)
                 }
             }
         }
@@ -408,7 +412,7 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
 }
 
 @Composable
-fun DeviceListItem(device: TargetDevice, viewModel: TargetManagementViewModel) {
+fun DeviceListItem(device: TargetDevice, viewModel: TargetManagementViewModel, navController: NavController) {
     var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.clickable { expanded = !expanded }) {
@@ -428,6 +432,13 @@ fun DeviceListItem(device: TargetDevice, viewModel: TargetManagementViewModel) {
             Spacer(modifier = Modifier.width(8.dp))
             OutlinedButton(onClick = { viewModel.checkForVulnerabilities(device) }, shape = RoundedCornerShape(0.dp)) {
                 Text("Check Vulns")
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            OutlinedButton(onClick = {
+                val targetDeviceJson = Gson().toJson(device)
+                navController.navigate("btlejuice/$targetDeviceJson")
+            }, shape = RoundedCornerShape(0.dp)) {
+                Text("Juice")
             }
         }
         if (expanded) {

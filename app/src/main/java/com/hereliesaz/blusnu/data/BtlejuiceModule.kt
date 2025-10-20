@@ -4,7 +4,9 @@ import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -27,6 +29,9 @@ class BtlejuiceModule(private val hardwareManager: HardwareManager) {
     private val _state = MutableStateFlow(BtlejuiceState.IDLE)
     val state = _state.asStateFlow()
 
+    private val _gattTraffic = MutableSharedFlow<String>()
+    val gattTraffic = _gattTraffic.asSharedFlow()
+
     private val scope = CoroutineScope(Dispatchers.IO + Job())
 
     fun startProxy(target: TargetDevice) {
@@ -37,6 +42,14 @@ class BtlejuiceModule(private val hardwareManager: HardwareManager) {
             delay(3000)
             _state.value = BtlejuiceState.INTERCEPTING
             Log.d("BtlejuiceModule", "Proxy started, now intercepting traffic.")
+            // Simulate GATT traffic
+            _gattTraffic.emit("READ Request: Handle 0x0001")
+            delay(500)
+            _gattTraffic.emit("READ Response: Handle 0x0001, Value: 'Hello'")
+            delay(500)
+            _gattTraffic.emit("WRITE Request: Handle 0x0002, Value: 'World'")
+            delay(500)
+            _gattTraffic.emit("WRITE Response: Handle 0x0002")
         }
     }
 
