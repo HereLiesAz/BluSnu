@@ -23,7 +23,7 @@ class BluebuggingModule {
             return "Successfully connected to the device's serial port. AT command injection not yet implemented."
 
         } catch (e: IOException) {
-            e.printStackTrace()
+            android.util.Log.e("BluebuggingModule", "Error connecting to device", e)
             return "Error connecting to device: ${e.message}"
         } finally {
             try {
