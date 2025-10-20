@@ -33,3 +33,11 @@ Blu Snu is a powerful tool designed exclusively for legitimate security research
 > **This tool is intended for use by security professionals for educational purposes and for security assessments on networks and devices for which you have received explicit, written authorization. Using this tool for unauthorized access or malicious activity is illegal. The developers assume no liability for its misuse.**
 
 The application includes features, such as a mandatory disclaimer and a professional reporting engine, to encourage a methodical, accountable, and ethical approach to security testing.
+
+## Current Status (As of October 2025)
+
+The Blu Snu project is in active development. The following milestones have been completed:
+
+*   **Milestone 1: Project Setup and Core Framework:** The basic application shell is in place, including permission handling, navigation, and the underlying data models.
+*   **Milestone 2: Reconnaissance Module:** The application can successfully discover both Bluetooth Classic and BLE devices, perform service enumeration, and display the results.
+*   **Milestone 3 (In Progress):** The first attack module, Bluesnarfing, has been implemented.
