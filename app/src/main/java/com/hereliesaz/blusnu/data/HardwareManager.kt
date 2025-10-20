@@ -14,7 +14,8 @@ import kotlinx.coroutines.launch
 enum class HardwareState {
     DISCONNECTED,
     CONNECTING,
-    CONNECTED,
+    CONNECTED_BTLEJACK,
+    CONNECTED_DUAL,
     CONNECTION_FAILED
 }
 
@@ -35,11 +36,24 @@ class HardwareManager {
     fun connect() {
         scope.launch {
             _hardwareState.value = HardwareState.CONNECTING
-            log("Connecting to external hardware...")
+            log("Connecting to BtleJack...")
             delay(2000) // Simulate connection delay
-            _hardwareState.value = HardwareState.CONNECTED
+            _hardwareState.value = HardwareState.CONNECTED_BTLEJACK
             log("Connected to BtleJack MkII.")
             log("Firmware version: 1.3.3.7")
+        }
+    }
+
+    fun connectDual() {
+        scope.launch {
+            if (_hardwareState.value != HardwareState.CONNECTED_BTLEJACK) {
+                log("BtleJack must be connected first.")
+                return@launch
+            }
+            log("Connecting secondary USB BLE dongle...")
+            delay(1500)
+            _hardwareState.value = HardwareState.CONNECTED_DUAL
+            log("Connected to Realtek RTL8761B.")
         }
     }
 

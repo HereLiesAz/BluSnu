@@ -56,10 +56,10 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Implement the Hardware Manager to detect and communicate with a connected BtleJack device.
     -   [x] Create the UI to control sniffing, jamming, and hijacking operations.
     -   [x] Implement the command interface to send instructions to the external hardware.
--   [ ] **Task 4.3: Man-in-the-Middle (btlejuice) Module**
-    -   [ ] Extend the Hardware Manager to support a second external USB BLE dongle.
-    -   [ ] Create the UI to display and modify intercepted GATT traffic in real-time.
-    -   [ ] Implement the core proxy logic.
+-   [x] **Task 4.3: Man-in-the-Middle (btlejuice) Module**
+    -   [x] Extend the Hardware Manager to support a second external USB BLE dongle.
+    -   [x] Create the UI to display and modify intercepted GATT traffic in real-time.
+    -   [x] Implement the core proxy logic.
 
 ## Milestone 5: Advanced Signal and Pairing Attacks
 

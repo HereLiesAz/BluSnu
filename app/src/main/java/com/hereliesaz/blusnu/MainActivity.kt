@@ -77,8 +77,8 @@ import com.hereliesaz.blusnu.data.BtlejuiceModule
 import com.hereliesaz.blusnu.data.HardwareManager
 import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingScreen
 import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingViewModel
-import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceScreen
-import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceViewModel
+import com.hereliesaz.blusnu.ui.btlejuicemitm.BtlejuiceScreen
+import com.hereliesaz.blusnu.ui.btlejuicemitm.BtlejuiceViewModel
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationScreen
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationViewModel
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
@@ -125,6 +125,8 @@ class MainActivity : ComponentActivity() {
                         BtlejackingViewModel(application, hardwareManager, btlejackingModule, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BtlejuiceViewModel::class.java) -> {
+                        val btlejuiceModule = BtlejuiceModule(hardwareManager)
+                        BtlejuiceViewModel(hardwareManager, btlejuiceModule, deviceRepository) as T
                         BtlejuiceViewModel(application, btlejuiceModule, hardwareManager) as T
                     }
                     modelClass.isAssignableFrom(GeolocationViewModel::class.java) -> {
@@ -272,6 +274,25 @@ fun BluesnarfingScreen(viewModel: BluesnarfingViewModel) {
 @Composable
 fun BtlejackingScreen(viewModel: BtlejackingViewModel) {
     Text(text = "Btlejacking")
+}
+
+@Composable
+fun BtlejuiceScreen(viewModel: BtlejuiceViewModel) {
+    val hardwareState by viewModel.hardwareState.collectAsState()
+    val btlejuiceState by viewModel.btlejuiceState.collectAsState()
+    val logs by viewModel.logs.collectAsState()
+    val discoveredDevices by viewModel.discoveredDevices.collectAsState()
+
+    BtlejuiceScreen(
+        hardwareState = hardwareState,
+        btlejuiceState = btlejuiceState,
+        logs = logs,
+        discoveredDevices = discoveredDevices,
+        onConnectHardware = viewModel::onConnectHardware,
+        onConnectDual = viewModel::onConnectDual,
+        onStartProxy = viewModel::onStartProxy,
+        onStopProxy = viewModel::onStopProxy
+    )
 }
 
 @Composable
