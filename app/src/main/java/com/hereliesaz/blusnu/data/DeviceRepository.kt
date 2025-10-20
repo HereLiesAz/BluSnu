@@ -16,6 +16,10 @@ class DeviceRepository {
         }
     }
 
+    fun getDevice(macAddress: String): TargetDevice? {
+        return _discoveredDevicesMap.value[macAddress]
+    }
+
     fun clearDevices() {
         _discoveredDevicesMap.value = emptyMap()
     }

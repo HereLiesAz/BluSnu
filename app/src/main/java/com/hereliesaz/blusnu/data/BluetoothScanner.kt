@@ -14,6 +14,7 @@ import android.os.Build
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothProfile
+import android.os.Parcelable
 
 class BluetoothScanner(
     private val context: Context,
@@ -27,7 +28,6 @@ class BluetoothScanner(
         bluetoothAdapter.bluetoothLeScanner
     }
 
-    private var isReceiverRegistered = false
     private val classicDiscoveryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
@@ -52,10 +52,22 @@ class BluetoothScanner(
                 }
                 BluetoothDevice.ACTION_UUID -> {
                     val device: BluetoothDevice? =
-                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                    val uuids = device?.uuids
-                    uuids?.let {
-                        deviceRepository.updateDeviceServices(device.address, it.map { it.toString() })
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                        }
+                    val uuidExtra = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID, Parcelable::class.java)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID)
+                    }
+                    device?.let {
+                        val services = uuidExtra?.map { it.toString() } ?: emptyList()
+                        deviceRepository.updateDeviceServices(it.address, services)
+                        onClassicServicesDiscovered(it.address, services)
                     }
                 }
             }
@@ -95,24 +107,25 @@ class BluetoothScanner(
 
     @SuppressLint("MissingPermission")
     fun startClassicDiscovery() {
-        if (!isReceiverRegistered) {
+        if (!isClassicReceiverRegistered) {
             val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
             filter.addAction(BluetoothDevice.ACTION_UUID)
             context.registerReceiver(classicDiscoveryReceiver, filter)
-            isReceiverRegistered = true
+            isClassicReceiverRegistered = true
         }
         bluetoothAdapter.startDiscovery()
     }
 
     @SuppressLint("MissingPermission")
     fun stopClassicDiscovery() {
-        if (isReceiverRegistered) {
+        if (isClassicReceiverRegistered) {
             context.unregisterReceiver(classicDiscoveryReceiver)
-            isReceiverRegistered = false
+            isClassicReceiverRegistered = false
         }
         bluetoothAdapter.cancelDiscovery()
     }
 
+    @SuppressLint("MissingPermission")
     fun discoverServices(device: BluetoothDevice) {
         if (device.type == BluetoothDevice.DEVICE_TYPE_CLASSIC || device.type == BluetoothDevice.DEVICE_TYPE_DUAL) {
             device.fetchUuidsWithSdp()
@@ -122,6 +135,7 @@ class BluetoothScanner(
         }
     }
 
+    @SuppressLint("MissingPermission")
     fun startBleScan() {
         bleScanner.startScan(bleScanCallback)
     }
@@ -129,21 +143,5 @@ class BluetoothScanner(
     @SuppressLint("MissingPermission")
     fun stopBleScan() {
         bleScanner.stopScan(bleScanCallback)
-    }
-
-    private val gattCallback = object : android.bluetooth.BluetoothGattCallback() {
-        override fun onConnectionStateChange(gatt: android.bluetooth.BluetoothGatt, status: Int, newState: Int) {
-            if (newState == android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
-                gatt.discoverServices()
-            }
-        }
-
-        override fun onServicesDiscovered(gatt: android.bluetooth.BluetoothGatt, status: Int) {
-            if (status == android.bluetooth.BluetoothGatt.GATT_SUCCESS) {
-                val services = gatt.services.map { it.uuid.toString() }
-                deviceRepository.updateDeviceServices(gatt.device.address, services)
-            }
-            gatt.close()
-        }
     }
 }

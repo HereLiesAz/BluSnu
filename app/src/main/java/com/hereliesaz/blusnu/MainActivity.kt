@@ -14,9 +14,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -38,14 +38,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
-import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen
-import com.hereliesaz.blusnu.ui.bluebugging.BluebuggingScreen
-import com.hereliesaz.blusnu.ui.bluesmack.BlueSmackScreen
-import com.hereliesaz.blusnu.ui.bluesmack.BlueSmackViewModel
-import com.hereliesaz.blusnu.ui.bluebugging.BluebuggingViewModel
-import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingViewModel
-import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingScreen
-import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingViewModel
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -61,9 +53,16 @@ import com.hereliesaz.blusnu.data.TargetDevice
 import com.hereliesaz.blusnu.ui.TargetManagementViewModel
 import androidx.compose.foundation.layout.fillMaxWidth
 import com.hereliesaz.blusnu.data.Protocol
-import androidx.compose.foundation.background
-import androidx.compose.ui.graphics.Color
+import com.hereliesaz.blusnu.ui.bluebugging.BluebuggingViewModel
+import com.hereliesaz.blusnu.ui.bluesmack.BlueSmackViewModel
+import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingViewModel
+import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingViewModel
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TextField
+import androidx.compose.foundation.clickable
+import androidx.core.content.ContextCompat
 
 class MainActivity : ComponentActivity() {
 
@@ -72,11 +71,24 @@ class MainActivity : ComponentActivity() {
     private val viewModelFactory by lazy {
         object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                if (modelClass.isAssignableFrom(TargetManagementViewModel::class.java)) {
-                    @Suppress("UNCHECKED_CAST")
-                    return TargetManagementViewModel(application, deviceRepository) as T
+                return when {
+                    modelClass.isAssignableFrom(TargetManagementViewModel::class.java) -> {
+                        TargetManagementViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(BluebuggingViewModel::class.java) -> {
+                        BluebuggingViewModel(application) as T
+                    }
+                    modelClass.isAssignableFrom(BlueSmackViewModel::class.java) -> {
+                        BlueSmackViewModel(application) as T
+                    }
+                    modelClass.isAssignableFrom(BluesnarfingViewModel::class.java) -> {
+                        BluesnarfingViewModel(application) as T
+                    }
+                    modelClass.isAssignableFrom(GattFuzzingViewModel::class.java) -> {
+                        GattFuzzingViewModel(application) as T
+                    }
+                    else -> throw IllegalArgumentException("Unknown ViewModel class")
                 }
-                throw IllegalArgumentException("Unknown ViewModel class")
             }
         }
     }
@@ -123,41 +135,14 @@ class MainActivity : ComponentActivity() {
                             }
                             composable("attacks") { AttackModulesScreen(navController = navController) }
                             composable("settings") { SettingsScreen() }
-                            composable("bluesnarfing") {
-                                val viewModel: BluesnarfingViewModel = viewModel()
-                                viewModel.hasPermissions = hasBluetoothPermissions()
-                                BluesnarfingScreen(viewModel = viewModel)
-                            }
-                            composable("bluebugging") {
-                                val viewModel: BluebuggingViewModel = viewModel()
-                                viewModel.hasPermissions = hasBluetoothPermissions()
-                                BluebuggingScreen(viewModel = viewModel)
-                            }
-                            composable("bluesmack") {
-                                val viewModel: BlueSmackViewModel = viewModel()
-                                viewModel.hasPermissions = hasBluetoothPermissions()
-                                BlueSmackScreen(viewModel = viewModel)
-                            }
-                            composable("gattfuzzing") {
-                                val viewModel: GattFuzzingViewModel = viewModel()
-                                viewModel.hasPermissions = hasBluetoothPermissions()
-                                GattFuzzingScreen(viewModel = viewModel)
+                            composable("bluebugging") { 
+                                val viewModel: BluebuggingViewModel = viewModel(factory = viewModelFactory)
+                                BluebuggingScreen(viewModel = viewModel) 
                             }
                         }
                     }
                 }
             }
-        }
-    }
-
-    private fun hasBluetoothPermissions(): Boolean {
-        val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            listOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
-        } else {
-            listOf(Manifest.permission.ACCESS_FINE_LOCATION)
-        }
-        return requiredPermissions.all { permission ->
-            ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
         }
     }
 
@@ -178,10 +163,9 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-enum class SortOption {
-    NAME,
-    RSSI,
-    PROTOCOL
+@Composable
+fun BluebuggingScreen(viewModel: BluebuggingViewModel) {
+    Text(text = "Bluebugging")
 }
 
 @Composable
@@ -192,10 +176,11 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManagementViewModel = viewModel()) {
-    val devices by viewModel.filteredDevices.collectAsState()
-    val filterText by viewModel.filterText.collectAsState()
+fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManagementViewModel) {
+    val state by viewModel.state.collectAsState()
+    var filterText by remember { mutableStateOf("") }
 
     Column(modifier = modifier.padding(16.dp)) {
         Row {
@@ -222,14 +207,16 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        androidx.compose.material3.TextField(
+        TextField(
             value = filterText,
-            onValueChange = { viewModel.setFilterText(it) },
+            onValueChange = { 
+                filterText = it
+                viewModel.setFilterText(it) 
+            },
             label = { Text("Filter by name or MAC") },
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
-
 
         if (!state.hasPermissions) {
             Text("Permissions not granted")
@@ -241,7 +228,7 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
             Text("No devices found. Click 'Start Scan' to begin.")
         } else {
             LazyColumn {
-                items(devices) { device ->
+                items(state.discoveredDevices) { device ->
                     DeviceListItem(device = device, viewModel = viewModel)
                 }
             }
@@ -251,11 +238,9 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
 
 @Composable
 fun DeviceListItem(device: TargetDevice, viewModel: TargetManagementViewModel) {
-    Column(
-        modifier = Modifier.background(
-            if (device.vulnerabilities.isNotEmpty()) Color.Red.copy(alpha = 0.5f) else Color.Transparent
-        )
-    ) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.clickable { expanded = !expanded }) {
         Row {
             Text(text = device.name ?: "Unknown")
             Spacer(modifier = Modifier.width(8.dp))
@@ -273,38 +258,30 @@ fun DeviceListItem(device: TargetDevice, viewModel: TargetManagementViewModel) {
                 Text("Check Vulns")
             }
         }
-        if (device.services.isNotEmpty()) {
-            Column {
-                device.services.forEach { service ->
-                    Text(text = "Service: $service")
+        if (expanded) {
+            if (device.services.isNotEmpty()) {
+                Column {
+                    device.services.forEach { service ->
+                        Text(text = "Service: $service")
+                    }
                 }
             }
-        }
-        if (device.vulnerabilities.isNotEmpty()) {
-            Column {
-                device.vulnerabilities.forEach { vulnerability ->
-                    Text(text = "Vulnerability: ${vulnerability.name} (${vulnerability.cve})")
+            if (device.vulnerabilities.isNotEmpty()) {
+                Column {
+                    device.vulnerabilities.forEach { vulnerability ->
+                        Text(text = "Vulnerability: ${vulnerability.name} (${vulnerability.cve})")
+                    }
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AttackModulesScreen(modifier: Modifier = Modifier, navController: NavController) {
     Column(modifier = modifier) {
         Button(onClick = { navController.navigate("bluesnarfing") }) {
             Text("Bluesnarfing")
-        }
-        Button(onClick = { navController.navigate("bluebugging") }) {
-            Text("Bluebugging")
-        }
-        Button(onClick = { navController.navigate("bluesmack") }) {
-            Text("BlueSmack")
-        }
-        Button(onClick = { navController.navigate("gattfuzzing") }) {
-            Text("GATT Fuzzing")
         }
     }
 }
@@ -351,8 +328,8 @@ fun BottomNavigationBar(navController: NavController) {
 
 sealed class BottomNavItem(val route: String, val icon: ImageVector, val label: String) {
     object Dashboard : BottomNavItem("dashboard", Icons.Default.Home, "Dashboard")
-    object Targets : BottomNavItem("targets", Icons.Default.List, "Targets")
-    object Attacks : BottomNavItem("attacks", Icons.Default.Send, "Attacks")
+    object Targets : BottomNavItem("targets", Icons.AutoMirrored.Filled.List, "Targets")
+    object Attacks : BottomNavItem("attacks", Icons.AutoMirrored.Filled.Send, "Attacks")
     object Settings : BottomNavItem("settings", Icons.Default.Settings, "Settings")
 }
 

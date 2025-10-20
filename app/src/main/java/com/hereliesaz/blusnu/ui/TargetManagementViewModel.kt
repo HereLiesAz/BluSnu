@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 
 data class TargetManagementScreenState(
     val isScanning: Boolean = false,
@@ -40,17 +41,18 @@ class TargetManagementViewModel(
     private val bluetoothAdapter: BluetoothAdapter? = bluetoothManager.adapter
 
     private val bluetoothScanner =
-        bluetoothAdapter?.let { BluetoothScanner(application, deviceRepository, it) }
+        bluetoothAdapter?.let {
+            BluetoothScanner(application, deviceRepository, it) { macAddress, _ ->
+                deviceRepository.getDevice(macAddress)?.let(::checkForVulnerabilities)
+            }
+        }
     private val vulnerabilityCorrelator = VulnerabilityCorrelator(application)
 
     private val _filter = MutableStateFlow<Protocol?>(null)
-    val filter: StateFlow<Protocol?> = _filter
-
     private val _filterText = MutableStateFlow("")
-    val filterText: StateFlow<String> = _filterText
 
-    val filteredDevices: StateFlow<List<TargetDevice>> =
-        combine(
+    init {
+        val filteredDevices: StateFlow<List<TargetDevice>> = combine(
             deviceRepository.discoveredDevices,
             _filter,
             _filterText
@@ -63,9 +65,43 @@ class TargetManagementViewModel(
             }
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+        state = combine(
+            _state,
+            filteredDevices
+        ) { state, devices ->
+            state.copy(discoveredDevices = devices)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TargetManagementScreenState())
+
+        updatePermissionsState()
+        updateBluetoothState()
+    }
+
+    private fun updatePermissionsState() {
+        val hasPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(
+                getApplication(),
+                Manifest.permission.BLUETOOTH_SCAN
+            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                getApplication(),
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            ContextCompat.checkSelfPermission(
+                getApplication(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+        _state.update { it.copy(hasPermissions = hasPermissions) }
+    }
+
+    private fun updateBluetoothState() {
+        _state.update { it.copy(isBluetoothEnabled = bluetoothAdapter?.isEnabled == true) }
+    }
+
 
     fun startScan() {
-        if (hasPermissions && isBluetoothEnabled) {
+        if (_state.value.hasPermissions && _state.value.isBluetoothEnabled) {
+            _state.update { it.copy(isScanning = true) }
             deviceRepository.clearDevices()
             bluetoothScanner?.startClassicDiscovery()
             bluetoothScanner?.startBleScan()

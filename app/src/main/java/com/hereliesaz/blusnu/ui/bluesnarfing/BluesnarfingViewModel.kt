@@ -1,7 +1,9 @@
 package com.hereliesaz.blusnu.ui.bluesnarfing
 
+import android.app.Application
 import android.bluetooth.BluetoothAdapter
-import androidx.lifecycle.ViewModel
+import android.bluetooth.BluetoothManager
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.BluesnarfingModule
 import kotlinx.coroutines.Dispatchers
@@ -10,7 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class BluesnarfingViewModel : ViewModel() {
+class BluesnarfingViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _macAddress = MutableStateFlow("")
     val macAddress: StateFlow<String> = _macAddress
@@ -22,7 +24,7 @@ class BluesnarfingViewModel : ViewModel() {
     val result: StateFlow<String> = _result
 
     private val bluesnarfingModule = BluesnarfingModule()
-    private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+    private val bluetoothAdapter: BluetoothAdapter? = (application.getSystemService(BluetoothManager::class.java) as BluetoothManager).adapter
 
     fun onMacAddressChanged(macAddress: String) {
         _macAddress.value = macAddress

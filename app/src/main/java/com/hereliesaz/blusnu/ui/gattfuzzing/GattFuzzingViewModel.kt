@@ -1,7 +1,9 @@
 package com.hereliesaz.blusnu.ui.gattfuzzing
 
+import android.app.Application
 import android.bluetooth.BluetoothAdapter
-import androidx.lifecycle.ViewModel
+import android.bluetooth.BluetoothManager
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.GattFuzzingModule
 import kotlinx.coroutines.Dispatchers
@@ -10,7 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class GattFuzzingViewModel : ViewModel() {
+class GattFuzzingViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _macAddress = MutableStateFlow("")
     val macAddress: StateFlow<String> = _macAddress
@@ -19,7 +21,7 @@ class GattFuzzingViewModel : ViewModel() {
     val status: StateFlow<String> = _status
 
     private val gattFuzzingModule = GattFuzzingModule()
-    private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+    private val bluetoothAdapter: BluetoothAdapter? = (application.getSystemService(BluetoothManager::class.java) as BluetoothManager).adapter
 
     var hasPermissions = false
 
