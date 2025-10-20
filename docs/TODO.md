@@ -70,6 +70,9 @@ This document outlines the development tasks required to implement the Blu Snu f
 -   [ ] **Task 5.2: Keystroke Injection (CVE-2023-45866) Module**
     -   [ ] Implement the logic to emulate an HID keyboard and attempt "Just Works" pairing.
     -   [ ] Create the UI to send keystroke commands if the attack is successful.
+-   [ ] **Task 5.3: Bluetooth Spoofing Module**
+    -   [ ] Implement the logic to change the Bluetooth adapter's MAC address. (Requires Elevated Mode)
+    -   [ ] Create the UI to allow the user to specify a new MAC address.
 
 ## Milestone 6: Automation Core and Finalization
 
