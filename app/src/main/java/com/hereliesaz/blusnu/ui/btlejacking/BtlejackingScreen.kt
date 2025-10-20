@@ -54,7 +54,7 @@ fun BtlejackingScreen(viewModel: BtlejackingViewModel) {
             HardwareState.CONNECTING -> {
                 CircularProgressIndicator()
             }
-            HardwareState.CONNECTED -> {
+            HardwareState.CONNECTED_BTLEJACK, HardwareState.CONNECTED_DUAL -> {
                 Button(onClick = { viewModel.disconnectHardware() }) {
                     Text("Disconnect Hardware")
                 }
@@ -64,7 +64,7 @@ fun BtlejackingScreen(viewModel: BtlejackingViewModel) {
         Spacer(modifier = Modifier.height(16.dp))
 
         // Attack Status and Controls
-        if (state.hardwareState == HardwareState.CONNECTED) {
+        if (state.hardwareState == HardwareState.CONNECTED_BTLEJACK || state.hardwareState == HardwareState.CONNECTED_DUAL) {
             Text("Attack Status: ${state.btlejackingState}")
 
             when (state.btlejackingState) {

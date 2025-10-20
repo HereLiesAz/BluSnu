@@ -73,11 +73,12 @@ import com.hereliesaz.aznavrail.AzNavRail
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingScreen
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingViewModel
 import com.hereliesaz.blusnu.data.BtlejackingModule
+import com.hereliesaz.blusnu.data.BtlejuiceModule
 import com.hereliesaz.blusnu.data.HardwareManager
 import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingScreen
 import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingViewModel
-import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceScreen
-import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceViewModel
+import com.hereliesaz.blusnu.ui.btlejuicemitm.BtlejuiceScreen
+import com.hereliesaz.blusnu.ui.btlejuicemitm.BtlejuiceViewModel
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationScreen
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationViewModel
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
@@ -120,7 +121,8 @@ class MainActivity : ComponentActivity() {
                         BtlejackingViewModel(application, hardwareManager, btlejackingModule, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BtlejuiceViewModel::class.java) -> {
-                        BtlejuiceViewModel(application) as T
+                        val btlejuiceModule = BtlejuiceModule(hardwareManager)
+                        BtlejuiceViewModel(hardwareManager, btlejuiceModule, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(GeolocationViewModel::class.java) -> {
                         GeolocationViewModel(application) as T
@@ -267,7 +269,21 @@ fun BtlejackingScreen(viewModel: BtlejackingViewModel) {
 
 @Composable
 fun BtlejuiceScreen(viewModel: BtlejuiceViewModel) {
-    Text(text = "Btlejuice")
+    val hardwareState by viewModel.hardwareState.collectAsState()
+    val btlejuiceState by viewModel.btlejuiceState.collectAsState()
+    val logs by viewModel.logs.collectAsState()
+    val discoveredDevices by viewModel.discoveredDevices.collectAsState()
+
+    BtlejuiceScreen(
+        hardwareState = hardwareState,
+        btlejuiceState = btlejuiceState,
+        logs = logs,
+        discoveredDevices = discoveredDevices,
+        onConnectHardware = viewModel::onConnectHardware,
+        onConnectDual = viewModel::onConnectDual,
+        onStartProxy = viewModel::onStartProxy,
+        onStopProxy = viewModel::onStopProxy
+    )
 }
 
 @Composable
