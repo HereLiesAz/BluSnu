@@ -57,6 +57,18 @@ import com.hereliesaz.blusnu.ui.bluebugging.BluebuggingViewModel
 import com.hereliesaz.blusnu.ui.bluesmack.BlueSmackViewModel
 import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingViewModel
 import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingViewModel
+import com.hereliesaz.aznavrail.AzNavRail
+import com.hereliesaz.aznavrail.model.AzButtonShape
+import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingScreen
+import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingViewModel
+import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingScreen
+import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingViewModel
+import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceScreen
+import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceViewModel
+import com.hereliesaz.blusnu.ui.geolocation.GeolocationScreen
+import com.hereliesaz.blusnu.ui.geolocation.GeolocationViewModel
+import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
+import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionViewModel
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -86,6 +98,21 @@ class MainActivity : ComponentActivity() {
                     }
                     modelClass.isAssignableFrom(GattFuzzingViewModel::class.java) -> {
                         GattFuzzingViewModel(application) as T
+                    }
+                    modelClass.isAssignableFrom(BtlejackingViewModel::class.java) -> {
+                        BtlejackingViewModel(application) as T
+                    }
+                    modelClass.isAssignableFrom(BtlejuiceViewModel::class.java) -> {
+                        BtlejuiceViewModel(application) as T
+                    }
+                    modelClass.isAssignableFrom(GeolocationViewModel::class.java) -> {
+                        GeolocationViewModel(application) as T
+                    }
+                    modelClass.isAssignableFrom(KeystrokeInjectionViewModel::class.java) -> {
+                        KeystrokeInjectionViewModel(application) as T
+                    }
+                    modelClass.isAssignableFrom(AttackChainingViewModel::class.java) -> {
+                        AttackChainingViewModel(application) as T
                     }
                     else -> throw IllegalArgumentException("Unknown ViewModel class")
                 }
@@ -117,27 +144,54 @@ class MainActivity : ComponentActivity() {
                     }
                 } else {
                     val navController = rememberNavController()
-                    Scaffold(
-                        modifier = Modifier.fillMaxSize(),
-                        bottomBar = {
-                            BottomNavigationBar(navController = navController)
-                        }
-                    ) { innerPadding ->
-                        NavHost(
-                            navController = navController,
-                            startDestination = "dashboard",
-                            modifier = Modifier.padding(innerPadding)
-                        ) {
-                            composable("dashboard") { DashboardScreen() }
-                            composable("targets") {
-                                val viewModel: TargetManagementViewModel = viewModel(factory = viewModelFactory)
-                                TargetManagementScreen(viewModel = viewModel)
+                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                        Row(Modifier.fillMaxSize().padding(innerPadding)) {
+                            AzNavRail {
+                                azSettings(
+                                    displayAppNameInHeader = true,
+                                    packRailButtons = false,
+                                    defaultShape = AzButtonShape.RECTANGLE
+                                )
+                                azRailItem(id = "dashboard", text = "Dashboard", onClick = { navController.navigate("dashboard") })
+                                azRailItem(id = "targets", text = "Targets", onClick = { navController.navigate("targets") })
+                                azRailItem(id = "attacks", text = "Attacks", onClick = { navController.navigate("attacks") })
+                                azRailItem(id = "settings", text = "Settings", onClick = { navController.navigate("settings") })
                             }
-                            composable("attacks") { AttackModulesScreen(navController = navController) }
-                            composable("settings") { SettingsScreen() }
-                            composable("bluebugging") { 
-                                val viewModel: BluebuggingViewModel = viewModel(factory = viewModelFactory)
-                                BluebuggingScreen(viewModel = viewModel) 
+                            NavHost(
+                                navController = navController,
+                                startDestination = "dashboard"
+                            ) {
+                                composable("dashboard") { DashboardScreen() }
+                                composable("targets") {
+                                    val viewModel: TargetManagementViewModel = viewModel(factory = viewModelFactory)
+                                    TargetManagementScreen(viewModel = viewModel)
+                                }
+                                composable("attacks") { AttackModulesScreen(navController = navController) }
+                                composable("settings") { SettingsScreen() }
+                                composable("bluebugging") {
+                                    val viewModel: BluebuggingViewModel = viewModel(factory = viewModelFactory)
+                                    BluebuggingScreen(viewModel = viewModel)
+                                }
+                                composable("btlejacking") {
+                                    val viewModel: BtlejackingViewModel = viewModel(factory = viewModelFactory)
+                                    BtlejackingScreen(viewModel = viewModel)
+                                }
+                                composable("btlejuice") {
+                                    val viewModel: BtlejuiceViewModel = viewModel(factory = viewModelFactory)
+                                    BtlejuiceScreen(viewModel = viewModel)
+                                }
+                                composable("geolocation") {
+                                    val viewModel: GeolocationViewModel = viewModel(factory = viewModelFactory)
+                                    GeolocationScreen(viewModel = viewModel)
+                                }
+                                composable("keystroke_injection") {
+                                    val viewModel: KeystrokeInjectionViewModel = viewModel(factory = viewModelFactory)
+                                    KeystrokeInjectionScreen(viewModel = viewModel)
+                                }
+                                composable("attack_chaining") {
+                                    val viewModel: AttackChainingViewModel = viewModel(factory = viewModelFactory)
+                                    AttackChainingScreen(viewModel = viewModel)
+                                }
                             }
                         }
                     }
@@ -283,6 +337,21 @@ fun AttackModulesScreen(modifier: Modifier = Modifier, navController: NavControl
         Button(onClick = { navController.navigate("bluesnarfing") }) {
             Text("Bluesnarfing")
         }
+        Button(onClick = { navController.navigate("btlejacking") }) {
+            Text("Btlejacking")
+        }
+        Button(onClick = { navController.navigate("btlejuice") }) {
+            Text("Btlejuice")
+        }
+        Button(onClick = { navController.navigate("geolocation") }) {
+            Text("Geolocation")
+        }
+        Button(onClick = { navController.navigate("keystroke_injection") }) {
+            Text("Keystroke Injection")
+        }
+        Button(onClick = { navController.navigate("attack_chaining") }) {
+            Text("Attack Chaining")
+        }
     }
 }
 
@@ -292,45 +361,6 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         text = "Settings",
         modifier = modifier
     )
-}
-
-@Composable
-fun BottomNavigationBar(navController: NavController) {
-    val items = listOf(
-        BottomNavItem.Dashboard,
-        BottomNavItem.Targets,
-        BottomNavItem.Attacks,
-        BottomNavItem.Settings
-    )
-    NavigationBar {
-        val navBackStackEntry by navController.currentBackStackEntryAsState()
-        val currentRoute = navBackStackEntry?.destination?.route
-        items.forEach { item ->
-            NavigationBarItem(
-                icon = { Icon(item.icon, contentDescription = item.label) },
-                label = { Text(item.label) },
-                selected = currentRoute == item.route,
-                onClick = {
-                    navController.navigate(item.route) {
-                        navController.graph.startDestinationRoute?.let { route ->
-                            popUpTo(route) {
-                                saveState = true
-                            }
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                }
-            )
-        }
-    }
-}
-
-sealed class BottomNavItem(val route: String, val icon: ImageVector, val label: String) {
-    object Dashboard : BottomNavItem("dashboard", Icons.Default.Home, "Dashboard")
-    object Targets : BottomNavItem("targets", Icons.AutoMirrored.Filled.List, "Targets")
-    object Attacks : BottomNavItem("attacks", Icons.AutoMirrored.Filled.Send, "Attacks")
-    object Settings : BottomNavItem("settings", Icons.Default.Settings, "Settings")
 }
 
 @Preview(showBackground = true)
