@@ -57,6 +57,8 @@ import com.hereliesaz.blusnu.ui.bluebugging.BluebuggingViewModel
 import com.hereliesaz.blusnu.ui.bluesmack.BlueSmackViewModel
 import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingViewModel
 import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingViewModel
+import com.hereliesaz.aznavrail.AzNavRail
+import com.hereliesaz.aznavrail.model.AzButtonShape
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -117,16 +119,21 @@ class MainActivity : ComponentActivity() {
                     }
                 } else {
                     val navController = rememberNavController()
-                    Scaffold(
-                        modifier = Modifier.fillMaxSize(),
-                        bottomBar = {
-                            BottomNavigationBar(navController = navController)
+                    Row(Modifier.fillMaxSize()) {
+                        AzNavRail {
+                            azSettings(
+                                displayAppNameInHeader = true,
+                                packRailButtons = false,
+                                defaultShape = AzButtonShape.RECTANGLE
+                            )
+                            azRailItem(id = "dashboard", text = "Dashboard", onClick = { navController.navigate("dashboard") })
+                            azRailItem(id = "targets", text = "Targets", onClick = { navController.navigate("targets") })
+                            azRailItem(id = "attacks", text = "Attacks", onClick = { navController.navigate("attacks") })
+                            azRailItem(id = "settings", text = "Settings", onClick = { navController.navigate("settings") })
                         }
-                    ) { innerPadding ->
                         NavHost(
                             navController = navController,
-                            startDestination = "dashboard",
-                            modifier = Modifier.padding(innerPadding)
+                            startDestination = "dashboard"
                         ) {
                             composable("dashboard") { DashboardScreen() }
                             composable("targets") {
@@ -292,45 +299,6 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         text = "Settings",
         modifier = modifier
     )
-}
-
-@Composable
-fun BottomNavigationBar(navController: NavController) {
-    val items = listOf(
-        BottomNavItem.Dashboard,
-        BottomNavItem.Targets,
-        BottomNavItem.Attacks,
-        BottomNavItem.Settings
-    )
-    NavigationBar {
-        val navBackStackEntry by navController.currentBackStackEntryAsState()
-        val currentRoute = navBackStackEntry?.destination?.route
-        items.forEach { item ->
-            NavigationBarItem(
-                icon = { Icon(item.icon, contentDescription = item.label) },
-                label = { Text(item.label) },
-                selected = currentRoute == item.route,
-                onClick = {
-                    navController.navigate(item.route) {
-                        navController.graph.startDestinationRoute?.let { route ->
-                            popUpTo(route) {
-                                saveState = true
-                            }
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                }
-            )
-        }
-    }
-}
-
-sealed class BottomNavItem(val route: String, val icon: ImageVector, val label: String) {
-    object Dashboard : BottomNavItem("dashboard", Icons.Default.Home, "Dashboard")
-    object Targets : BottomNavItem("targets", Icons.AutoMirrored.Filled.List, "Targets")
-    object Attacks : BottomNavItem("attacks", Icons.AutoMirrored.Filled.Send, "Attacks")
-    object Settings : BottomNavItem("settings", Icons.Default.Settings, "Settings")
 }
 
 @Preview(showBackground = true)
