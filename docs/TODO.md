@@ -52,10 +52,10 @@ This document outlines the development tasks required to implement the Blu Snu f
 -   [x] **Task 4.1: GATT Fuzzing Module**
     -   [x] Create the UI for the GATT fuzzer.
     -   [x] Implement the logic to systematically test GATT characteristics (malformed data, auth bypass, etc.).
--   [ ] **Task 4.2: Btlejacking Module (Hardware-Assisted)**
-    -   [ ] Implement the Hardware Manager to detect and communicate with a connected BtleJack device.
-    -   [ ] Create the UI to control sniffing, jamming, and hijacking operations.
-    -   [ ] Implement the command interface to send instructions to the external hardware.
+-   [x] **Task 4.2: Btlejacking Module (Hardware-Assisted)**
+    -   [x] Implement the Hardware Manager to detect and communicate with a connected BtleJack device.
+    -   [x] Create the UI to control sniffing, jamming, and hijacking operations.
+    -   [x] Implement the command interface to send instructions to the external hardware.
 -   [ ] **Task 4.3: Man-in-the-Middle (btlejuice) Module**
     -   [ ] Extend the Hardware Manager to support a second external USB BLE dongle.
     -   [ ] Create the UI to display and modify intercepted GATT traffic in real-time.

@@ -72,6 +72,8 @@ import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingViewModel
 import com.hereliesaz.aznavrail.AzNavRail
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingScreen
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingViewModel
+import com.hereliesaz.blusnu.data.BtlejackingModule
+import com.hereliesaz.blusnu.data.HardwareManager
 import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingScreen
 import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingViewModel
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceScreen
@@ -91,6 +93,7 @@ import androidx.core.content.ContextCompat
 class MainActivity : ComponentActivity() {
 
     private val deviceRepository by lazy { DeviceRepository() }
+    private val hardwareManager by lazy { HardwareManager() }
 
     private val viewModelFactory by lazy {
         object : ViewModelProvider.Factory {
@@ -113,7 +116,8 @@ class MainActivity : ComponentActivity() {
                         GattFuzzingViewModel(application) as T
                     }
                     modelClass.isAssignableFrom(BtlejackingViewModel::class.java) -> {
-                        BtlejackingViewModel(application) as T
+                        val btlejackingModule = BtlejackingModule(hardwareManager)
+                        BtlejackingViewModel(application, hardwareManager, btlejackingModule, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BtlejuiceViewModel::class.java) -> {
                         BtlejuiceViewModel(application) as T
