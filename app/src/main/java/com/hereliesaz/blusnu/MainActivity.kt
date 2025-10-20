@@ -282,7 +282,7 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
             Text("No devices found. Click 'Start Scan' to begin.")
         } else {
             LazyColumn {
-                items(state.discoveredDevices) { device ->
+                items(state.discoveredDevices, key = { it.macAddress }) { device ->
                     DeviceListItem(device = device, viewModel = viewModel)
                 }
             }
