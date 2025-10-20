@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.map
 class DeviceRepository {
 
     private val _discoveredDevicesMap = MutableStateFlow<Map<String, TargetDevice>>(emptyMap())
-    val discoveredDevices: StateFlow<List<TargetDevice>> = _discoveredDevicesMap.map { it.values.toList() }.asStateFlow(emptyList())
+    val discoveredDevices: kotlinx.coroutines.flow.Flow<List<TargetDevice>> = _discoveredDevicesMap.map { it.values.toList() }
 
     fun addDevice(device: TargetDevice) {
         if (!_discoveredDevicesMap.value.containsKey(device.macAddress)) {
