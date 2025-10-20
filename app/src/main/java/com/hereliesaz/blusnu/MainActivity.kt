@@ -9,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,12 +32,18 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import android.content.Context
 import android.content.pm.PackageManager
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.hereliesaz.blusnu.data.DeviceRepository
+import com.hereliesaz.blusnu.ui.FilterType
 import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 import androidx.compose.foundation.layout.Column
@@ -46,6 +53,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -53,12 +61,15 @@ import com.hereliesaz.blusnu.data.TargetDevice
 import com.hereliesaz.blusnu.ui.TargetManagementViewModel
 import androidx.compose.foundation.layout.fillMaxWidth
 import com.hereliesaz.blusnu.data.Protocol
+import com.hereliesaz.blusnu.ui.bluebugging.BluebuggingScreen
 import com.hereliesaz.blusnu.ui.bluebugging.BluebuggingViewModel
+import com.hereliesaz.blusnu.ui.bluesmack.BlueSmackScreen
 import com.hereliesaz.blusnu.ui.bluesmack.BlueSmackViewModel
+import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen
 import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingViewModel
+import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingScreen
 import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingViewModel
 import com.hereliesaz.aznavrail.AzNavRail
-import com.hereliesaz.aznavrail.model.AzButtonShape
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingScreen
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingViewModel
 import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingScreen
@@ -74,6 +85,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TextField
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.Alignment
 import androidx.core.content.ContextCompat
 
 class MainActivity : ComponentActivity() {
@@ -83,6 +95,7 @@ class MainActivity : ComponentActivity() {
     private val viewModelFactory by lazy {
         object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
                 return when {
                     modelClass.isAssignableFrom(TargetManagementViewModel::class.java) -> {
                         TargetManagementViewModel(application, deviceRepository) as T
@@ -148,13 +161,18 @@ class MainActivity : ComponentActivity() {
                         Row(Modifier.fillMaxSize().padding(innerPadding)) {
                             AzNavRail {
                                 azSettings(
-                                    displayAppNameInHeader = true,
-                                    packRailButtons = false,
-                                    defaultShape = AzButtonShape.RECTANGLE
+                                    displayAppNameInHeader = false,
+                                    packRailButtons = true
                                 )
                                 azRailItem(id = "dashboard", text = "Dashboard", onClick = { navController.navigate("dashboard") })
                                 azRailItem(id = "targets", text = "Targets", onClick = { navController.navigate("targets") })
-                                azRailItem(id = "attacks", text = "Attacks", onClick = { navController.navigate("attacks") })
+                                azRailItem(id = "bluebugging", text = "Bugging", onClick = { navController.navigate("bluebugging") })
+                                azRailItem(id = "bluesnarfing", text = "Snarfing", onClick = { navController.navigate("bluesnarfing") })
+                                azRailItem(id = "btlejacking", text = "Jacking", onClick = { navController.navigate("btlejacking") })
+                                azRailItem(id = "btlejuice", text = "Juice", onClick = { navController.navigate("btlejuice") })
+                                azRailItem(id = "geolocation", text = "Location", onClick = { navController.navigate("geolocation") })
+                                azRailItem(id = "keystroke_injection", text = "Injection", onClick = { navController.navigate("keystroke_injection") })
+                                azRailItem(id = "attack_chaining", text = "Chaining", onClick = { navController.navigate("attack_chaining") })
                                 azRailItem(id = "settings", text = "Settings", onClick = { navController.navigate("settings") })
                             }
                             NavHost(
@@ -166,11 +184,14 @@ class MainActivity : ComponentActivity() {
                                     val viewModel: TargetManagementViewModel = viewModel(factory = viewModelFactory)
                                     TargetManagementScreen(viewModel = viewModel)
                                 }
-                                composable("attacks") { AttackModulesScreen(navController = navController) }
                                 composable("settings") { SettingsScreen() }
                                 composable("bluebugging") {
                                     val viewModel: BluebuggingViewModel = viewModel(factory = viewModelFactory)
                                     BluebuggingScreen(viewModel = viewModel)
+                                }
+                                composable("bluesnarfing") {
+                                    val viewModel: BluesnarfingViewModel = viewModel(factory = viewModelFactory)
+                                    BluesnarfingScreen(viewModel = viewModel)
                                 }
                                 composable("btlejacking") {
                                     val viewModel: BtlejackingViewModel = viewModel(factory = viewModelFactory)
@@ -191,6 +212,14 @@ class MainActivity : ComponentActivity() {
                                 composable("attack_chaining") {
                                     val viewModel: AttackChainingViewModel = viewModel(factory = viewModelFactory)
                                     AttackChainingScreen(viewModel = viewModel)
+                                }
+                                composable("gattfuzzing") {
+                                    val viewModel: GattFuzzingViewModel = viewModel(factory = viewModelFactory)
+                                    GattFuzzingScreen(viewModel = viewModel)
+                                }
+                                composable("bluesmack") {
+                                    val viewModel: BlueSmackViewModel = viewModel(factory = viewModelFactory)
+                                    BlueSmackScreen(viewModel = viewModel)
                                 }
                             }
                         }
@@ -223,6 +252,46 @@ fun BluebuggingScreen(viewModel: BluebuggingViewModel) {
 }
 
 @Composable
+fun BluesnarfingScreen(viewModel: BluesnarfingViewModel) {
+    Text(text = "Bluesnarfing")
+}
+
+@Composable
+fun BtlejackingScreen(viewModel: BtlejackingViewModel) {
+    Text(text = "Btlejacking")
+}
+
+@Composable
+fun BtlejuiceScreen(viewModel: BtlejuiceViewModel) {
+    Text(text = "Btlejuice")
+}
+
+@Composable
+fun GeolocationScreen(viewModel: GeolocationViewModel) {
+    Text(text = "Geolocation")
+}
+
+@Composable
+fun KeystrokeInjectionScreen(viewModel: KeystrokeInjectionViewModel) {
+    Text(text = "Keystroke Injection")
+}
+
+@Composable
+fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
+    Text(text = "Attack Chaining")
+}
+
+@Composable
+fun GattFuzzingScreen(viewModel: GattFuzzingViewModel) {
+    Text(text = "Gatt Fuzzing")
+}
+
+@Composable
+fun BlueSmackScreen(viewModel: BlueSmackViewModel) {
+    Text(text = "BlueSmack")
+}
+
+@Composable
 fun DashboardScreen(modifier: Modifier = Modifier) {
     Text(
         text = "Dashboard",
@@ -234,42 +303,86 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
 @Composable
 fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManagementViewModel) {
     val state by viewModel.state.collectAsState()
-    var filterText by remember { mutableStateOf("") }
+    var textFilter by remember { mutableStateOf("") }
+    var filterType by remember { mutableStateOf<FilterType>(FilterType.Text) }
 
     Column(modifier = modifier.padding(16.dp)) {
         Row {
-            Button(onClick = { viewModel.startScan() }, enabled = !state.isScanning) {
-                Text("Start Scan")
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = { viewModel.stopScan() }, enabled = state.isScanning) {
-                Text("Stop Scan")
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Row {
-            Button(onClick = { viewModel.setFilter(Protocol.CLASSIC) }) {
-                Text("Classic")
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = { viewModel.setFilter(Protocol.BLE) }) {
-                Text("BLE")
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = { viewModel.setFilter(null) }) {
-                Text("All")
+            OutlinedButton(
+                onClick = { if (state.isScanning) viewModel.stopScan() else viewModel.startScan() },
+                shape = RoundedCornerShape(0.dp)
+            ) {
+                Text(if (state.isScanning) "Stop Scan" else "Start Scan")
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        TextField(
-            value = filterText,
-            onValueChange = { 
-                filterText = it
-                viewModel.setFilterText(it) 
-            },
-            label = { Text("Filter by name or MAC") },
-            modifier = Modifier.fillMaxWidth()
-        )
+
+        var filterExpanded by remember { mutableStateOf(false) }
+        var filterTypeExpanded by remember { mutableStateOf(false) }
+
+        ExposedDropdownMenuBox(expanded = filterExpanded, onExpandedChange = { filterExpanded = !filterExpanded }) {
+            TextField(
+                value = textFilter,
+                onValueChange = { 
+                    textFilter = it
+                    if (it.isNotBlank()) {
+                        viewModel.addFilter(filterType, it)
+                    } else {
+                        viewModel.removeFilter(filterType)
+                    }
+                },
+                label = { Text("Filter by $filterType") },
+                modifier = Modifier.fillMaxWidth().menuAnchor(),
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterExpanded)
+                }
+            )
+            ExposedDropdownMenu(expanded = filterExpanded, onDismissRequest = { filterExpanded = false }) {
+                when(filterType) {
+                    FilterType.Text -> {
+                        state.discoveredDevices.forEach { device ->
+                            DropdownMenuItem(text = { Text(device.name ?: device.macAddress) }, onClick = {
+                                textFilter = device.name ?: device.macAddress
+                                viewModel.addFilter(FilterType.Text, textFilter)
+                                filterExpanded = false
+                            })
+                        }
+                    }
+                    FilterType.Protocol -> {
+                        DropdownMenuItem(text = { Text("Classic") }, onClick = {
+                            viewModel.addFilter(FilterType.Protocol, Protocol.CLASSIC)
+                            filterExpanded = false
+                        })
+                        DropdownMenuItem(text = { Text("BLE") }, onClick = {
+                            viewModel.addFilter(FilterType.Protocol, Protocol.BLE)
+                            filterExpanded = false
+                        })
+                        DropdownMenuItem(text = { Text("All") }, onClick = {
+                            viewModel.removeFilter(FilterType.Protocol)
+                            filterExpanded = false
+                        })
+                    }
+                    else -> {}
+                }
+            }
+        }
+
+        Box(modifier = Modifier.align(Alignment.End)) {
+            OutlinedButton(onClick = { filterTypeExpanded = true }, shape = RoundedCornerShape(0.dp)) {
+                Text("Filter by")
+            }
+            DropdownMenu(expanded = filterTypeExpanded, onDismissRequest = { filterTypeExpanded = false }) {
+                DropdownMenuItem(text = { Text("Text") }, onClick = {
+                    filterType = FilterType.Text
+                    filterTypeExpanded = false
+                })
+                DropdownMenuItem(text = { Text("Protocol") }, onClick = {
+                    filterType = FilterType.Protocol
+                    filterTypeExpanded = false
+                })
+            }
+        }
+
         Spacer(modifier = Modifier.height(8.dp))
 
         if (!state.hasPermissions) {
@@ -279,7 +392,7 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
         } else if (state.isScanning && state.discoveredDevices.isEmpty()) {
             CircularProgressIndicator()
         } else if (!state.isScanning && state.discoveredDevices.isEmpty()) {
-            Text("No devices found. Click 'Start Scan' to begin.")
+            Text("No devices found. Click \'Start Scan\' to begin.")
         } else {
             LazyColumn {
                 items(state.discoveredDevices, key = { it.macAddress }) { device ->
@@ -303,12 +416,13 @@ fun DeviceListItem(device: TargetDevice, viewModel: TargetManagementViewModel) {
             Text(text = "${device.rssi} dBm")
             Spacer(modifier = Modifier.width(8.dp))
             Text(text = device.protocol.name)
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = { viewModel.discoverServices(device) }) {
+        }
+        Row {
+            OutlinedButton(onClick = { viewModel.discoverServices(device) }, shape = RoundedCornerShape(0.dp)) {
                 Text("Services")
             }
             Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = { viewModel.checkForVulnerabilities(device) }) {
+            OutlinedButton(onClick = { viewModel.checkForVulnerabilities(device) }, shape = RoundedCornerShape(0.dp)) {
                 Text("Check Vulns")
             }
         }
@@ -327,30 +441,6 @@ fun DeviceListItem(device: TargetDevice, viewModel: TargetManagementViewModel) {
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun AttackModulesScreen(modifier: Modifier = Modifier, navController: NavController) {
-    Column(modifier = modifier) {
-        Button(onClick = { navController.navigate("bluesnarfing") }) {
-            Text("Bluesnarfing")
-        }
-        Button(onClick = { navController.navigate("btlejacking") }) {
-            Text("Btlejacking")
-        }
-        Button(onClick = { navController.navigate("btlejuice") }) {
-            Text("Btlejuice")
-        }
-        Button(onClick = { navController.navigate("geolocation") }) {
-            Text("Geolocation")
-        }
-        Button(onClick = { navController.navigate("keystroke_injection") }) {
-            Text("Keystroke Injection")
-        }
-        Button(onClick = { navController.navigate("attack_chaining") }) {
-            Text("Attack Chaining")
         }
     }
 }

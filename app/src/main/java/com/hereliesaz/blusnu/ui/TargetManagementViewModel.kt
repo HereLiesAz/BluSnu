@@ -26,7 +26,14 @@ data class TargetManagementScreenState(
     val hasPermissions: Boolean = false,
     val isBluetoothEnabled: Boolean = false,
     val discoveredDevices: List<TargetDevice> = emptyList(),
+    val activeFilters: Map<FilterType, Any> = emptyMap(),
 )
+
+sealed class FilterType {
+    object Protocol : FilterType()
+    object SignalStrength : FilterType()
+    object Text : FilterType()
+}
 
 class TargetManagementViewModel(
     application: Application,
@@ -48,28 +55,34 @@ class TargetManagementViewModel(
         }
     private val vulnerabilityCorrelator = VulnerabilityCorrelator(application)
 
-    private val _filter = MutableStateFlow<Protocol?>(null)
-    private val _filterText = MutableStateFlow("")
+    private val _activeFilters = MutableStateFlow<Map<FilterType, Any>>(emptyMap())
 
     init {
         val filteredDevices: StateFlow<List<TargetDevice>> = combine(
             deviceRepository.discoveredDevices,
-            _filter,
-            _filterText
-        ) { devices, filter, filterText ->
+            _activeFilters
+        ) { devices, filters ->
             devices.filter { device ->
-                (filter == null || device.protocol == filter) &&
-                        (filterText.isBlank() ||
-                                device.name?.contains(filterText, ignoreCase = true) == true ||
-                                device.macAddress.contains(filterText, ignoreCase = true))
+                filters.all { (filterType, value) ->
+                    when (filterType) {
+                        is FilterType.Protocol -> device.protocol == value
+                        is FilterType.SignalStrength -> device.rssi >= value as Int
+                        is FilterType.Text -> device.name?.contains(value as String, ignoreCase = true) == true ||
+                                device.macAddress.contains(value as String, ignoreCase = true)
+                    }
+                }
             }
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
         state = combine(
             _state,
-            filteredDevices
-        ) { state, devices ->
-            state.copy(discoveredDevices = devices)
+            filteredDevices,
+            _activeFilters
+        ) { state, devices, filters ->
+            state.copy(
+                discoveredDevices = devices,
+                activeFilters = filters
+            )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TargetManagementScreenState())
 
         updatePermissionsState()
@@ -98,6 +111,13 @@ class TargetManagementViewModel(
         _state.update { it.copy(isBluetoothEnabled = bluetoothAdapter?.isEnabled == true) }
     }
 
+    fun addFilter(filterType: FilterType, value: Any) {
+        _activeFilters.update { it + (filterType to value) }
+    }
+
+    fun removeFilter(filterType: FilterType) {
+        _activeFilters.update { it - filterType }
+    }
 
     fun startScan() {
         if (_state.value.hasPermissions && _state.value.isBluetoothEnabled) {
@@ -112,14 +132,6 @@ class TargetManagementViewModel(
         _state.update { it.copy(isScanning = false) }
         bluetoothScanner?.stopClassicDiscovery()
         bluetoothScanner?.stopBleScan()
-    }
-
-    fun setFilter(protocol: Protocol?) {
-        _filter.value = protocol
-    }
-
-    fun setFilterText(text: String) {
-        _filterText.value = text
     }
 
     fun discoverServices(device: TargetDevice) {
