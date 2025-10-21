@@ -63,16 +63,16 @@ This document outlines the development tasks required to implement the Blu Snu f
 
 ## Milestone 5: Advanced Signal and Pairing Attacks
 
--   [ ] **Task 5.1: Device Geolocation Module**
+-   [x] **Task 5.1: Device Geolocation Module**
     -   [x] Implement baseline distance estimation using the log-distance path loss model.
     -   [x] Implement a Kalman filter or moving average to smooth RSSI readings.
-    -   [x] Design the "Radar" view UI.
+    -   [x] Design the "Map" view UI.
 -   [x] **Task 5.2: Keystroke Injection (CVE-2023-45866) Module**
     -   [x] Implement the logic to emulate an HID keyboard and attempt "Just Works" pairing.
     -   [x] Create the UI to send keystroke commands if the attack is successful.
--   [ ] **Task 5.3: Bluetooth Spoofing Module**
-    -   [ ] Implement the logic to change the Bluetooth adapter's MAC address. (Requires Elevated Mode)
-    -   [ ] Create the UI to allow the user to specify a new MAC address.
+-   [x] **Task 5.3: Bluetooth Spoofing Module**
+    -   [x] Implement the logic to change the Bluetooth adapter's MAC address. (Requires Elevated Mode)
+    -   [x] Create the UI to allow the user to specify a new MAC address.
 
 ## Milestone 6: Automation Core and Finalization
 
@@ -83,9 +83,38 @@ This document outlines the development tasks required to implement the Blu Snu f
 -   [ ] **Task 6.2: Pre-built Attack Chain Templates**
     -   [ ] Implement the logic to load and save attack chains.
     -   [ ] Create the initial set of templates (e.g., "BLE Smart Lock Audit," "Opportunistic Eavesdropping").
--   [ ] **Task 6.3: Professional Reporting Engine**
-    -   [ ] Implement the logic to log all actions performed during an assessment.
-    -   [ ] Create the functionality to generate and export a detailed report in PDF or Markdown format.
--   [ ] **Task 6.4: Finalize Settings and Database Updates**
-    -   [ ] Create a settings screen for user preferences.
-    -   [ ] Implement the mechanism for securely downloading updates to the vulnerability and fingerprinting databases.
+-   [x] **Task 6.3: Professional Reporting Engine**
+    -   [x] Implement the logic to log all actions performed during an assessment.
+    -   [x] Create the functionality to generate and export a detailed report in PDF or Markdown format.
+-   [x] **Task 6.4: Finalize Settings and Database Updates**
+    -   [x] Create a settings screen for user preferences.
+    -   [x] Implement the mechanism for securely downloading updates to the vulnerability and fingerprinting databases.
+
+## Milestone 7: UI/UX Overhaul and Feature Expansion
+
+-   [ ] **Task 7.1: Global UI Consistency**
+    -   [ ] Remove all hardcoded screen titles from individual composables.
+    -   [ ] Style the AzNavRail-provided titles to be bold, primary color, and a larger font size.
+    -   [ ] Implement a global layout rule: all screen content must have a top margin of 20% of the screen height.
+    -   [ ] Implement a global layout rule: all screen content must be right-aligned.
+-   [ ] **Task 7.2: Advanced Geolocation with Map**
+    -   [ ] Replace the "Radar" view with a real map using the Overpass API.
+    -   [ ] Implement a device triangulation algorithm that improves in accuracy as the user moves their phone.
+    -   [ ] Add a heatmap widget to the Dashboard showing where devices have been found in scans.
+-   [ ] **Task 7.3: Dashboard and Data Persistence**
+    -   [ ] The vulnerability database should be loaded automatically on app open, not manually.
+    -   [ ] Remove the "Load Session" button from the Dashboard.
+    -   [ ] Implement the "Active Tasks", "Saved Sessions", and "Attack Chain Templates" widgets to display real data.
+    -   [ ] Devices found in previous scans should be listed on the Targets screen upon app open.
+    -   [ ] When scanning, newly discovered devices should have their text colored with the primary blue.
+-   [ ] **Task 7.4: Implement Placeholder Screens**
+    -   [ ] Implement the UI and basic functionality for the Bluebugging screen.
+    -   [ ] Implement the UI and basic functionality for the Bluesnarfing screen.
+    -   [ ] Implement the UI and basic functionality for the BlueSmack screen.
+    -   [ ] Implement the UI and basic functionality for the GATT Fuzzing screen.
+    -   [ ] Implement the UI and basic functionality for the Btlejacking screen.
+    -   [ ] Implement the UI and basic functionality for the Attack Chaining screen.
+-   [ ] **Task 7.5: Data Sharing and Analytics**
+    -   [ ] Add a sentence to the ethical use prompt asking the user to share anonymized data with the developer.
+    -   [ ] Add "Agree" and "Cancel" buttons to the new prompt.
+    -   [ ] If the user agrees, implement functionality to back up their local database to a secure cloud database.

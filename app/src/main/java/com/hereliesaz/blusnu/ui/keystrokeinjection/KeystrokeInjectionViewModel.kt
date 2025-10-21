@@ -3,6 +3,7 @@ package com.hereliesaz.blusnu.ui.keystrokeinjection
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.blusnu.data.ActionLogger
 import com.hereliesaz.blusnu.data.KeystrokeInjectionModule
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +25,7 @@ class KeystrokeInjectionViewModel(
     val state: StateFlow<KeystrokeInjectionState> = _state.asStateFlow()
 
     fun onAttemptAttack() {
+        ActionLogger.log("Keystroke injection attack started.")
         viewModelScope.launch {
             log("Attempting silent pairing...")
             val success = keystrokeInjectionModule.attemptPairing()
@@ -37,6 +39,7 @@ class KeystrokeInjectionViewModel(
     }
 
     fun onSendKeystrokes(text: String) {
+        ActionLogger.log("Sending keystrokes: '$text'")
         viewModelScope.launch {
             log("Sending keystrokes: '$text'")
             val success = keystrokeInjectionModule.sendKeystrokes(text)

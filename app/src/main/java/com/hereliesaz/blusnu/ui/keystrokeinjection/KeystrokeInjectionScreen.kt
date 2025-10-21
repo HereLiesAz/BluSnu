@@ -21,7 +21,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -34,25 +37,20 @@ fun KeystrokeInjectionScreen(
     onSendKeystrokes: (String) -> Unit = {}
 ) {
     var textToSend by remember { mutableStateOf("") }
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(top = screenHeight * 0.2f),
+        contentAlignment = Alignment.TopEnd
     ) {
-        Text(
-            "Keystroke Injection (CVE-2023-45866)",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            "Attempts to pair with a host as a keyboard without user confirmation and inject keystrokes.",
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-            onClick = onAttemptAttack,
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.End
+        ) {
+            Button(
+                onClick = onAttemptAttack,
             modifier = Modifier.fillMaxWidth(),
             enabled = !state.isPared
         ) {
@@ -109,6 +107,7 @@ fun KeystrokeInjectionScreen(
                 }
             }
         }
+    }
     }
 }
 

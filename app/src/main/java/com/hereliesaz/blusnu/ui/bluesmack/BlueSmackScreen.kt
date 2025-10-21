@@ -7,9 +7,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
@@ -17,10 +22,17 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 fun BlueSmackScreen(viewModel: BlueSmackViewModel = viewModel()) {
     val macAddress by viewModel.macAddress.collectAsState()
     val status by viewModel.status.collectAsState()
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
-    Column {
-        TextField(
-            value = macAddress,
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = screenHeight * 0.2f),
+        contentAlignment = Alignment.TopEnd
+    ) {
+        Column {
+            TextField(
+                value = macAddress,
             onValueChange = { viewModel.onMacAddressChanged(it) },
             label = { Text("Target MAC Address") }
         )
@@ -30,5 +42,6 @@ fun BlueSmackScreen(viewModel: BlueSmackViewModel = viewModel()) {
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text("Status: $status")
+    }
     }
 }

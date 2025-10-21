@@ -52,6 +52,7 @@ import com.hereliesaz.aznavrail.model.AzButtonShape
 import com.hereliesaz.blusnu.data.BtlejackingModule
 import com.hereliesaz.blusnu.data.BtlejuiceModule
 import com.hereliesaz.blusnu.data.DeviceRepository
+import com.hereliesaz.blusnu.data.VulnerabilityCorrelator
 import com.hereliesaz.blusnu.data.HardwareManager
 import com.hereliesaz.blusnu.data.TargetDevice
 import com.hereliesaz.blusnu.ui.FilterProtocol
@@ -92,6 +93,7 @@ class MainActivity : ComponentActivity() {
     private val hardwareManager by lazy { HardwareManager() }
     private val btlejuiceModule by lazy { BtlejuiceModule(hardwareManager) }
     private val keystrokeInjectionModule by lazy { com.hereliesaz.blusnu.data.KeystrokeInjectionModule() }
+    private val vulnerabilityCorrelator by lazy { VulnerabilityCorrelator(applicationContext) }
 
     private val viewModelFactory by lazy {
         object : ViewModelProvider.Factory {
@@ -99,7 +101,7 @@ class MainActivity : ComponentActivity() {
                 @Suppress("UNCHECKED_CAST")
                 return when {
                     modelClass.isAssignableFrom(TargetManagementViewModel::class.java) -> {
-                        TargetManagementViewModel(application, deviceRepository) as T
+                        TargetManagementViewModel(application, deviceRepository, vulnerabilityCorrelator) as T
                     }
                     modelClass.isAssignableFrom(BluebuggingViewModel::class.java) -> {
                         BluebuggingViewModel(application) as T
@@ -121,7 +123,7 @@ class MainActivity : ComponentActivity() {
                         BtlejuiceViewModel(application) as T
                     }
                     modelClass.isAssignableFrom(GeolocationViewModel::class.java) -> {
-                        GeolocationViewModel(application) as T
+                        GeolocationViewModel(application, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(KeystrokeInjectionViewModel::class.java) -> {
                         KeystrokeInjectionViewModel(application, keystrokeInjectionModule) as T
@@ -148,6 +150,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        vulnerabilityCorrelator.loadVulnerabilities()
 
         requestRequiredPermissions()
 
@@ -198,6 +202,9 @@ class MainActivity : ComponentActivity() {
                                     DashboardScreen(
                                         bleDeviceCount = state.bleDeviceCount,
                                         classicDeviceCount = state.classicDeviceCount,
+                                        activeTasks = state.activeTasks,
+                                        savedSessions = state.savedSessions,
+                                        attackChainTemplates = state.attackChainTemplates,
                                         onStartScanClicked = { navController.navigate("targets") }
                                     )
                                 }

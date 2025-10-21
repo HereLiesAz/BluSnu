@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.blusnu.data.ActionLogger
 import com.hereliesaz.blusnu.data.BlueSmackModule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,6 +35,8 @@ class BlueSmackViewModel(application: Application) : AndroidViewModel(applicatio
             _status.value = "Bluetooth connect permission is required"
             return
         }
+
+        ActionLogger.log("BlueSmack attack started against ${_macAddress.value}.")
 
         if (bluetoothAdapter == null) {
             _status.value = "Bluetooth is not supported on this device"
