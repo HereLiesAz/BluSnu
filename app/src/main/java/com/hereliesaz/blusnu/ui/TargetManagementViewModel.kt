@@ -9,6 +9,7 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.blusnu.data.ActionLogger
 import com.hereliesaz.blusnu.data.BluetoothScanner
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.Protocol
@@ -20,7 +21,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 data class TargetManagementScreenState(
     val isScanning: Boolean = false,
@@ -28,15 +28,12 @@ data class TargetManagementScreenState(
     val isBluetoothEnabled: Boolean = false,
     val discoveredDevices: List<TargetDevice> = emptyList(),
     val activeFilters: Map<FilterType, Any> = emptyMap(),
-    val isDiscoveringServices: Set<String> = emptySet(),
-    val isCheckingVulnerabilities: Set<String> = emptySet()
 )
 
 sealed class FilterType {
     object Protocol : FilterType()
     object SignalStrength : FilterType()
     object Text : FilterType()
-    object Favorites : FilterType()
 }
 
 class TargetManagementViewModel(
@@ -73,7 +70,6 @@ class TargetManagementViewModel(
                         is FilterType.SignalStrength -> device.rssi >= value as Int
                         is FilterType.Text -> device.name?.contains(value as String, ignoreCase = true) == true ||
                                 device.macAddress.contains(value as String, ignoreCase = true)
-                        is FilterType.Favorites -> device.isFavorite
                     }
                 }
             }
@@ -126,6 +122,7 @@ class TargetManagementViewModel(
 
     fun startScan() {
         if (_state.value.hasPermissions && _state.value.isBluetoothEnabled) {
+            ActionLogger.log("Bluetooth scan started.")
             _state.update { it.copy(isScanning = true) }
             deviceRepository.clearDevices()
             bluetoothScanner?.startClassicDiscovery()
@@ -140,30 +137,15 @@ class TargetManagementViewModel(
     }
 
     fun discoverServices(device: TargetDevice) {
-        viewModelScope.launch {
-            _state.update { it.copy(isDiscoveringServices = it.isDiscoveringServices + device.macAddress) }
-            bluetoothAdapter?.let { adapter ->
-                val bluetoothDevice = adapter.getRemoteDevice(device.macAddress)
-                bluetoothScanner?.discoverServices(bluetoothDevice)
-            }
-            _state.update { it.copy(isDiscoveringServices = it.isDiscoveringServices - device.macAddress) }
+        bluetoothAdapter?.let { adapter ->
+            val bluetoothDevice = adapter.getRemoteDevice(device.macAddress)
+            bluetoothScanner?.discoverServices(bluetoothDevice)
         }
     }
 
     fun checkForVulnerabilities(device: TargetDevice) {
-        viewModelScope.launch {
-            _state.update { it.copy(isCheckingVulnerabilities = it.isCheckingVulnerabilities + device.macAddress) }
-            val vulnerabilities = vulnerabilityCorrelator.findVulnerabilities(device.services)
-            deviceRepository.updateDeviceVulnerabilities(device.macAddress, vulnerabilities)
-            _state.update { it.copy(isCheckingVulnerabilities = it.isCheckingVulnerabilities - device.macAddress) }
-        }
-    }
-
-    fun toggleFavorite(macAddress: String) {
-        deviceRepository.toggleFavorite(macAddress)
-    }
-
-    fun saveNotes(macAddress: String, notes: String) {
-        deviceRepository.updateDeviceNotes(macAddress, notes)
+        ActionLogger.log("Checking vulnerabilities for ${device.macAddress}.")
+        val vulnerabilities = vulnerabilityCorrelator.findVulnerabilities(device.services)
+        deviceRepository.updateDeviceVulnerabilities(device.macAddress, vulnerabilities)
     }
 }

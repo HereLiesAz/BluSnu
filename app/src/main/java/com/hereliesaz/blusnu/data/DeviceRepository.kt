@@ -35,16 +35,4 @@ class DeviceRepository {
             _discoveredDevicesMap.value = _discoveredDevicesMap.value + (macAddress to it.copy(vulnerabilities = vulnerabilities))
         }
     }
-
-    fun toggleFavorite(macAddress: String) {
-        _discoveredDevicesMap.value[macAddress]?.let {
-            _discoveredDevicesMap.value = _discoveredDevicesMap.value + (macAddress to it.copy(isFavorite = !it.isFavorite))
-        }
-    }
-
-    fun updateDeviceNotes(macAddress: String, notes: String) {
-        _discoveredDevicesMap.value[macAddress]?.let {
-            _discoveredDevicesMap.value = _discoveredDevicesMap.value + (macAddress to it.copy(notes = notes))
-        }
-    }
 }

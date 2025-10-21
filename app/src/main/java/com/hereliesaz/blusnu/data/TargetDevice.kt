@@ -6,9 +6,7 @@ data class TargetDevice(
     val rssi: Int,
     val protocol: Protocol,
     val services: List<String> = emptyList(),
-    val vulnerabilities: List<Vulnerability> = emptyList(),
-    val isFavorite: Boolean = false,
-    val notes: String = ""
+    val vulnerabilities: List<Vulnerability> = emptyList()
 )
 
 data class Vulnerability(
