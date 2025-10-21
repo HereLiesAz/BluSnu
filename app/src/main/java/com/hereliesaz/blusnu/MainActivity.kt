@@ -33,6 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.edit
@@ -53,7 +54,9 @@ import com.hereliesaz.blusnu.data.BtlejuiceModule
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.HardwareManager
 import com.hereliesaz.blusnu.data.TargetDevice
+import com.hereliesaz.blusnu.ui.FilterProtocol
 import com.hereliesaz.blusnu.ui.FilterType
+import com.hereliesaz.blusnu.ui.TargetManagementScreen
 import com.hereliesaz.blusnu.ui.TargetManagementViewModel
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingScreen
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingViewModel
@@ -71,17 +74,13 @@ import com.hereliesaz.blusnu.ui.btlejuicemitm.BtlejuiceMitmScreen
 import com.hereliesaz.blusnu.ui.btlejuicemitm.BtlejuiceMitmViewModel
 import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
 import com.hereliesaz.blusnu.ui.dashboard.DashboardScreen
-import com.hereliesaz.blusnu.ui.disclaimer.DisclaimerDialog
 import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingScreen
 import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingViewModel
-import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingScreen
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationScreen
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationViewModel
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionViewModel
-import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
 import com.hereliesaz.blusnu.ui.settings.SettingsScreen
-import com.hereliesaz.blusnu.ui.TargetManagementScreen
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 
 
@@ -117,7 +116,7 @@ class MainActivity : ComponentActivity() {
                         BtlejackingViewModel(application, hardwareManager, btlejackingModule, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BtlejuiceViewModel::class.java) -> {
-                        BtlejuiceViewModel(hardwareManager, btlejuiceModule, deviceRepository) as T
+                        BtlejuiceViewModel(application) as T
                     }
                     modelClass.isAssignableFrom(GeolocationViewModel::class.java) -> {
                         GeolocationViewModel(application) as T
@@ -308,175 +307,6 @@ fun GattFuzzingScreen(viewModel: GattFuzzingViewModel) {
 @Composable
 fun BlueSmackScreen(viewModel: BlueSmackViewModel) {
     Text(text = "BlueSmack")
-}
-
-@Composable
-fun DashboardScreen(modifier: Modifier = Modifier) {
-    Text(
-        text = "Dashboard",
-        modifier = modifier
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManagementViewModel, navController: NavController) {
-    val state by viewModel.state.collectAsState()
-    var textFilter by remember { mutableStateOf("") }
-    var filterType by remember { mutableStateOf<FilterType>(FilterType.Text) }
-
-    Column(modifier = modifier.padding(16.dp)) {
-        Row {
-            OutlinedButton(
-                onClick = { if (state.isScanning) viewModel.stopScan() else viewModel.startScan() },
-                shape = RoundedCornerShape(0.dp)
-            ) {
-                Text(if (state.isScanning) "Stop Scan" else "Start Scan")
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-
-        var filterExpanded by remember { mutableStateOf(false) }
-        var filterTypeExpanded by remember { mutableStateOf(false) }
-
-        ExposedDropdownMenuBox(expanded = filterExpanded, onExpandedChange = { filterExpanded = !filterExpanded }) {
-            TextField(
-                value = textFilter,
-                onValueChange = {
-                    textFilter = it
-                    if (it.isNotBlank()) {
-                        viewModel.addFilter(filterType, it)
-                    } else {
-                        viewModel.removeFilter(filterType)
-                    }
-                },
-                label = { Text("Filter by $filterType") },
-                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterExpanded)
-                }
-            )
-            ExposedDropdownMenu(expanded = filterExpanded, onDismissRequest = { filterExpanded = false }) {
-                when(filterType) {
-                    FilterType.Text -> {
-                        state.discoveredDevices.forEach { device ->
-                            DropdownMenuItem(text = { Text(device.name ?: device.macAddress) }, onClick = {
-                                textFilter = device.name ?: device.macAddress
-                                viewModel.addFilter(FilterType.Text, textFilter)
-                                filterExpanded = false
-                            })
-                        }
-                    }
-                    FilterType.Protocol -> {
-                        DropdownMenuItem(text = { Text("Classic") }, onClick = {
-                            viewModel.addFilter(FilterType.Protocol, Protocol.CLASSIC)
-                            filterExpanded = false
-                        })
-                        DropdownMenuItem(text = { Text("BLE") }, onClick = {
-                            viewModel.addFilter(FilterType.Protocol, Protocol.BLE)
-                            filterExpanded = false
-                        })
-                        DropdownMenuItem(text = { Text("All") }, onClick = {
-                            viewModel.removeFilter(FilterType.Protocol)
-                            filterExpanded = false
-                        })
-                    }
-                    else -> {}
-                }
-            }
-        }
-
-        Box(modifier = Modifier.align(Alignment.End)) {
-            OutlinedButton(onClick = { filterTypeExpanded = true }, shape = RoundedCornerShape(0.dp)) {
-                Text("Filter by")
-            }
-            DropdownMenu(expanded = filterTypeExpanded, onDismissRequest = { filterTypeExpanded = false }) {
-                DropdownMenuItem(text = { Text("Text") }, onClick = {
-                    filterType = FilterType.Text
-                    filterTypeExpanded = false
-                })
-                DropdownMenuItem(text = { Text("Protocol") }, onClick = {
-                    filterType = FilterType.Protocol
-                    filterTypeExpanded = false
-                })
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        if (!state.hasPermissions) {
-            Text("Permissions not granted")
-        } else if (!state.isBluetoothEnabled) {
-            Text("Bluetooth is not enabled")
-        } else if (state.isScanning && state.discoveredDevices.isEmpty()) {
-            CircularProgressIndicator()
-        } else if (!state.isScanning && state.discoveredDevices.isEmpty()) {
-            Text("No devices found. Click 'Start Scan' to begin.")
-        } else {
-            LazyColumn {
-                items(state.discoveredDevices, key = { it.macAddress }) { device ->
-                    DeviceListItem(device = device, viewModel = viewModel, navController = navController)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun DeviceListItem(device: TargetDevice, viewModel: TargetManagementViewModel, navController: NavController) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Column(modifier = Modifier.clickable { expanded = !expanded }) {
-        Row {
-            Text(text = device.name ?: "Unknown")
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = device.macAddress)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = "${device.rssi} dBm")
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = device.protocol.name)
-        }
-        Row {
-            OutlinedButton(onClick = { viewModel.discoverServices(device) }, shape = RoundedCornerShape(0.dp)) {
-                Text("Services")
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            OutlinedButton(onClick = { viewModel.checkForVulnerabilities(device) }, shape = RoundedCornerShape(0.dp)) {
-                Text("Check Vulns")
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            OutlinedButton(onClick = {
-                val targetDeviceJson = Gson().toJson(device)
-                navController.navigate("btlejuice/$targetDeviceJson")
-            }, shape = RoundedCornerShape(0.dp)) {
-                Text("Juice")
-            }
-        }
-        if (expanded) {
-            if (device.services.isNotEmpty()) {
-                Column {
-                    device.services.forEach { service ->
-                        Text(text = "Service: $service")
-                    }
-                }
-            }
-            if (device.vulnerabilities.isNotEmpty()) {
-                Column {
-                    device.vulnerabilities.forEach { vulnerability ->
-                        Text(text = "Vulnerability: ${vulnerability.name} (${vulnerability.cve})")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun SettingsScreen(modifier: Modifier = Modifier) {
-    Text(
-        text = "Settings",
-        modifier = modifier
-    )
 }
 
 @Preview(showBackground = true)
