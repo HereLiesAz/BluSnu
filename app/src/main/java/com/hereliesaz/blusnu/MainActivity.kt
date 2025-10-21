@@ -74,6 +74,7 @@ import com.hereliesaz.blusnu.ui.btlejuicemitm.BtlejuiceMitmScreen
 import com.hereliesaz.blusnu.ui.btlejuicemitm.BtlejuiceMitmViewModel
 import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
 import com.hereliesaz.blusnu.ui.dashboard.DashboardScreen
+import com.hereliesaz.blusnu.ui.dashboard.DashboardViewModel
 import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingScreen
 import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingViewModel
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationScreen
@@ -126,6 +127,9 @@ class MainActivity : ComponentActivity() {
                     }
                     modelClass.isAssignableFrom(AttackChainingViewModel::class.java) -> {
                         AttackChainingViewModel(application) as T
+                    }
+                    modelClass.isAssignableFrom(DashboardViewModel::class.java) -> {
+                        DashboardViewModel(application, deviceRepository) as T
                     }
                     else -> throw IllegalArgumentException("Unknown ViewModel class")
                 }
@@ -187,7 +191,15 @@ class MainActivity : ComponentActivity() {
                                 navController = navController,
                                 startDestination = "dashboard"
                             ) {
-                                composable("dashboard") { DashboardScreen() }
+                                composable("dashboard") {
+                                    val viewModel: DashboardViewModel = viewModel(factory = viewModelFactory)
+                                    val state by viewModel.state.collectAsState()
+                                    DashboardScreen(
+                                        bleDeviceCount = state.bleDeviceCount,
+                                        classicDeviceCount = state.classicDeviceCount,
+                                        onStartScanClicked = { navController.navigate("targets") }
+                                    )
+                                }
                                 composable("targets") {
                                     val viewModel: TargetManagementViewModel = viewModel(factory = viewModelFactory)
                                     TargetManagementScreen(viewModel = viewModel, navController = navController)
