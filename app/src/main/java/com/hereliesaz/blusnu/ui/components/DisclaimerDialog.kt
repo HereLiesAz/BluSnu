@@ -1,25 +1,19 @@
 package com.hereliesaz.blusnu.ui.components
 
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 
 @Composable
-fun DisclaimerDialog(onDismiss: () -> Unit) {
+fun DisclaimerDialog(onConfirm: () -> Unit) {
     AlertDialog(
-        onDismissRequest = { /* Non-skippable */ },
-        title = { Text("Ethical Use Disclaimer") },
-        text = {
-            Text(
-                "This application is intended for educational and authorized testing purposes only. " +
-                        "Unauthorized scanning or attacking of Bluetooth devices is illegal. " +
-                        "By using this app, you agree to use it responsibly and in compliance with all applicable laws."
-            )
-        },
+        onDismissRequest = {},
+        title = { Text("Ethical Use Mandate") },
+        text = { Text("This tool is intended for use by security professionals for educational purposes and for security assessments on networks and devices for which they have received explicit, written authorization. Using this tool for unauthorized access or malicious activity is illegal. The developers assume no liability for its misuse.") },
         confirmButton = {
-            Button(onClick = onDismiss) {
-                Text("I Understand and Agree")
+            TextButton(onClick = onConfirm) {
+                Text("I Accept")
             }
         }
     )
