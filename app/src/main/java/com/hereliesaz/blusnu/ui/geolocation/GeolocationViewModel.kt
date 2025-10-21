@@ -9,8 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 data class GeolocationUiState(
-    val selectedDevice: TargetDevice? = null,
-    val distance: Double = 0.0
+    val distances: Map<String, Double> = emptyMap()
 )
 
 class GeolocationViewModel(application: Application) : AndroidViewModel(application) {
@@ -20,8 +19,11 @@ class GeolocationViewModel(application: Application) : AndroidViewModel(applicat
     private val _uiState = MutableStateFlow(GeolocationUiState())
     val uiState: StateFlow<GeolocationUiState> = _uiState.asStateFlow()
 
-    fun onDeviceSelected(device: TargetDevice) {
-        val distance = geolocationModule.calculateDistance(device.rssi.toDouble())
-        _uiState.value = GeolocationUiState(selectedDevice = device, distance = distance)
+    fun onDeviceRssiUpdated(device: TargetDevice, rssi: Int) {
+        val smoothedRssi = geolocationModule.smoothRssi(device.macAddress, rssi.toDouble())
+        val distance = geolocationModule.calculateDistance(smoothedRssi)
+        val updatedDistances = _uiState.value.distances.toMutableMap()
+        updatedDistances[device.macAddress] = distance
+        _uiState.value = GeolocationUiState(distances = updatedDistances)
     }
 }

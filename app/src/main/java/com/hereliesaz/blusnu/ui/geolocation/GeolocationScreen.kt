@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hereliesaz.blusnu.data.DeviceRepository
+import com.hereliesaz.blusnu.ui.geolocation.components.RadarView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,16 +56,21 @@ fun GeolocationScreen(viewModel: GeolocationViewModel, deviceRepository: DeviceR
                         onClick = {
                             selectedDevice = device
                             expanded = false
-                            viewModel.onDeviceSelected(device)
                         }
                     )
                 }
             }
         }
 
-        uiState.selectedDevice?.let {
-            Text(text = "Selected Device: ${it.name}")
-            Text(text = "Distance: ${uiState.distance} meters")
+        Button(onClick = {
+            selectedDevice?.let {
+                val newRssi = it.rssi + (0..5).random()
+                viewModel.onDeviceRssiUpdated(it, newRssi)
+            }
+        }, enabled = selectedDevice != null) {
+            Text("Simulate RSSI Update")
         }
+
+        RadarView(devices = discoveredDevices, distances = uiState.distances)
     }
 }
