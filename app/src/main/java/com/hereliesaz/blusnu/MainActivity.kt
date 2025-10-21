@@ -3,17 +3,29 @@ package com.hereliesaz.blusnu
 import android.Manifest
 import android.app.Application
 import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -22,10 +34,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.core.content.ContextCompat
+import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -39,6 +54,8 @@ import com.hereliesaz.blusnu.data.BtlejuiceModule
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.HardwareManager
 import com.hereliesaz.blusnu.data.TargetDevice
+import com.hereliesaz.blusnu.ui.FilterProtocol
+import com.hereliesaz.blusnu.ui.FilterType
 import com.hereliesaz.blusnu.ui.TargetManagementScreen
 import com.hereliesaz.blusnu.ui.TargetManagementViewModel
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingScreen
@@ -53,6 +70,8 @@ import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingScreen
 import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingViewModel
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceScreen
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceViewModel
+import com.hereliesaz.blusnu.ui.btlejuicemitm.BtlejuiceMitmScreen
+import com.hereliesaz.blusnu.ui.btlejuicemitm.BtlejuiceMitmViewModel
 import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
 import com.hereliesaz.blusnu.ui.dashboard.DashboardScreen
 import com.hereliesaz.blusnu.ui.dashboard.DashboardViewModel
@@ -62,6 +81,8 @@ import com.hereliesaz.blusnu.ui.geolocation.GeolocationScreen
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationViewModel
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionViewModel
+import com.hereliesaz.blusnu.ui.reporting.ReportingScreen
+import com.hereliesaz.blusnu.ui.reporting.ReportingViewModel
 import com.hereliesaz.blusnu.ui.settings.SettingsScreen
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 
@@ -113,6 +134,9 @@ class MainActivity : ComponentActivity() {
                     modelClass.isAssignableFrom(DashboardViewModel::class.java) -> {
                         DashboardViewModel(application, deviceRepository) as T
                     }
+                    modelClass.isAssignableFrom(ReportingViewModel::class.java) -> {
+                        ReportingViewModel(application) as T
+                    }
                     else -> throw IllegalArgumentException("Unknown ViewModel class")
                 }
             }
@@ -138,9 +162,12 @@ class MainActivity : ComponentActivity() {
 
                 if (showDisclaimer) {
                     DisclaimerDialog {
-                        getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).edit()
-                            .putBoolean("disclaimer_accepted", true)
-                            .apply()
+                        getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).edit {
+                            putBoolean(
+                                "disclaimer_accepted",
+                                true
+                            )
+                        }
                         showDisclaimer = false
                     }
                 } else {
@@ -164,6 +191,7 @@ class MainActivity : ComponentActivity() {
                                 azRailItem(id = "geolocation", text = "Location", onClick = { navController.navigate("geolocation") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "keystroke_injection", text = "Injection", onClick = { navController.navigate("keystroke_injection") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "attack_chaining", text = "Chaining", onClick = { navController.navigate("attack_chaining") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "reporting", text = "Reporting", onClick = { navController.navigate("reporting") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "settings", text = "Settings", onClick = { navController.navigate("settings") }, shape = AzButtonShape.RECTANGLE)
                             }
                             NavHost(
@@ -176,33 +204,25 @@ class MainActivity : ComponentActivity() {
                                     DashboardScreen(
                                         bleDeviceCount = state.bleDeviceCount,
                                         classicDeviceCount = state.classicDeviceCount,
-                                        onStartScanClicked = { navController.navigate("targets?startScan=true") }
+                                        onStartScanClicked = { navController.navigate("targets") }
                                     )
                                 }
-                                composable(
-                                    "targets?startScan={startScan}",
-                                    arguments = listOf(navArgument("startScan") { defaultValue = "false" })
-                                ) { backStackEntry ->
+                                composable("targets") {
                                     val viewModel: TargetManagementViewModel = viewModel(factory = viewModelFactory)
-                                    val startScan = backStackEntry.arguments?.getString("startScan")?.toBoolean() ?: false
-                                    TargetManagementScreen(viewModel = viewModel, navController = navController, startScan = startScan)
+                                    TargetManagementScreen(viewModel = viewModel, navController = navController)
                                 }
                                 composable("settings") { SettingsScreen() }
                                 composable("bluebugging") {
                                     val viewModel: BluebuggingViewModel = viewModel(factory = viewModelFactory)
-                                    BluebuggingScreen(viewModel = viewModel)
+                                    com.hereliesaz.blusnu.BluebuggingScreen(viewModel = viewModel)
                                 }
                                 composable("bluesnarfing") {
                                     val viewModel: BluesnarfingViewModel = viewModel(factory = viewModelFactory)
-                                    val hasPermission = ContextCompat.checkSelfPermission(
-                                        this@MainActivity,
-                                        Manifest.permission.BLUETOOTH_CONNECT
-                                    ) == PackageManager.PERMISSION_GRANTED
-                                    BluesnarfingScreen(viewModel = viewModel, hasPermissions = hasPermission)
+                                    BluesnarfingScreen(viewModel = viewModel)
                                 }
                                 composable("btlejacking") {
                                     val viewModel: BtlejackingViewModel = viewModel(factory = viewModelFactory)
-                                    BtlejackingScreen(viewModel = viewModel)
+                                    com.hereliesaz.blusnu.BtlejackingScreen(viewModel = viewModel)
                                 }
                                 composable(
                                     "btlejuice/{targetDevice}",
@@ -243,15 +263,19 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable("attack_chaining") {
                                     val viewModel: AttackChainingViewModel = viewModel(factory = viewModelFactory)
-                                    AttackChainingScreen(viewModel = viewModel)
+                                    com.hereliesaz.blusnu.AttackChainingScreen(viewModel = viewModel)
                                 }
                                 composable("gattfuzzing") {
                                     val viewModel: GattFuzzingViewModel = viewModel(factory = viewModelFactory)
-                                    GattFuzzingScreen(viewModel = viewModel)
+                                    com.hereliesaz.blusnu.GattFuzzingScreen(viewModel = viewModel)
                                 }
                                 composable("bluesmack") {
                                     val viewModel: BlueSmackViewModel = viewModel(factory = viewModelFactory)
-                                    BlueSmackScreen(viewModel = viewModel)
+                                    com.hereliesaz.blusnu.BlueSmackScreen(viewModel = viewModel)
+                                }
+                                composable("reporting") {
+                                    val viewModel: ReportingViewModel = viewModel(factory = viewModelFactory)
+                                    ReportingScreen(viewModel = viewModel)
                                 }
                             }
                         }
@@ -276,6 +300,41 @@ class MainActivity : ComponentActivity() {
 
         requestPermissionsLauncher.launch(requiredPermissions.toTypedArray())
     }
+}
+
+@Composable
+fun BluebuggingScreen(viewModel: BluebuggingViewModel) {
+    Text(text = "Bluebugging")
+}
+
+@Composable
+fun BluesnarfingScreen(viewModel: BluesnarfingViewModel) {
+    Text(text = "Bluesnarfing")
+}
+
+@Composable
+fun BtlejackingScreen(viewModel: BtlejackingViewModel) {
+    Text(text = "Btlejacking")
+}
+
+@Composable
+fun KeystrokeInjectionScreen(viewModel: KeystrokeInjectionViewModel) {
+    Text(text = "Keystroke Injection")
+}
+
+@Composable
+fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
+    Text(text = "Attack Chaining")
+}
+
+@Composable
+fun GattFuzzingScreen(viewModel: GattFuzzingViewModel) {
+    Text(text = "Gatt Fuzzing")
+}
+
+@Composable
+fun BlueSmackScreen(viewModel: BlueSmackViewModel) {
+    Text(text = "BlueSmack")
 }
 
 @Preview(showBackground = true)
