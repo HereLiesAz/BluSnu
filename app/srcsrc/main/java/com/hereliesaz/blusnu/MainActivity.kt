@@ -353,7 +353,7 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
         ExposedDropdownMenuBox(expanded = filterExpanded, onExpandedChange = { filterExpanded = !filterExpanded }) {
             TextField(
                 value = textFilter,
-                onValueChange = { 
+                onValueChange = {
                     textFilter = it
                     if (it.isNotBlank()) {
                         viewModel.addFilter(filterType, it)

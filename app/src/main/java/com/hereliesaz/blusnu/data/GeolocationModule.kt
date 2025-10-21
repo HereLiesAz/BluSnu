@@ -1,50 +1,22 @@
 package com.hereliesaz.blusnu.data
 
-import android.util.Log
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import kotlin.math.pow
 
-data class DevicePosition(val distance: Float, val angle: Float)
-
 /**
- * A placeholder for the device geolocation module.
- *
- * In a real implementation, this class would use advanced signal processing
- * techniques (like Kalman filters or trilateration) to provide a more
- * accurate and stable position estimate.
+ * A module responsible for geolocation-related calculations.
  */
 class GeolocationModule {
 
-    private val _devices = MutableStateFlow<Map<TargetDevice, DevicePosition>>(emptyMap())
-    val devices = _devices.asStateFlow()
-
-    private val scope = CoroutineScope(Dispatchers.IO + Job())
-
-    fun updateDevicePosition(device: TargetDevice, rssi: Int, txPower: Int) {
-        scope.launch {
-            val distance = calculateDistance(rssi, txPower)
-            // In a real application, the angle would be determined by the hardware,
-            // possibly using an antenna array. For this placeholder, we generate a
-            // stable but random-looking angle based on the device's MAC address.
-            val angle = getStableRandomAngle(device.macAddress)
-            val currentDevices = _devices.value.toMutableMap()
-            currentDevices[device] = DevicePosition(distance, angle)
-            _devices.value = currentDevices
-            Log.d("GeolocationModule", "Updated position for ${device.macAddress}: distance=$distance, angle=$angle")
-        }
-    }
-
-    private fun getStableRandomAngle(macAddress: String): Float {
-        return (macAddress.hashCode() % 360).toFloat()
-    }
-
-    private fun calculateDistance(rssi: Int, txPower: Int): Float {
-        // A simple implementation of the log-distance path loss model.
-        return 10.0.pow(((txPower - rssi) / (10 * 2)).toDouble()).toFloat()
+    /**
+     * Estimates the distance to a Bluetooth device using the log-distance path loss model.
+     *
+     * @param rssi The Received Signal Strength Indicator in dBm.
+     * @param txPower The average RSSI at a reference distance of 1 meter.
+     * @param pathLossExponent The path loss exponent, which varies depending on the environment.
+     *                         (e.g., 2.0 for free space, 1.6-1.8 for indoors).
+     * @return The estimated distance in meters.
+     */
+    fun calculateDistance(rssi: Double, txPower: Double = -59.0, pathLossExponent: Double = 2.0): Double {
+        return 10.0.pow((txPower - rssi) / (10 * pathLossExponent))
     }
 }

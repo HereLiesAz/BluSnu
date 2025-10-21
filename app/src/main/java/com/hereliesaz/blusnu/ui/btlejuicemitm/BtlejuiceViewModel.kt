@@ -27,6 +27,9 @@ class BtlejuiceViewModel(
     private val _logs = MutableStateFlow<List<String>>(emptyList())
     val logs = _logs.asStateFlow()
 
+    private val _gattTraffic = MutableStateFlow<List<String>>(emptyList())
+    val gattTraffic = _gattTraffic.asStateFlow()
+
     val discoveredDevices = deviceRepository.discoveredDevices.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),

@@ -1,55 +1,62 @@
 package com.hereliesaz.blusnu.ui.btlejuice
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.hereliesaz.blusnu.data.BtlejuiceModule
-import com.hereliesaz.blusnu.data.BtlejuiceState
-import com.hereliesaz.blusnu.data.HardwareManager
-import com.hereliesaz.blusnu.data.HardwareState
-import com.hereliesaz.blusnu.data.TargetDevice
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import com.hereliesaz.blusnu.data.*
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class BtlejuiceViewModel(
-    application: Application,
+    private val hardwareManager: HardwareManager,
     private val btlejuiceModule: BtlejuiceModule,
-    private val hardwareManager: HardwareManager
-) : AndroidViewModel(application) {
+    private val deviceRepository: DeviceRepository
+) : ViewModel() {
 
-    val btlejuiceState: StateFlow<BtlejuiceState> = btlejuiceModule.state
-    val hardwareState: StateFlow<HardwareState> = hardwareManager.hardwareState
+    val hardwareState = hardwareManager.hardwareState.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = HardwareState.DISCONNECTED
+    )
 
-    private val _deviceLogs = MutableStateFlow<List<String>>(emptyList())
-    val deviceLogs: StateFlow<List<String>> = _deviceLogs.asStateFlow()
+    val btlejuiceState = btlejuiceModule.state.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = com.hereliesaz.blusnu.data.BtlejuiceState.IDLE
+    )
+
+    private val _logs = MutableStateFlow<List<String>>(emptyList())
+    val logs = _logs.asStateFlow()
 
     private val _gattTraffic = MutableStateFlow<List<String>>(emptyList())
-    val gattTraffic: StateFlow<List<String>> = _gattTraffic.asStateFlow()
+    val gattTraffic = _gattTraffic.asStateFlow()
+
+    val discoveredDevices = deviceRepository.discoveredDevices.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
     init {
         viewModelScope.launch {
-            hardwareManager.deviceLogs.collect { log ->
-                _deviceLogs.value = _deviceLogs.value + log
-            }
-        }
-        viewModelScope.launch {
-            btlejuiceModule.gattTraffic.collect { traffic ->
-                _gattTraffic.value = _gattTraffic.value + traffic
+            hardwareManager.deviceLogs.collect {
+                _logs.value = _logs.value + it
             }
         }
     }
 
-    fun connectHardware() {
+    fun onConnectHardware() {
         hardwareManager.connect()
     }
 
-    fun startProxy(target: TargetDevice) {
-        btlejuiceModule.startProxy(target)
+    fun onConnectDual() {
+        hardwareManager.connectDual()
     }
 
-    fun stopProxy() {
+    fun onStartProxy(targetDevice: TargetDevice) {
+        btlejuiceModule.startProxy(targetDevice)
+    }
+
+    fun onStopProxy() {
         btlejuiceModule.stopProxy()
     }
 }
