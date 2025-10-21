@@ -2,7 +2,7 @@ package com.hereliesaz.blusnu.ui.btlejuicemitm
 
 import android.app.Application
 import androidx.lifecycle.ViewModel
-import com.hereliesaz.blusnu.data.device.TargetDevice
+import com.hereliesaz.blusnu.data.TargetDevice
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
