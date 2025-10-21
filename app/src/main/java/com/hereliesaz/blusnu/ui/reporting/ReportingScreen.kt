@@ -15,6 +15,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -24,6 +25,7 @@ fun ReportingScreen(viewModel: ReportingViewModel = viewModel()) {
     val logs by viewModel.logs.collectAsState()
     val context = LocalContext.current
 
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val createDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -37,15 +39,18 @@ fun ReportingScreen(viewModel: ReportingViewModel = viewModel()) {
             }
         }
     }
-
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(top = screenHeight * 0.2f),
+        contentAlignment = Alignment.TopEnd
     ) {
-        Button(onClick = {
-            val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.End
+        ) {
+            Button(onClick = {
+                val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
                 type = "text/markdown"
                 putExtra(Intent.EXTRA_TITLE, "blusnu_report.md")
@@ -60,5 +65,6 @@ fun ReportingScreen(viewModel: ReportingViewModel = viewModel()) {
                 Text("${log.timestamp}: ${log.message}")
             }
         }
+    }
     }
 }

@@ -3,7 +3,9 @@ package com.hereliesaz.blusnu.ui.btlejuicemitm
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.TargetDevice
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,13 +25,17 @@ fun BtlejuiceMitmScreen(
     gattTraffic: GattMitmTraffic
 ) {
     var selectedDevice by remember { mutableStateOf<TargetDevice?>(null) }
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("Btlejuice MitM", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        HardwareStatus(hardwareState, onConnectHardware, onConnectDual)
-        Spacer(modifier = Modifier.height(16.dp))
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = screenHeight * 0.2f),
+        contentAlignment = Alignment.TopEnd
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            HardwareStatus(hardwareState, onConnectHardware, onConnectDual)
+            Spacer(modifier = Modifier.height(16.dp))
 
         if (hardwareState.isConnected) {
             TargetSelection(discoveredDevices, selectedDevice) { selectedDevice = it }
@@ -45,7 +51,9 @@ fun BtlejuiceMitmScreen(
         Spacer(modifier = Modifier.height(16.dp))
         TrafficLog(gattTraffic.entries)
     }
+    }
 }
+
 
 @Composable
 private fun HardwareStatus(

@@ -28,8 +28,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.gson.Gson
@@ -41,10 +43,17 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
     val state by viewModel.state.collectAsState()
     var textFilter by remember { mutableStateOf("") }
     var filterType by remember { mutableStateOf<FilterType>(FilterType.Text) }
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
-    Column(modifier = modifier.padding(16.dp)) {
-        Row {
-            OutlinedButton(
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(top = screenHeight * 0.2f),
+        contentAlignment = Alignment.TopEnd
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row {
+                OutlinedButton(
                 onClick = { if (state.isScanning) viewModel.stopScan() else viewModel.startScan() },
                 shape = RoundedCornerShape(0.dp)
             ) {
@@ -139,7 +148,9 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
             }
         }
     }
+    }
 }
+
 
 @Composable
 fun DeviceListItem(device: TargetDevice, viewModel: TargetManagementViewModel, navController: NavController) {

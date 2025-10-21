@@ -63,10 +63,10 @@ This document outlines the development tasks required to implement the Blu Snu f
 
 ## Milestone 5: Advanced Signal and Pairing Attacks
 
--   [ ] **Task 5.1: Device Geolocation Module**
+-   [x] **Task 5.1: Device Geolocation Module**
     -   [x] Implement baseline distance estimation using the log-distance path loss model.
     -   [x] Implement a Kalman filter or moving average to smooth RSSI readings.
-    -   [x] Design the "Radar" view UI.
+    -   [x] Design the "Map" view UI.
 -   [x] **Task 5.2: Keystroke Injection (CVE-2023-45866) Module**
     -   [x] Implement the logic to emulate an HID keyboard and attempt "Just Works" pairing.
     -   [x] Create the UI to send keystroke commands if the attack is successful.
@@ -76,13 +76,13 @@ This document outlines the development tasks required to implement the Blu Snu f
 
 ## Milestone 6: Automation Core and Finalization
 
--   [x] **Task 6.1: Attack Chaining Canvas**
-    -   [x] Design and implement the visual node-based editor.
-    -   [x] Create the initial set of nodes for all implemented modules and logic (If/Else, Wait, Loop).
-    -   [x] Implement the data flow logic between connected nodes.
--   [x] **Task 6.2: Pre-built Attack Chain Templates**
-    -   [x] Implement the logic to load and save attack chains.
-    -   [x] Create the initial set of templates (e.g., "BLE Smart Lock Audit," "Opportunistic Eavesdropping").
+-   [ ] **Task 6.1: Attack Chaining Canvas**
+    -   [ ] Design and implement the visual node-based editor.
+    -   [ ] Create the initial set of nodes for all implemented modules and logic (If/Else, Wait, Loop).
+    -   [ ] Implement the data flow logic between connected nodes.
+-   [ ] **Task 6.2: Pre-built Attack Chain Templates**
+    -   [ ] Implement the logic to load and save attack chains.
+    -   [ ] Create the initial set of templates (e.g., "BLE Smart Lock Audit," "Opportunistic Eavesdropping").
 -   [x] **Task 6.3: Professional Reporting Engine**
     -   [x] Implement the logic to log all actions performed during an assessment.
     -   [x] Create the functionality to generate and export a detailed report in PDF or Markdown format.
