@@ -1,101 +1,90 @@
 package com.hereliesaz.blusnu
 
 import android.Manifest
+import android.app.Application
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.navigation.NavController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import android.content.Context
-import android.content.pm.PackageManager
-import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.navigation.compose.rememberNavController
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import com.hereliesaz.blusnu.data.DeviceRepository
-import com.hereliesaz.blusnu.ui.FilterType
-import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
-import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.edit
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.google.gson.Gson
+import com.hereliesaz.aznavrail.AzNavRail
+import com.hereliesaz.aznavrail.model.AzButtonShape
+import com.hereliesaz.blusnu.data.BtlejackingModule
+import com.hereliesaz.blusnu.data.BtlejuiceModule
+import com.hereliesaz.blusnu.data.DeviceRepository
+import com.hereliesaz.blusnu.data.HardwareManager
 import com.hereliesaz.blusnu.data.TargetDevice
 import com.hereliesaz.blusnu.ui.TargetManagementViewModel
-import androidx.compose.foundation.layout.fillMaxWidth
-import com.hereliesaz.blusnu.data.Protocol
+import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingScreen
+import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingViewModel
 import com.hereliesaz.blusnu.ui.bluebugging.BluebuggingScreen
 import com.hereliesaz.blusnu.ui.bluebugging.BluebuggingViewModel
 import com.hereliesaz.blusnu.ui.bluesmack.BlueSmackScreen
 import com.hereliesaz.blusnu.ui.bluesmack.BlueSmackViewModel
 import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen
 import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingViewModel
-import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingScreen
-import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingViewModel
-import com.hereliesaz.aznavrail.AzNavRail
-import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingScreen
-import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingViewModel
-import com.hereliesaz.blusnu.data.BtlejackingModule
-import com.hereliesaz.blusnu.data.BtlejuiceModule
-import com.hereliesaz.blusnu.data.HardwareManager
 import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingScreen
 import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingViewModel
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceScreen
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceViewModel
+import com.hereliesaz.blusnu.ui.btlejuicemitm.BtlejuiceMitmScreen
+import com.hereliesaz.blusnu.ui.btlejuicemitm.BtlejuiceMitmViewModel
+import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
+import com.hereliesaz.blusnu.ui.dashboard.DashboardScreen
+import com.hereliesaz.blusnu.ui.disclaimer.DisclaimerDialog
+import com.hereliesaz.blusnu.ui.gatt_fuzzing.GattFuzzingScreen
+import com.hereliesaz.blusnu.ui.gatt_fuzzing.GattFuzzingViewModel
+import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingScreen
+import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingViewModel
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationScreen
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationViewModel
+import com.hereliesaz.blusnu.ui.keystroke_injection.KeystrokeInjectionScreen
+import com.hereliesaz.blusnu.ui.keystroke_injection.KeystrokeInjectionViewModel
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionViewModel
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.TextField
-import androidx.compose.foundation.clickable
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.ui.Alignment
-import androidx.core.content.ContextCompat
-import com.hereliesaz.aznavrail.model.AzButtonShape
-import androidx.core.content.edit
-import androidx.navigation.NavType
-import androidx.navigation.navArgument
-import com.google.gson.Gson
+import com.hereliesaz.blusnu.ui.settings.SettingsScreen
+import com.hereliesaz.blusnu.ui.TargetManagementScreen
+import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
+
+
 
 class MainActivity : ComponentActivity() {
 
@@ -207,7 +196,7 @@ class MainActivity : ComponentActivity() {
                                 composable("settings") { SettingsScreen() }
                                 composable("bluebugging") {
                                     val viewModel: BluebuggingViewModel = viewModel(factory = viewModelFactory)
-                                    BluebuggingScreen(viewModel = viewModel)
+                                    com.hereliesaz.blusnu.BluebuggingScreen(viewModel = viewModel)
                                 }
                                 composable("bluesnarfing") {
                                     val viewModel: BluesnarfingViewModel = viewModel(factory = viewModelFactory)
@@ -215,7 +204,7 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable("btlejacking") {
                                     val viewModel: BtlejackingViewModel = viewModel(factory = viewModelFactory)
-                                    BtlejackingScreen(viewModel = viewModel)
+                                    com.hereliesaz.blusnu.BtlejackingScreen(viewModel = viewModel)
                                 }
                                 composable(
                                     "btlejuice/{targetDevice}",
@@ -247,19 +236,19 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable("keystroke_injection") {
                                     val viewModel: KeystrokeInjectionViewModel = viewModel(factory = viewModelFactory)
-                                    KeystrokeInjectionScreen(viewModel = viewModel)
+                                    com.hereliesaz.blusnu.KeystrokeInjectionScreen(viewModel = viewModel)
                                 }
                                 composable("attack_chaining") {
                                     val viewModel: AttackChainingViewModel = viewModel(factory = viewModelFactory)
-                                    AttackChainingScreen(viewModel = viewModel)
+                                    com.hereliesaz.blusnu.AttackChainingScreen(viewModel = viewModel)
                                 }
                                 composable("gattfuzzing") {
                                     val viewModel: GattFuzzingViewModel = viewModel(factory = viewModelFactory)
-                                    GattFuzzingScreen(viewModel = viewModel)
+                                    com.hereliesaz.blusnu.GattFuzzingScreen(viewModel = viewModel)
                                 }
                                 composable("bluesmack") {
                                     val viewModel: BlueSmackViewModel = viewModel(factory = viewModelFactory)
-                                    BlueSmackScreen(viewModel = viewModel)
+                                    com.hereliesaz.blusnu.BlueSmackScreen(viewModel = viewModel)
                                 }
                             }
                         }
@@ -353,7 +342,7 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
         ExposedDropdownMenuBox(expanded = filterExpanded, onExpandedChange = { filterExpanded = !filterExpanded }) {
             TextField(
                 value = textFilter,
-                onValueChange = { 
+                onValueChange = {
                     textFilter = it
                     if (it.isNotBlank()) {
                         viewModel.addFilter(filterType, it)

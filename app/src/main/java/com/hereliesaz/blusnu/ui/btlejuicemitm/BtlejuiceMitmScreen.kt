@@ -1,4 +1,4 @@
-package com.hereliesaz.blusnu.ui.btlejuice
+package com.hereliesaz.blusnu.ui.btlejuicemitm
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -8,22 +8,19 @@ import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.device.TargetDevice
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceHardwareState
-import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceState
-import com.hereliesaz.blusnu.ui.btlejuice.GattTraffic
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BtlejuiceScreen(
-    hardwareState: BtlejuiceHardwareState,
-    btlejuiceState: BtlejuiceState,
+fun BtlejuiceMitmScreen(
+    hardwareState: BtlejuiceMitmHardwareState,
+    btlejuiceState: BtlejuiceMitmState,
     logs: List<String>,
     discoveredDevices: List<TargetDevice>,
     onConnectHardware: () -> Unit,
     onConnectDual: () -> Unit,
     onStartProxy: (TargetDevice?) -> Unit,
     onStopProxy: () -> Unit,
-    gattTraffic: GattTraffic
+    gattTraffic: GattMitmTraffic
 ) {
     var selectedDevice by remember { mutableStateOf<TargetDevice?>(null) }
 
@@ -52,7 +49,7 @@ fun BtlejuiceScreen(
 
 @Composable
 private fun HardwareStatus(
-    hardwareState: BtlejuiceHardwareState,
+    hardwareState: BtlejuiceMitmHardwareState,
     onConnect: () -> Unit,
     onConnectDual: () -> Unit
 ) {
@@ -105,7 +102,7 @@ private fun TargetSelection(
 
 @Composable
 private fun ProxyControls(
-    btlejuiceState: BtlejuiceState,
+    btlejuiceState: BtlejuiceMitmState,
     onStartProxy: () -> Unit,
     onStopProxy: () -> Unit,
     isTargetSelected: Boolean
