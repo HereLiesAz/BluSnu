@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -52,6 +53,7 @@ import com.hereliesaz.blusnu.data.BtlejuiceModule
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.HardwareManager
 import com.hereliesaz.blusnu.data.TargetDevice
+import com.hereliesaz.blusnu.ui.FilterType
 import com.hereliesaz.blusnu.ui.TargetManagementViewModel
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingScreen
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingViewModel
@@ -70,16 +72,14 @@ import com.hereliesaz.blusnu.ui.btlejuicemitm.BtlejuiceMitmViewModel
 import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
 import com.hereliesaz.blusnu.ui.dashboard.DashboardScreen
 import com.hereliesaz.blusnu.ui.disclaimer.DisclaimerDialog
-import com.hereliesaz.blusnu.ui.gatt_fuzzing.GattFuzzingScreen
-import com.hereliesaz.blusnu.ui.gatt_fuzzing.GattFuzzingViewModel
 import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingScreen
 import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingViewModel
+import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingScreen
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationScreen
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationViewModel
-import com.hereliesaz.blusnu.ui.keystroke_injection.KeystrokeInjectionScreen
-import com.hereliesaz.blusnu.ui.keystroke_injection.KeystrokeInjectionViewModel
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionViewModel
+import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
 import com.hereliesaz.blusnu.ui.settings.SettingsScreen
 import com.hereliesaz.blusnu.ui.TargetManagementScreen
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
