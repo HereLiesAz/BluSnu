@@ -182,12 +182,16 @@ class MainActivity : ComponentActivity() {
                                     DashboardScreen(
                                         bleDeviceCount = state.bleDeviceCount,
                                         classicDeviceCount = state.classicDeviceCount,
-                                        onStartScanClicked = { navController.navigate("targets") }
+                                        onStartScanClicked = { navController.navigate("targets?startScan=true") }
                                     )
                                 }
-                                composable("targets") {
+                                composable(
+                                    "targets?startScan={startScan}",
+                                    arguments = listOf(navArgument("startScan") { defaultValue = "false" })
+                                ) { backStackEntry ->
                                     val viewModel: TargetManagementViewModel = viewModel(factory = viewModelFactory)
-                                    TargetManagementScreen(viewModel = viewModel, navController = navController)
+                                    val startScan = backStackEntry.arguments?.getString("startScan")?.toBoolean() ?: false
+                                    TargetManagementScreen(viewModel = viewModel, navController = navController, startScan = startScan)
                                 }
                                 composable("settings") { SettingsScreen() }
                                 composable("bluebugging") {

@@ -89,3 +89,15 @@ This document outlines the development tasks required to implement the Blu Snu f
 -   [ ] **Task 6.4: Finalize Settings and Database Updates**
     -   [ ] Create a settings screen for user preferences.
     -   [ ] Implement the mechanism for securely downloading updates to the vulnerability and fingerprinting databases.
+
+## Future Enhancements
+
+-   [ ] **Task 7.1: Persistent Device Storage**
+    -   [ ] Implement a database (e.g., Room) to automatically save all discovered devices, persisting them across app launches.
+-   [ ] **Task 7.2: Encounter Logging and Frequency Analysis**
+    -   [ ] Log every time a device is encountered during a scan, including timestamps.
+    -   [ ] Add UI options to sort the device list by most and least frequently encountered.
+-   [ ] **Task 7.3: Device Encounter Heatmap**
+    -   [ ] Design and implement a "heatmap" visualization for each device, showing encounter times and frequency.
+-   [ ] **Task 7.4: Device Type Identification Engine**
+    -   [ ] Implement a system to make an "educated guess" at the device type (e.g., "headphones," "smartwatch," "car") based on its name, services, and other scan data.
