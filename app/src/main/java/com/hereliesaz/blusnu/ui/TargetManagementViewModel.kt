@@ -9,6 +9,7 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.blusnu.data.ActionLogger
 import com.hereliesaz.blusnu.data.BluetoothScanner
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.Protocol
@@ -121,6 +122,7 @@ class TargetManagementViewModel(
 
     fun startScan() {
         if (_state.value.hasPermissions && _state.value.isBluetoothEnabled) {
+            ActionLogger.log("Bluetooth scan started.")
             _state.update { it.copy(isScanning = true) }
             deviceRepository.clearDevices()
             bluetoothScanner?.startClassicDiscovery()
@@ -142,6 +144,7 @@ class TargetManagementViewModel(
     }
 
     fun checkForVulnerabilities(device: TargetDevice) {
+        ActionLogger.log("Checking vulnerabilities for ${device.macAddress}.")
         val vulnerabilities = vulnerabilityCorrelator.findVulnerabilities(device.services)
         deviceRepository.updateDeviceVulnerabilities(device.macAddress, vulnerabilities)
     }

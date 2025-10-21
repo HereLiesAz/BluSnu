@@ -70,22 +70,22 @@ This document outlines the development tasks required to implement the Blu Snu f
 -   [x] **Task 5.2: Keystroke Injection (CVE-2023-45866) Module**
     -   [x] Implement the logic to emulate an HID keyboard and attempt "Just Works" pairing.
     -   [x] Create the UI to send keystroke commands if the attack is successful.
--   [ ] **Task 5.3: Bluetooth Spoofing Module**
-    -   [ ] Implement the logic to change the Bluetooth adapter's MAC address. (Requires Elevated Mode)
-    -   [ ] Create the UI to allow the user to specify a new MAC address.
+-   [x] **Task 5.3: Bluetooth Spoofing Module**
+    -   [x] Implement the logic to change the Bluetooth adapter's MAC address. (Requires Elevated Mode)
+    -   [x] Create the UI to allow the user to specify a new MAC address.
 
 ## Milestone 6: Automation Core and Finalization
 
--   [ ] **Task 6.1: Attack Chaining Canvas**
-    -   [ ] Design and implement the visual node-based editor.
-    -   [ ] Create the initial set of nodes for all implemented modules and logic (If/Else, Wait, Loop).
-    -   [ ] Implement the data flow logic between connected nodes.
--   [ ] **Task 6.2: Pre-built Attack Chain Templates**
-    -   [ ] Implement the logic to load and save attack chains.
-    -   [ ] Create the initial set of templates (e.g., "BLE Smart Lock Audit," "Opportunistic Eavesdropping").
--   [ ] **Task 6.3: Professional Reporting Engine**
-    -   [ ] Implement the logic to log all actions performed during an assessment.
-    -   [ ] Create the functionality to generate and export a detailed report in PDF or Markdown format.
--   [ ] **Task 6.4: Finalize Settings and Database Updates**
-    -   [ ] Create a settings screen for user preferences.
-    -   [ ] Implement the mechanism for securely downloading updates to the vulnerability and fingerprinting databases.
+-   [x] **Task 6.1: Attack Chaining Canvas**
+    -   [x] Design and implement the visual node-based editor.
+    -   [x] Create the initial set of nodes for all implemented modules and logic (If/Else, Wait, Loop).
+    -   [x] Implement the data flow logic between connected nodes.
+-   [x] **Task 6.2: Pre-built Attack Chain Templates**
+    -   [x] Implement the logic to load and save attack chains.
+    -   [x] Create the initial set of templates (e.g., "BLE Smart Lock Audit," "Opportunistic Eavesdropping").
+-   [x] **Task 6.3: Professional Reporting Engine**
+    -   [x] Implement the logic to log all actions performed during an assessment.
+    -   [x] Create the functionality to generate and export a detailed report in PDF or Markdown format.
+-   [x] **Task 6.4: Finalize Settings and Database Updates**
+    -   [x] Create a settings screen for user preferences.
+    -   [x] Implement the mechanism for securely downloading updates to the vulnerability and fingerprinting databases.

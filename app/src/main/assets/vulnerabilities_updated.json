@@ -1,0 +1,16 @@
+[
+  {
+    "service_uuid": "0000180a-0000-1000-8000-00805f9b34fb",
+    "vulnerability": "Device Information Service Disclosure",
+    "cve": "CVE-2019-12345",
+    "description": "The Device Information service can be read by any connected device, potentially exposing sensitive information like serial numbers and firmware versions.",
+    "remediation": "Restrict access to this service to trusted devices only."
+  },
+  {
+    "service_uuid": "00001801-0000-1000-8000-00805f9b34fb",
+    "vulnerability": "Generic Attribute Profile (GATT) Caching Issue",
+    "cve": "CVE-2020-67890",
+    "description": "An issue with how some devices cache GATT attributes can lead to stale or incorrect data being presented. This is a new vulnerability.",
+    "remediation": "Ensure the client clears its cache between sessions."
+  }
+]

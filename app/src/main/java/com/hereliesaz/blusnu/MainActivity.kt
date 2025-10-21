@@ -81,7 +81,10 @@ import com.hereliesaz.blusnu.ui.geolocation.GeolocationScreen
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationViewModel
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionViewModel
+import com.hereliesaz.blusnu.ui.reporting.ReportingScreen
+import com.hereliesaz.blusnu.ui.reporting.ReportingViewModel
 import com.hereliesaz.blusnu.ui.settings.SettingsScreen
+import com.hereliesaz.blusnu.ui.settings.SettingsViewModel
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 
 
@@ -131,6 +134,12 @@ class MainActivity : ComponentActivity() {
                     }
                     modelClass.isAssignableFrom(DashboardViewModel::class.java) -> {
                         DashboardViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(ReportingViewModel::class.java) -> {
+                        ReportingViewModel(application) as T
+                    }
+                    modelClass.isAssignableFrom(SettingsViewModel::class.java) -> {
+                        SettingsViewModel(application) as T
                     }
                     else -> throw IllegalArgumentException("Unknown ViewModel class")
                 }
@@ -186,6 +195,7 @@ class MainActivity : ComponentActivity() {
                                 azRailItem(id = "geolocation", text = "Location", onClick = { navController.navigate("geolocation") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "keystroke_injection", text = "Injection", onClick = { navController.navigate("keystroke_injection") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "attack_chaining", text = "Chaining", onClick = { navController.navigate("attack_chaining") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "reporting", text = "Reporting", onClick = { navController.navigate("reporting") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "settings", text = "Settings", onClick = { navController.navigate("settings") }, shape = AzButtonShape.RECTANGLE)
                             }
                             NavHost(
@@ -266,6 +276,10 @@ class MainActivity : ComponentActivity() {
                                 composable("bluesmack") {
                                     val viewModel: BlueSmackViewModel = viewModel(factory = viewModelFactory)
                                     com.hereliesaz.blusnu.BlueSmackScreen(viewModel = viewModel)
+                                }
+                                composable("reporting") {
+                                    val viewModel: ReportingViewModel = viewModel(factory = viewModelFactory)
+                                    ReportingScreen(viewModel = viewModel)
                                 }
                             }
                         }
