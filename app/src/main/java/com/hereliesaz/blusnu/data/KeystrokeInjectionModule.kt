@@ -1,52 +1,41 @@
 package com.hereliesaz.blusnu.data
 
-import android.util.Log
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 
-enum class KeystrokeInjectionState {
-    IDLE,
-    PAIRING,
-    CONNECTED,
-    FAILED
-}
-
-/**
- * A placeholder for the Keystroke Injection (CVE-2023-45866) attack module.
- *
- * In a real implementation, this class would emulate an HID keyboard and
- * attempt to perform a "Just Works" pairing with the target device.
- */
 class KeystrokeInjectionModule {
 
-    private val _state = MutableStateFlow(KeystrokeInjectionState.IDLE)
-    val state = _state.asStateFlow()
+    private var isPaired = false
 
-    private val scope = CoroutineScope(Dispatchers.IO + Job())
+    /**
+     * Simulates the process of emulating an HID keyboard and attempting to pair
+     * with a host using the "Just Works" method.
+     * @return `true` if the simulated pairing is successful, `false` otherwise.
+     */
+    suspend fun attemptPairing(): Boolean {
+        // Simulate the time it takes to attempt a pairing.
+        delay(2000)
 
-    fun startAttack(target: TargetDevice) {
-        scope.launch {
-            _state.value = KeystrokeInjectionState.PAIRING
-            Log.d("KeystrokeInjection", "Attempting to pair with ${target.macAddress}")
-            delay(2000)
-            // Simulate a successful pairing
-            _state.value = KeystrokeInjectionState.CONNECTED
-            Log.d("KeystrokeInjection", "Successfully paired with ${target.macAddress}")
+        // In a real implementation, this would involve complex, low-level Bluetooth operations.
+        // For this simulation, we'll assume the attack is successful.
+        isPaired = true
+        return isPaired
+    }
+
+    /**
+     * Simulates sending a string of keystrokes to the paired host.
+     * @param text The string to send.
+     * @return `true` if the keystrokes were sent successfully, `false` otherwise.
+     */
+    suspend fun sendKeystrokes(text: String): Boolean {
+        if (!isPaired) {
+            return false
         }
-    }
 
-    fun sendKeystroke(key: String) {
-        Log.d("KeystrokeInjection", "Sending keystroke: '$key'")
-        // In a real implementation, this would send the keystroke over the HID connection.
-    }
+        // Simulate the time it takes to send the keystrokes.
+        delay(500)
 
-    fun stopAttack() {
-        _state.value = KeystrokeInjectionState.IDLE
-        Log.d("KeystrokeInjection", "Attack stopped.")
+        // In a real implementation, this would involve sending HID reports over GATT.
+        println("Simulating sending keystrokes: $text")
+        return true
     }
 }

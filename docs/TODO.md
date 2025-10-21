@@ -67,9 +67,9 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Implement baseline distance estimation using the log-distance path loss model.
     -   [x] Implement a Kalman filter or moving average to smooth RSSI readings.
     -   [x] Design the "Radar" view UI.
--   [ ] **Task 5.2: Keystroke Injection (CVE-2023-45866) Module**
-    -   [ ] Implement the logic to emulate an HID keyboard and attempt "Just Works" pairing.
-    -   [ ] Create the UI to send keystroke commands if the attack is successful.
+-   [x] **Task 5.2: Keystroke Injection (CVE-2023-45866) Module**
+    -   [x] Implement the logic to emulate an HID keyboard and attempt "Just Works" pairing.
+    -   [x] Create the UI to send keystroke commands if the attack is successful.
 -   [ ] **Task 5.3: Bluetooth Spoofing Module**
     -   [ ] Implement the logic to change the Bluetooth adapter's MAC address. (Requires Elevated Mode)
     -   [ ] Create the UI to allow the user to specify a new MAC address.
