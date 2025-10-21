@@ -84,6 +84,7 @@ import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionViewModel
 import com.hereliesaz.blusnu.ui.reporting.ReportingScreen
 import com.hereliesaz.blusnu.ui.reporting.ReportingViewModel
 import com.hereliesaz.blusnu.ui.settings.SettingsScreen
+import com.hereliesaz.blusnu.ui.settings.SettingsViewModel
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 
 
@@ -136,6 +137,9 @@ class MainActivity : ComponentActivity() {
                     }
                     modelClass.isAssignableFrom(ReportingViewModel::class.java) -> {
                         ReportingViewModel(application) as T
+                    }
+                    modelClass.isAssignableFrom(SettingsViewModel::class.java) -> {
+                        SettingsViewModel(application) as T
                     }
                     else -> throw IllegalArgumentException("Unknown ViewModel class")
                 }

@@ -14,9 +14,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -29,20 +32,18 @@ fun DashboardScreen(
     classicDeviceCount: Int = 0,
     onStartScanClicked: () -> Unit = {}
 ) {
-    Column(
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(top = screenHeight * 0.2f),
+        contentAlignment = Alignment.TopEnd
     ) {
-        Text(
-            text = "Dashboard",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Device Counters
-        Card(
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // Device Counters
+            Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
@@ -84,6 +85,7 @@ fun DashboardScreen(
         DashboardSection(title = "Active Tasks")
         DashboardSection(title = "Saved Sessions")
         DashboardSection(title = "Attack Chain Templates")
+    }
     }
 }
 

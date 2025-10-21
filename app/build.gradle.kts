@@ -55,6 +55,8 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.aznavrail)
     implementation(libs.androidx.material3)
+    implementation("com.google.maps.android:maps-compose:2.11.4")
+    implementation("com.google.android.gms:play-services-maps:18.1.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

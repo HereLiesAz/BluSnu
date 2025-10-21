@@ -22,8 +22,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.BtlejackingState
 import com.hereliesaz.blusnu.data.HardwareState
@@ -33,18 +35,22 @@ import com.hereliesaz.blusnu.data.TargetDevice
 fun BtlejackingScreen(viewModel: BtlejackingViewModel) {
     val state by viewModel.state.collectAsState()
     var selectedTarget by remember { mutableStateOf<TargetDevice?>(null) }
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(top = screenHeight * 0.2f),
+        contentAlignment = Alignment.TopEnd
     ) {
-        Text("Btlejacking Module")
-
-        // Hardware Status and Controls
-        Text("Hardware Status: ${state.hardwareState}")
+        Column(
+            modifier = Modifier
+                .padding(16.dp),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Hardware Status and Controls
+            Text("Hardware Status: ${state.hardwareState}")
         when (state.hardwareState) {
             HardwareState.DISCONNECTED, HardwareState.CONNECTION_FAILED -> {
                 Button(onClick = { viewModel.connectHardware() }) {
@@ -121,6 +127,7 @@ fun BtlejackingScreen(viewModel: BtlejackingViewModel) {
                 Text(log)
             }
         }
+    }
     }
 }
 
