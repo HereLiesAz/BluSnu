@@ -64,9 +64,9 @@ This document outlines the development tasks required to implement the Blu Snu f
 ## Milestone 5: Advanced Signal and Pairing Attacks
 
 -   [ ] **Task 5.1: Device Geolocation Module**
-    -   [ ] Implement baseline distance estimation using the log-distance path loss model.
-    -   [ ] Implement a Kalman filter or moving average to smooth RSSI readings.
-    -   [ ] Design the "Radar" view UI.
+    -   [x] Implement baseline distance estimation using the log-distance path loss model.
+    -   [x] Implement a Kalman filter or moving average to smooth RSSI readings.
+    -   [x] Design the "Radar" view UI.
 -   [ ] **Task 5.2: Keystroke Injection (CVE-2023-45866) Module**
     -   [ ] Implement the logic to emulate an HID keyboard and attempt "Just Works" pairing.
     -   [ ] Create the UI to send keystroke commands if the attack is successful.

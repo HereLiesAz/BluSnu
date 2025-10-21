@@ -1,50 +1,64 @@
 package com.hereliesaz.blusnu.data
 
-import android.util.Log
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import kotlin.math.pow
 
-data class DevicePosition(val distance: Float, val angle: Float)
-
 /**
- * A placeholder for the device geolocation module.
- *
- * In a real implementation, this class would use advanced signal processing
- * techniques (like Kalman filters or trilateration) to provide a more
- * accurate and stable position estimate.
+ * A module responsible for geolocation-related calculations.
  */
 class GeolocationModule {
+    private val kalmanFilters = mutableMapOf<String, KalmanFilter>()
 
-    private val _devices = MutableStateFlow<Map<TargetDevice, DevicePosition>>(emptyMap())
-    val devices = _devices.asStateFlow()
-
-    private val scope = CoroutineScope(Dispatchers.IO + Job())
-
-    fun updateDevicePosition(device: TargetDevice, rssi: Int, txPower: Int) {
-        scope.launch {
-            val distance = calculateDistance(rssi, txPower)
-            // In a real application, the angle would be determined by the hardware,
-            // possibly using an antenna array. For this placeholder, we generate a
-            // stable but random-looking angle based on the device's MAC address.
-            val angle = getStableRandomAngle(device.macAddress)
-            val currentDevices = _devices.value.toMutableMap()
-            currentDevices[device] = DevicePosition(distance, angle)
-            _devices.value = currentDevices
-            Log.d("GeolocationModule", "Updated position for ${device.macAddress}: distance=$distance, angle=$angle")
-        }
+    /**
+     * Estimates the distance to a Bluetooth device using the log-distance path loss model.
+     *
+     * @param rssi The Received Signal Strength Indicator in dBm.
+     * @param txPower The average RSSI at a reference distance of 1 meter.
+     * @param pathLossExponent The path loss exponent, which varies depending on the environment.
+     *                         (e.g., 2.0 for free space, 1.6-1.8 for indoors).
+     * @return The estimated distance in meters.
+     */
+    fun calculateDistance(rssi: Double, txPower: Double = -59.0, pathLossExponent: Double = 2.0): Double {
+        return 10.0.pow((txPower - rssi) / (10 * pathLossExponent))
     }
 
-    private fun getStableRandomAngle(macAddress: String): Float {
-        return (macAddress.hashCode() % 360).toFloat()
+    /**
+     * Smooths an RSSI value using a Kalman filter.
+     *
+     * @param macAddress The MAC address of the device.
+     * @param rssi The new RSSI measurement.
+     * @return The smoothed RSSI value.
+     */
+    fun smoothRssi(macAddress: String, rssi: Double): Double {
+        val kalmanFilter = kalmanFilters.getOrPut(macAddress) { KalmanFilter() }
+        return kalmanFilter.filter(rssi)
     }
+}
 
-    private fun calculateDistance(rssi: Int, txPower: Int): Float {
-        // A simple implementation of the log-distance path loss model.
-        return 10.0.pow(((txPower - rssi) / (10 * 2)).toDouble()).toFloat()
+/**
+ * A simple Kalman filter for smoothing RSSI values.
+ *
+ * @property processNoise The process noise, which represents the uncertainty in the model.
+ * @property measurementNoise The measurement noise, which represents the uncertainty in the measurement.
+ */
+class KalmanFilter(
+    private val processNoise: Double = 0.125,
+    private val measurementNoise: Double = 4.0
+) {
+    private var errorEstimate = 1.0
+    private var currentEstimate = 0.0
+    private var lastEstimate = 0.0
+
+    /**
+     * Filters a new RSSI measurement.
+     *
+     * @param measurement The new RSSI measurement.
+     * @return The smoothed RSSI value.
+     */
+    fun filter(measurement: Double): Double {
+        lastEstimate = currentEstimate
+        val kalmanGain = errorEstimate / (errorEstimate + measurementNoise)
+        currentEstimate = lastEstimate + kalmanGain * (measurement - lastEstimate)
+        errorEstimate = (1.0 - kalmanGain) * errorEstimate + kotlin.math.abs(lastEstimate - currentEstimate) * processNoise
+        return currentEstimate
     }
 }

@@ -77,8 +77,8 @@ import com.hereliesaz.blusnu.data.BtlejuiceModule
 import com.hereliesaz.blusnu.data.HardwareManager
 import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingScreen
 import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingViewModel
-import com.hereliesaz.blusnu.ui.btlejuicemitm.BtlejuiceScreen
-import com.hereliesaz.blusnu.ui.btlejuicemitm.BtlejuiceViewModel
+import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceScreen
+import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceViewModel
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationScreen
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationViewModel
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
@@ -93,6 +93,9 @@ import androidx.compose.ui.Alignment
 import androidx.core.content.ContextCompat
 import com.hereliesaz.aznavrail.model.AzButtonShape
 import androidx.core.content.edit
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.google.gson.Gson
 
 class MainActivity : ComponentActivity() {
 
@@ -125,9 +128,7 @@ class MainActivity : ComponentActivity() {
                         BtlejackingViewModel(application, hardwareManager, btlejackingModule, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BtlejuiceViewModel::class.java) -> {
-                        val btlejuiceModule = BtlejuiceModule(hardwareManager)
                         BtlejuiceViewModel(hardwareManager, btlejuiceModule, deviceRepository) as T
-                        BtlejuiceViewModel(application, btlejuiceModule, hardwareManager) as T
                     }
                     modelClass.isAssignableFrom(GeolocationViewModel::class.java) -> {
                         GeolocationViewModel(application) as T
@@ -188,7 +189,7 @@ class MainActivity : ComponentActivity() {
                                 azRailItem(id = "bluesmack", text = "Smack", onClick = { navController.navigate("bluesmack") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "gattfuzzing", text = "Fuzzing", onClick = { navController.navigate("gattfuzzing") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "btlejacking", text = "Jacking", onClick = { navController.navigate("btlejacking") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "btlejuice", text = "Juice", onClick = { navController.navigate("btlejuice") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "btlejuice", text = "Juice", onClick = { navController.navigate("btlejuice/null") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "geolocation", text = "Location", onClick = { navController.navigate("geolocation") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "keystroke_injection", text = "Injection", onClick = { navController.navigate("keystroke_injection") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "attack_chaining", text = "Chaining", onClick = { navController.navigate("attack_chaining") }, shape = AzButtonShape.RECTANGLE)
@@ -223,11 +224,26 @@ class MainActivity : ComponentActivity() {
                                     val targetDeviceJson = backStackEntry.arguments?.getString("targetDevice")
                                     val targetDevice = Gson().fromJson(targetDeviceJson, TargetDevice::class.java)
                                     val viewModel: BtlejuiceViewModel = viewModel(factory = viewModelFactory)
-                                    BtlejuiceScreen(viewModel = viewModel, targetDevice = targetDevice)
+                                    val hardwareState by viewModel.hardwareState.collectAsState()
+                                    val btlejuiceState by viewModel.btlejuiceState.collectAsState()
+                                    val logs by viewModel.logs.collectAsState()
+                                    val discoveredDevices by viewModel.discoveredDevices.collectAsState()
+                                    val gattTraffic by viewModel.gattTraffic.collectAsState()
+                                    BtlejuiceScreen(
+                                        hardwareState = hardwareState,
+                                        btlejuiceState = btlejuiceState,
+                                        logs = logs,
+                                        discoveredDevices = discoveredDevices,
+                                        onConnectHardware = viewModel::onConnectHardware,
+                                        onConnectDual = viewModel::onConnectDual,
+                                        onStartProxy = { viewModel.onStartProxy(targetDevice) },
+                                        onStopProxy = viewModel::onStopProxy,
+                                        gattTraffic = gattTraffic
+                                    )
                                 }
                                 composable("geolocation") {
                                     val viewModel: GeolocationViewModel = viewModel(factory = viewModelFactory)
-                                    GeolocationScreen(viewModel = viewModel)
+                                    GeolocationScreen(viewModel = viewModel, deviceRepository = deviceRepository)
                                 }
                                 composable("keystroke_injection") {
                                     val viewModel: KeystrokeInjectionViewModel = viewModel(factory = viewModelFactory)
@@ -283,30 +299,6 @@ fun BluesnarfingScreen(viewModel: BluesnarfingViewModel) {
 @Composable
 fun BtlejackingScreen(viewModel: BtlejackingViewModel) {
     Text(text = "Btlejacking")
-}
-
-@Composable
-fun BtlejuiceScreen(viewModel: BtlejuiceViewModel) {
-    val hardwareState by viewModel.hardwareState.collectAsState()
-    val btlejuiceState by viewModel.btlejuiceState.collectAsState()
-    val logs by viewModel.logs.collectAsState()
-    val discoveredDevices by viewModel.discoveredDevices.collectAsState()
-
-    BtlejuiceScreen(
-        hardwareState = hardwareState,
-        btlejuiceState = btlejuiceState,
-        logs = logs,
-        discoveredDevices = discoveredDevices,
-        onConnectHardware = viewModel::onConnectHardware,
-        onConnectDual = viewModel::onConnectDual,
-        onStartProxy = viewModel::onStartProxy,
-        onStopProxy = viewModel::onStopProxy
-    )
-}
-
-@Composable
-fun GeolocationScreen(viewModel: GeolocationViewModel) {
-    Text(text = "Geolocation")
 }
 
 @Composable
