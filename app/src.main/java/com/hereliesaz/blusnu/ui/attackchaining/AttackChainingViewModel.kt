@@ -29,8 +29,7 @@ import java.util.UUID
 // Represents the overall state of the Attack Chaining screen
 data class AttackChainingUiState(
     val nodes: List<AttackNode> = emptyList(),
-    val connections: List<NodeConnection> = emptyList(),
-    val savedChainNames: List<String> = emptyList()
+    val connections: List<NodeConnection> = emptyList()
 )
 
 class AttackChainingViewModel(application: Application) : AndroidViewModel(application) {
@@ -41,18 +40,6 @@ class AttackChainingViewModel(application: Application) : AndroidViewModel(appli
     private val gson = GsonBuilder()
         .registerTypeAdapter(UUID::class.java, UuidTypeAdapter())
         .create()
-
-    init {
-        loadSavedChainNames()
-    }
-
-    private fun loadSavedChainNames() {
-        viewModelScope.launch {
-            val sharedPreferences = getApplication<Application>().getSharedPreferences("AttackChains", Context.MODE_PRIVATE)
-            val names = sharedPreferences.all.keys.toList()
-            _uiState.update { it.copy(savedChainNames = names) }
-        }
-    }
 
     fun addNode(type: String, position: Offset) {
         viewModelScope.launch {
@@ -112,13 +99,12 @@ class AttackChainingViewModel(application: Application) : AndroidViewModel(appli
 
     fun saveAttackChain(name: String) {
         viewModelScope.launch {
-            val json = gson.toJson(_uiState.value.copy(savedChainNames = emptyList()))
+            val json = gson.toJson(_uiState.value)
             val sharedPreferences = getApplication<Application>().getSharedPreferences("AttackChains", Context.MODE_PRIVATE)
             with(sharedPreferences.edit()) {
                 putString(name, json)
                 apply()
             }
-            loadSavedChainNames()
         }
     }
 
@@ -129,7 +115,7 @@ class AttackChainingViewModel(application: Application) : AndroidViewModel(appli
             if (json != null) {
                 val type = object : TypeToken<AttackChainingUiState>() {}.type
                 val loadedState = gson.fromJson<AttackChainingUiState>(json, type)
-                _uiState.update { it.copy(nodes = loadedState.nodes, connections = loadedState.connections) }
+                _uiState.value = loadedState
             }
         }
     }
@@ -139,7 +125,7 @@ class AttackChainingViewModel(application: Application) : AndroidViewModel(appli
             val templateJson = getTemplateJson(templateName)
             val type = object : TypeToken<AttackChainingUiState>() {}.type
             val templateState = gson.fromJson<AttackChainingUiState>(templateJson, type)
-            _uiState.update { it.copy(nodes = templateState.nodes, connections = templateState.connections) }
+            _uiState.value = templateState
         }
     }
 
@@ -152,18 +138,47 @@ class AttackChainingViewModel(application: Application) : AndroidViewModel(appli
     }
 
     private fun generateSmartLockTemplate(): String {
-        val node1 = createNodeFromType("Scan (BLE)", Offset(100f, 100f))
-        val node2 = createNodeFromType("Filter by Service", Offset(400f, 100f))
-        val node3 = createNodeFromType("GATT Write", Offset(700f, 100f))
+        val node1Id = UUID.randomUUID()
+        val node2Id = UUID.randomUUID()
+        val node3Id = UUID.randomUUID()
 
         val state = AttackChainingUiState(
-            nodes = listOf(node1, node2, node3),
+            nodes = listOf(
+                AttackNode(
+                    id = node1Id,
+                    type = "Scan (BLE)",
+                    position = Offset(100f, 100f),
+                    inputs = emptyList(),
+                    outputs = listOf(NodeOutput(nodeId = node1Id, type = "List<TargetDevice>", label = "Devices"))
+                ),
+                AttackNode(
+                    id = node2Id,
+                    type = "Filter by Service",
+                    position = Offset(400f, 100f),
+                    inputs = listOf(
+                        NodeInput(nodeId = node2Id, type = "List<TargetDevice>", label = "Devices In"),
+                        NodeInput(nodeId = node2Id, type = "String", label = "Service UUID")
+                    ),
+                    outputs = listOf(NodeOutput(nodeId = node2Id, type = "List<TargetDevice>", label = "Devices Out"))
+                ),
+                AttackNode(
+                    id = node3Id,
+                    type = "GATT Write",
+                    position = Offset(700f, 100f),
+                    inputs = listOf(
+                        NodeInput(nodeId = node3Id, type = "TargetDevice", label = "Target"),
+                        NodeInput(nodeId = node3Id, type = "String", label = "Handle"),
+                        NodeInput(nodeId = node3Id, type = "ByteArray", label = "Payload")
+                    ),
+                    outputs = emptyList()
+                )
+            ),
             connections = listOf(
                 NodeConnection(
-                    fromNodeId = node1.id,
-                    fromOutputId = node1.outputs.first().id,
-                    toNodeId = node2.id,
-                    toInputId = node2.inputs.first().id
+                    fromNodeId = node1Id,
+                    fromOutputId = UUID.randomUUID(),
+                    toNodeId = node2Id,
+                    toInputId = UUID.randomUUID()
                 )
             )
         )
@@ -171,18 +186,46 @@ class AttackChainingViewModel(application: Application) : AndroidViewModel(appli
     }
 
     private fun generateEavesdroppingTemplate(): String {
-        val node1 = createNodeFromType("Scan (Classic)", Offset(100f, 100f))
-        val node2 = createNodeFromType("Filter by Class", Offset(400f, 100f))
-        val node3 = createNodeFromType("BlueSpy Audio Record", Offset(700f, 100f))
+        val node1Id = UUID.randomUUID()
+        val node2Id = UUID.randomUUID()
+        val node3Id = UUID.randomUUID()
 
         val state = AttackChainingUiState(
-            nodes = listOf(node1, node2, node3),
+            nodes = listOf(
+                AttackNode(
+                    id = node1Id,
+                    type = "Scan (Classic)",
+                    position = Offset(100f, 100f),
+                    inputs = emptyList(),
+                    outputs = listOf(NodeOutput(nodeId = node1Id, type = "List<TargetDevice>", label = "Devices"))
+                ),
+                AttackNode(
+                    id = node2Id,
+                    type = "Filter by Class",
+                    position = Offset(400f, 100f),
+                    inputs = listOf(
+                        NodeInput(nodeId = node2Id, type = "List<TargetDevice>", label = "Devices In"),
+                        NodeInput(nodeId = node2Id, type = "String", label = "Device Class")
+                    ),
+                    outputs = listOf(NodeOutput(nodeId = node2Id, type = "List<TargetDevice>", label = "Devices Out"))
+                ),
+                AttackNode(
+                    id = node3Id,
+                    type = "BlueSpy Audio Record",
+                    position = Offset(700f, 100f),
+                    inputs = listOf(
+                        NodeInput(nodeId = node3Id, type = "TargetDevice", label = "Target"),
+                        NodeInput(nodeId = node3Id, type = "Int", label = "Duration (s)")
+                    ),
+                    outputs = emptyList()
+                )
+            ),
             connections = listOf(
                 NodeConnection(
-                    fromNodeId = node1.id,
-                    fromOutputId = node1.outputs.first().id,
-                    toNodeId = node2.id,
-                    toInputId = node2.inputs.first().id
+                    fromNodeId = node1Id,
+                    fromOutputId = UUID.randomUUID(),
+                    toNodeId = node2Id,
+                    toInputId = UUID.randomUUID()
                 )
             )
         )
@@ -224,33 +267,6 @@ class AttackChainingViewModel(application: Application) : AndroidViewModel(appli
                     NodeInput(nodeId = nodeId, type = "TargetDevice", label = "Target"),
                     NodeInput(nodeId = nodeId, type = "String", label = "Handle"),
                     NodeInput(nodeId = nodeId, type = "ByteArray", label = "Payload")
-                ),
-                outputs = emptyList()
-            )
-            "Scan (Classic)" -> AttackNode(
-                id = nodeId,
-                type = type,
-                position = position,
-                inputs = emptyList(),
-                outputs = listOf(NodeOutput(nodeId = nodeId, type = "List<TargetDevice>", label = "Devices"))
-            )
-            "Filter by Class" -> AttackNode(
-                id = nodeId,
-                type = type,
-                position = position,
-                inputs = listOf(
-                    NodeInput(nodeId = nodeId, type = "List<TargetDevice>", label = "Devices In"),
-                    NodeInput(nodeId = nodeId, type = "String", label = "Device Class")
-                ),
-                outputs = listOf(NodeOutput(nodeId = nodeId, type = "List<TargetDevice>", label = "Devices Out"))
-            )
-            "BlueSpy Audio Record" -> AttackNode(
-                id = nodeId,
-                type = type,
-                position = position,
-                inputs = listOf(
-                    NodeInput(nodeId = nodeId, type = "TargetDevice", label = "Target"),
-                    NodeInput(nodeId = nodeId, type = "Int", label = "Duration (s)")
                 ),
                 outputs = emptyList()
             )
