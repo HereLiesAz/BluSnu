@@ -15,12 +15,14 @@ import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.TargetDevice
 import com.hereliesaz.blusnu.data.VulnerabilityCorrelator
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class TargetManagementScreenState(
     val isScanning: Boolean = false,
@@ -28,6 +30,9 @@ data class TargetManagementScreenState(
     val isBluetoothEnabled: Boolean = false,
     val discoveredDevices: List<TargetDevice> = emptyList(),
     val activeFilters: Map<FilterType, Any> = emptyMap(),
+    val showServiceDialog: Boolean = false,
+    val showVulnerabilityDialog: Boolean = false,
+    val logMessages: List<String> = emptyList()
 )
 
 sealed class FilterType {
@@ -38,7 +43,8 @@ sealed class FilterType {
 
 class TargetManagementViewModel(
     application: Application,
-    private val deviceRepository: DeviceRepository
+    private val deviceRepository: DeviceRepository,
+    private val vulnerabilityCorrelator: VulnerabilityCorrelator
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(TargetManagementScreenState())
@@ -54,7 +60,6 @@ class TargetManagementViewModel(
                 deviceRepository.getDevice(macAddress)?.let(::checkForVulnerabilities)
             }
         }
-    private val vulnerabilityCorrelator = VulnerabilityCorrelator(application)
 
     private val _activeFilters = MutableStateFlow<Map<FilterType, Any>>(emptyMap())
 
@@ -137,15 +142,35 @@ class TargetManagementViewModel(
     }
 
     fun discoverServices(device: TargetDevice) {
-        bluetoothAdapter?.let { adapter ->
-            val bluetoothDevice = adapter.getRemoteDevice(device.macAddress)
-            bluetoothScanner?.discoverServices(bluetoothDevice)
+        viewModelScope.launch {
+            _state.update { it.copy(showServiceDialog = true, logMessages = emptyList()) }
+            addLogMessage("Starting service discovery for ${device.macAddress}")
+            bluetoothAdapter?.let { adapter ->
+                val bluetoothDevice = adapter.getRemoteDevice(device.macAddress)
+                bluetoothScanner?.discoverServices(bluetoothDevice)
+            }
+            delay(2000) // Simulate network delay
+            _state.update { it.copy(showServiceDialog = false) }
         }
     }
 
     fun checkForVulnerabilities(device: TargetDevice) {
-        ActionLogger.log("Checking vulnerabilities for ${device.macAddress}.")
-        val vulnerabilities = vulnerabilityCorrelator.findVulnerabilities(device.services)
-        deviceRepository.updateDeviceVulnerabilities(device.macAddress, vulnerabilities)
+        viewModelScope.launch {
+            _state.update { it.copy(showVulnerabilityDialog = true, logMessages = emptyList()) }
+            addLogMessage("Checking vulnerabilities for ${device.macAddress}")
+            ActionLogger.log("Checking vulnerabilities for ${device.macAddress}.")
+            val vulnerabilities = vulnerabilityCorrelator.findVulnerabilities(device.services)
+            deviceRepository.updateDeviceVulnerabilities(device.macAddress, vulnerabilities)
+            addLogMessage("Found ${vulnerabilities.size} vulnerabilities.")
+            delay(2000) // Simulate network delay
+            _state.update { it.copy(showVulnerabilityDialog = false) }
+        }
+    }
+
+    private fun addLogMessage(message: String) {
+        _state.update {
+            val newLogs = it.logMessages + message
+            it.copy(logMessages = newLogs.takeLast(10))
+        }
     }
 }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -12,6 +13,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -28,7 +31,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -36,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.gson.Gson
 import com.hereliesaz.blusnu.data.TargetDevice
+import com.hereliesaz.blusnu.ui.components.ProgressDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,103 +54,115 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
             .padding(top = screenHeight * 0.2f),
         contentAlignment = Alignment.TopEnd
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        if (state.showServiceDialog) {
+            ProgressDialog(
+                onDismissRequest = { /* TODO */ },
+                logMessages = state.logMessages
+            )
+        }
+        if (state.showVulnerabilityDialog) {
+            ProgressDialog(
+                onDismissRequest = { /* TODO */ },
+                logMessages = state.logMessages
+            )
+        }
+        Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.End) {
             Row {
                 OutlinedButton(
-                onClick = { if (state.isScanning) viewModel.stopScan() else viewModel.startScan() },
-                shape = RoundedCornerShape(0.dp)
-            ) {
-                Text(if (state.isScanning) "Stop Scan" else "Start Scan")
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-
-        var filterExpanded by remember { mutableStateOf(false) }
-        var filterTypeExpanded by remember { mutableStateOf(false) }
-
-        ExposedDropdownMenuBox(expanded = filterExpanded, onExpandedChange = { filterExpanded = !filterExpanded }) {
-            TextField(
-                value = textFilter,
-                onValueChange = {
-                    textFilter = it
-                    if (it.isNotBlank()) {
-                        viewModel.addFilter(filterType, it)
-                    } else {
-                        viewModel.removeFilter(filterType)
-                    }
-                },
-                label = { Text("Filter by $filterType") },
-                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterExpanded)
+                    onClick = { if (state.isScanning) viewModel.stopScan() else viewModel.startScan() },
+                    shape = RoundedCornerShape(0.dp)
+                ) {
+                    Text(if (state.isScanning) "Stop Scan" else "Start Scan")
                 }
-            )
-            ExposedDropdownMenu(expanded = filterExpanded, onDismissRequest = { filterExpanded = false }) {
-                when(filterType) {
-                    FilterType.Text -> {
-                        state.discoveredDevices.forEach { device ->
-                            DropdownMenuItem(text = { Text(device.name ?: device.macAddress) }, onClick = {
-                                textFilter = device.name ?: device.macAddress
-                                viewModel.addFilter(FilterType.Text, textFilter)
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            var filterExpanded by remember { mutableStateOf(false) }
+            var filterTypeExpanded by remember { mutableStateOf(false) }
+
+            ExposedDropdownMenuBox(expanded = filterExpanded, onExpandedChange = { filterExpanded = !filterExpanded }) {
+                TextField(
+                    value = textFilter,
+                    onValueChange = {
+                        textFilter = it
+                        if (it.isNotBlank()) {
+                            viewModel.addFilter(filterType, it)
+                        } else {
+                            viewModel.removeFilter(filterType)
+                        }
+                    },
+                    label = { Text("Filter by $filterType") },
+                    modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterExpanded)
+                    }
+                )
+                ExposedDropdownMenu(expanded = filterExpanded, onDismissRequest = { filterExpanded = false }) {
+                    when(filterType) {
+                        FilterType.Text -> {
+                            state.discoveredDevices.forEach { device ->
+                                DropdownMenuItem(text = { Text(device.name ?: device.macAddress) }, onClick = {
+                                    textFilter = device.name ?: device.macAddress
+                                    viewModel.addFilter(FilterType.Text, textFilter)
+                                    filterExpanded = false
+                                })
+                            }
+                        }
+                        FilterType.Protocol -> {
+                            DropdownMenuItem(text = { Text("Classic") }, onClick = {
+                                viewModel.addFilter(FilterType.Protocol, FilterProtocol.CLASSIC)
+                                filterExpanded = false
+                            })
+                            DropdownMenuItem(text = { Text("BLE") }, onClick = {
+                                viewModel.addFilter(FilterType.Protocol, FilterProtocol.BLE)
+                                filterExpanded = false
+                            })
+                            DropdownMenuItem(text = { Text("All") }, onClick = {
+                                viewModel.removeFilter(FilterType.Protocol)
                                 filterExpanded = false
                             })
                         }
+                        FilterType.SignalStrength -> {
+                            // Not implemented
+                        }
                     }
-                    FilterType.Protocol -> {
-                        DropdownMenuItem(text = { Text("Classic") }, onClick = {
-                            viewModel.addFilter(FilterType.Protocol, FilterProtocol.CLASSIC)
-                            filterExpanded = false
-                        })
-                        DropdownMenuItem(text = { Text("BLE") }, onClick = {
-                            viewModel.addFilter(FilterType.Protocol, FilterProtocol.BLE)
-                            filterExpanded = false
-                        })
-                        DropdownMenuItem(text = { Text("All") }, onClick = {
-                            viewModel.removeFilter(FilterType.Protocol)
-                            filterExpanded = false
-                        })
-                    }
-                    FilterType.SignalStrength -> {
-                        // Not implemented
+                }
+            }
+
+            Box(modifier = Modifier.align(Alignment.End)) {
+                OutlinedButton(onClick = { filterTypeExpanded = true }, shape = RoundedCornerShape(0.dp)) {
+                    Text("Filter by")
+                }
+                DropdownMenu(expanded = filterTypeExpanded, onDismissRequest = { filterTypeExpanded = false }) {
+                    DropdownMenuItem(text = { Text("Text") }, onClick = {
+                        filterType = FilterType.Text
+                        filterTypeExpanded = false
+                    })
+                    DropdownMenuItem(text = { Text("Protocol") }, onClick = {
+                        filterType = FilterType.Protocol
+                        filterTypeExpanded = false
+                    })
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (!state.hasPermissions) {
+                Text("Permissions not granted")
+            } else if (!state.isBluetoothEnabled) {
+                Text("Bluetooth is not enabled")
+            } else if (state.isScanning && state.discoveredDevices.isEmpty()) {
+                CircularProgressIndicator()
+            } else if (!state.isScanning && state.discoveredDevices.isEmpty()) {
+                Text("No devices found. Click 'Start Scan' to begin.")
+            } else {
+                LazyColumn {
+                    items(state.discoveredDevices, key = { it.macAddress }) { device ->
+                        DeviceListItem(device = device, viewModel = viewModel, navController = navController)
                     }
                 }
             }
         }
-
-        Box(modifier = Modifier.align(Alignment.End)) {
-            OutlinedButton(onClick = { filterTypeExpanded = true }, shape = RoundedCornerShape(0.dp)) {
-                Text("Filter by")
-            }
-            DropdownMenu(expanded = filterTypeExpanded, onDismissRequest = { filterTypeExpanded = false }) {
-                DropdownMenuItem(text = { Text("Text") }, onClick = {
-                    filterType = FilterType.Text
-                    filterTypeExpanded = false
-                })
-                DropdownMenuItem(text = { Text("Protocol") }, onClick = {
-                    filterType = FilterType.Protocol
-                    filterTypeExpanded = false
-                })
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        if (!state.hasPermissions) {
-            Text("Permissions not granted")
-        } else if (!state.isBluetoothEnabled) {
-            Text("Bluetooth is not enabled")
-        } else if (state.isScanning && state.discoveredDevices.isEmpty()) {
-            CircularProgressIndicator()
-        } else if (!state.isScanning && state.discoveredDevices.isEmpty()) {
-            Text("No devices found. Click 'Start Scan' to begin.")
-        } else {
-            LazyColumn {
-                items(state.discoveredDevices, key = { it.macAddress }) { device ->
-                    DeviceListItem(device = device, viewModel = viewModel, navController = navController)
-                }
-            }
-        }
-    }
     }
 }
 
@@ -156,44 +171,59 @@ fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManag
 fun DeviceListItem(device: TargetDevice, viewModel: TargetManagementViewModel, navController: NavController) {
     var expanded by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.clickable { expanded = !expanded }) {
-        Row {
-            Text(text = device.name ?: "Unknown")
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = device.macAddress)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = "${device.rssi} dBm")
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = device.protocol.name)
-        }
-        Row {
-            OutlinedButton(onClick = { viewModel.discoverServices(device) }, shape = RoundedCornerShape(0.dp)) {
-                Text("Services")
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clickable { expanded = !expanded },
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.End
+        ) {
+            Row {
+                Text(text = device.name ?: "Unknown")
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = device.protocol.name)
             }
-            Spacer(modifier = Modifier.width(8.dp))
-            OutlinedButton(onClick = { viewModel.checkForVulnerabilities(device) }, shape = RoundedCornerShape(0.dp)) {
-                Text("Check Vulns")
+            Row {
+                Text(text = device.macAddress)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = "${device.rssi} dBm")
             }
-            Spacer(modifier = Modifier.width(8.dp))
-            OutlinedButton(onClick = {
-                val targetDeviceJson = Gson().toJson(device)
-                navController.navigate("btlejuice/$targetDeviceJson")
-            }, shape = RoundedCornerShape(0.dp)) {
-                Text("Juice")
-            }
-        }
-        if (expanded) {
-            if (device.services.isNotEmpty()) {
-                Column {
-                    device.services.forEach { service ->
-                        Text(text = "Service: $service")
-                    }
+            Row {
+                OutlinedButton(onClick = { viewModel.discoverServices(device) }, shape = RoundedCornerShape(0.dp)) {
+                    Text("Services")
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedButton(onClick = { viewModel.checkForVulnerabilities(device) }, shape = RoundedCornerShape(0.dp)) {
+                    Text("Check Vulns")
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedButton(onClick = {
+                    val targetDeviceJson = Gson().toJson(device)
+                    navController.navigate("btlejuice/$targetDeviceJson")
+                }, shape = RoundedCornerShape(0.dp)) {
+                    Text("Juice")
                 }
             }
-            if (device.vulnerabilities.isNotEmpty()) {
-                Column {
-                    device.vulnerabilities.forEach { vulnerability ->
-                        Text(text = "Vulnerability: ${vulnerability.name} (${vulnerability.cve})")
+
+            if (expanded) {
+                if (device.services.isNotEmpty()) {
+                    Column {
+                        device.services.forEach { service ->
+                            Text(text = "Service: $service")
+                        }
+                    }
+                }
+                if (device.vulnerabilities.isNotEmpty()) {
+                    Column {
+                        device.vulnerabilities.forEach { vulnerability ->
+                            Text(text = "Vulnerability: ${vulnerability.name} (${vulnerability.cve})")
+                        }
                     }
                 }
             }

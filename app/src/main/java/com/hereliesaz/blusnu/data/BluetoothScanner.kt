@@ -96,6 +96,7 @@ class BluetoothScanner(
             }
         }
 
+        @SuppressLint("MissingPermission")
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 val services = gatt.services.map { it.uuid.toString() }

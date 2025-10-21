@@ -9,13 +9,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +31,9 @@ fun DashboardScreen(
     modifier: Modifier = Modifier,
     bleDeviceCount: Int = 0,
     classicDeviceCount: Int = 0,
+    activeTasks: List<ActiveTask> = emptyList(),
+    savedSessions: List<SavedSession> = emptyList(),
+    attackChainTemplates: List<AttackChainTemplate> = emptyList(),
     onStartScanClicked: () -> Unit = {}
 ) {
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
@@ -40,52 +44,86 @@ fun DashboardScreen(
         contentAlignment = Alignment.TopEnd
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.End
         ) {
             // Device Counters
             Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    DeviceCounter("BLE Devices", bleDeviceCount)
+                    DeviceCounter("Classic Devices", classicDeviceCount)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Quick Actions
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceAround
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                DeviceCounter("BLE Devices", bleDeviceCount)
-                DeviceCounter("Classic Devices", classicDeviceCount)
+                Button(
+                    onClick = onStartScanClicked,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Start Scan")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Sections
+            DashboardSection(title = "Active Tasks") {
+                LazyRow {
+                    items(activeTasks) { task ->
+                        DashboardCard(title = task.name, description = task.description)
+                    }
+                }
+            }
+            DashboardSection(title = "Saved Sessions") {
+                LazyRow {
+                    items(savedSessions) { session ->
+                        DashboardCard(title = session.name, description = session.date)
+                    }
+                }
+            }
+            DashboardSection(title = "Attack Chain Templates") {
+                LazyRow {
+                    items(attackChainTemplates) { template ->
+                        DashboardCard(title = template.name, description = template.description)
+                    }
+                }
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Quick Actions
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Button(
-                onClick = onStartScanClicked,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Start Scan")
-            }
-            Button(
-                onClick = { /* TODO */ },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Load Session")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Placeholder sections
-        DashboardSection(title = "Active Tasks")
-        DashboardSection(title = "Saved Sessions")
-        DashboardSection(title = "Attack Chain Templates")
     }
+}
+
+@Composable
+fun DashboardCard(title: String, description: String) {
+    Card(
+        modifier = Modifier
+            .width(200.dp)
+            .height(100.dp)
+            .padding(end = 16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(title, fontWeight = FontWeight.Bold)
+            Text(description, style = MaterialTheme.typography.bodySmall)
+        }
     }
 }
 
@@ -105,7 +143,7 @@ fun DeviceCounter(label: String, count: Int) {
 }
 
 @Composable
-fun DashboardSection(title: String) {
+fun DashboardSection(title: String, content: @Composable () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = title,
@@ -113,20 +151,7 @@ fun DashboardSection(title: String) {
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(bottom = 8.dp)
         )
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp), // Placeholder height
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text("Coming Soon", style = MaterialTheme.typography.bodyMedium)
-            }
-        }
+        content()
         Spacer(modifier = Modifier.height(16.dp))
     }
 }

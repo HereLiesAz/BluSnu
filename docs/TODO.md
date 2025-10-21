@@ -89,3 +89,32 @@ This document outlines the development tasks required to implement the Blu Snu f
 -   [x] **Task 6.4: Finalize Settings and Database Updates**
     -   [x] Create a settings screen for user preferences.
     -   [x] Implement the mechanism for securely downloading updates to the vulnerability and fingerprinting databases.
+
+## Milestone 7: UI/UX Overhaul and Feature Expansion
+
+-   [ ] **Task 7.1: Global UI Consistency**
+    -   [ ] Remove all hardcoded screen titles from individual composables.
+    -   [ ] Style the AzNavRail-provided titles to be bold, primary color, and a larger font size.
+    -   [ ] Implement a global layout rule: all screen content must have a top margin of 20% of the screen height.
+    -   [ ] Implement a global layout rule: all screen content must be right-aligned.
+-   [ ] **Task 7.2: Advanced Geolocation with Map**
+    -   [ ] Replace the "Radar" view with a real map using the Overpass API.
+    -   [ ] Implement a device triangulation algorithm that improves in accuracy as the user moves their phone.
+    -   [ ] Add a heatmap widget to the Dashboard showing where devices have been found in scans.
+-   [ ] **Task 7.3: Dashboard and Data Persistence**
+    -   [ ] The vulnerability database should be loaded automatically on app open, not manually.
+    -   [ ] Remove the "Load Session" button from the Dashboard.
+    -   [ ] Implement the "Active Tasks", "Saved Sessions", and "Attack Chain Templates" widgets to display real data.
+    -   [ ] Devices found in previous scans should be listed on the Targets screen upon app open.
+    -   [ ] When scanning, newly discovered devices should have their text colored with the primary blue.
+-   [ ] **Task 7.4: Implement Placeholder Screens**
+    -   [ ] Implement the UI and basic functionality for the Bluebugging screen.
+    -   [ ] Implement the UI and basic functionality for the Bluesnarfing screen.
+    -   [ ] Implement the UI and basic functionality for the BlueSmack screen.
+    -   [ ] Implement the UI and basic functionality for the GATT Fuzzing screen.
+    -   [ ] Implement the UI and basic functionality for the Btlejacking screen.
+    -   [ ] Implement the UI and basic functionality for the Attack Chaining screen.
+-   [ ] **Task 7.5: Data Sharing and Analytics**
+    -   [ ] Add a sentence to the ethical use prompt asking the user to share anonymized data with the developer.
+    -   [ ] Add "Agree" and "Cancel" buttons to the new prompt.
+    -   [ ] If the user agrees, implement functionality to back up their local database to a secure cloud database.

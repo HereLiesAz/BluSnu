@@ -46,7 +46,8 @@ fun KeystrokeInjectionScreen(
         contentAlignment = Alignment.TopEnd
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.End
         ) {
             Button(
                 onClick = onAttemptAttack,
