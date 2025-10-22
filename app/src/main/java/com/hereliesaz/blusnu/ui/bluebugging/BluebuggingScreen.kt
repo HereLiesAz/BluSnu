@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-fun BluebuggingScreen(viewModel: BluebuggingViewModel = viewModel()) {
+fun BluebuggingScreen(viewModel: BluebuggingViewModel) {
     val macAddress by viewModel.macAddress.collectAsState()
     val status by viewModel.status.collectAsState()
     val result by viewModel.result.collectAsState()

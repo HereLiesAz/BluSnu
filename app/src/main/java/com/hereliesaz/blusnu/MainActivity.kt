@@ -87,6 +87,12 @@ import com.hereliesaz.blusnu.ui.reporting.ReportingViewModel
 import com.hereliesaz.blusnu.ui.settings.SettingsScreen
 import com.hereliesaz.blusnu.ui.settings.SettingsViewModel
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
+import com.hereliesaz.blusnu.ui.bluebugging.BluebuggingScreen
+import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen
+import com.hereliesaz.blusnu.ui.bluesmack.BlueSmackScreen
+import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingScreen
+import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingScreen
+import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
 
 
 
@@ -226,15 +232,15 @@ class MainActivity : ComponentActivity() {
                                 composable("settings") { SettingsScreen() }
                                 composable("bluebugging") {
                                     val viewModel: BluebuggingViewModel = viewModel(factory = viewModelFactory)
-                                    com.hereliesaz.blusnu.BluebuggingScreen(viewModel = viewModel)
+                                    BluebuggingScreen(viewModel = viewModel)
                                 }
                                 composable("bluesnarfing") {
                                     val viewModel: BluesnarfingViewModel = viewModel(factory = viewModelFactory)
-                                    BluesnarfingScreen(viewModel = viewModel)
+                                    BluesnarfingScreen(viewModel = viewModel, hasPermissions = true)
                                 }
                                 composable("btlejacking") {
                                     val viewModel: BtlejackingViewModel = viewModel(factory = viewModelFactory)
-                                    com.hereliesaz.blusnu.BtlejackingScreen(viewModel = viewModel)
+                                    BtlejackingScreen(viewModel = viewModel)
                                 }
                                 composable(
                                     "btlejuice/{targetDevice}",
@@ -279,11 +285,11 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable("gattfuzzing") {
                                     val viewModel: GattFuzzingViewModel = viewModel(factory = viewModelFactory)
-                                    com.hereliesaz.blusnu.GattFuzzingScreen(viewModel = viewModel)
+                                    GattFuzzingScreen(viewModel = viewModel)
                                 }
                                 composable("bluesmack") {
                                     val viewModel: BlueSmackViewModel = viewModel(factory = viewModelFactory)
-                                    com.hereliesaz.blusnu.BlueSmackScreen(viewModel = viewModel)
+                                    BlueSmackScreen(viewModel = viewModel)
                                 }
                                 composable("reporting") {
                                     val viewModel: ReportingViewModel = viewModel(factory = viewModelFactory)
@@ -314,36 +320,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-fun BluebuggingScreen(viewModel: BluebuggingViewModel) {
-    Text(text = "Bluebugging")
-}
-
-@Composable
-fun BluesnarfingScreen(viewModel: BluesnarfingViewModel) {
-    Text(text = "Bluesnarfing")
-}
-
-@Composable
-fun BtlejackingScreen(viewModel: BtlejackingViewModel) {
-    Text(text = "Btlejacking")
-}
-
-@Composable
-fun KeystrokeInjectionScreen(viewModel: KeystrokeInjectionViewModel) {
-    Text(text = "Keystroke Injection")
-}
 
 
-@Composable
-fun GattFuzzingScreen(viewModel: GattFuzzingViewModel) {
-    Text(text = "Gatt Fuzzing")
-}
 
-@Composable
-fun BlueSmackScreen(viewModel: BlueSmackViewModel) {
-    Text(text = "BlueSmack")
-}
+
+
+
 
 @Preview(showBackground = true)
 @Composable
