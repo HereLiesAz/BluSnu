@@ -226,15 +226,15 @@ class MainActivity : ComponentActivity() {
                                 composable("settings") { SettingsScreen() }
                                 composable("bluebugging") {
                                     val viewModel: BluebuggingViewModel = viewModel(factory = viewModelFactory)
-                                    com.hereliesaz.blusnu.BluebuggingScreen(viewModel = viewModel)
+                                    com.hereliesaz.blusnu.ui.bluebugging.BluebuggingScreen(viewModel = viewModel)
                                 }
                                 composable("bluesnarfing") {
                                     val viewModel: BluesnarfingViewModel = viewModel(factory = viewModelFactory)
-                                    BluesnarfingScreen(viewModel = viewModel)
+                                    com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen(viewModel = viewModel, hasPermissions = true)
                                 }
                                 composable("btlejacking") {
                                     val viewModel: BtlejackingViewModel = viewModel(factory = viewModelFactory)
-                                    com.hereliesaz.blusnu.BtlejackingScreen(viewModel = viewModel)
+                                    com.hereliesaz.blusnu.ui.btlejacking.BtlejackingScreen(viewModel = viewModel)
                                 }
                                 composable(
                                     "btlejuice/{targetDevice}",
@@ -267,7 +267,7 @@ class MainActivity : ComponentActivity() {
                                 composable("keystroke_injection") {
                                     val viewModel: KeystrokeInjectionViewModel = viewModel(factory = viewModelFactory)
                                     val state by viewModel.state.collectAsState()
-                                    KeystrokeInjectionScreen(
+                                    com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen(
                                         state = state,
                                         onAttemptAttack = viewModel::onAttemptAttack,
                                         onSendKeystrokes = viewModel::onSendKeystrokes
@@ -279,11 +279,11 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable("gattfuzzing") {
                                     val viewModel: GattFuzzingViewModel = viewModel(factory = viewModelFactory)
-                                    com.hereliesaz.blusnu.GattFuzzingScreen(viewModel = viewModel)
+                                    com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingScreen(viewModel = viewModel)
                                 }
                                 composable("bluesmack") {
                                     val viewModel: BlueSmackViewModel = viewModel(factory = viewModelFactory)
-                                    com.hereliesaz.blusnu.BlueSmackScreen(viewModel = viewModel)
+                                    com.hereliesaz.blusnu.ui.bluesmack.BlueSmackScreen(viewModel = viewModel)
                                 }
                                 composable("reporting") {
                                     val viewModel: ReportingViewModel = viewModel(factory = viewModelFactory)
@@ -314,36 +314,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-fun BluebuggingScreen(viewModel: BluebuggingViewModel) {
-    Text(text = "Bluebugging")
-}
-
-@Composable
-fun BluesnarfingScreen(viewModel: BluesnarfingViewModel) {
-    Text(text = "Bluesnarfing")
-}
-
-@Composable
-fun BtlejackingScreen(viewModel: BtlejackingViewModel) {
-    Text(text = "Btlejacking")
-}
-
-@Composable
-fun KeystrokeInjectionScreen(viewModel: KeystrokeInjectionViewModel) {
-    Text(text = "Keystroke Injection")
-}
 
 
-@Composable
-fun GattFuzzingScreen(viewModel: GattFuzzingViewModel) {
-    Text(text = "Gatt Fuzzing")
-}
 
-@Composable
-fun BlueSmackScreen(viewModel: BlueSmackViewModel) {
-    Text(text = "BlueSmack")
-}
+
+
+
 
 @Preview(showBackground = true)
 @Composable
