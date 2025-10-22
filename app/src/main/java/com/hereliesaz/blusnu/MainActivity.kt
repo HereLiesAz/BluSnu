@@ -132,7 +132,8 @@ class MainActivity : ComponentActivity() {
                         KeystrokeInjectionViewModel(application, keystrokeInjectionModule) as T
                     }
                     modelClass.isAssignableFrom(AttackChainingViewModel::class.java) -> {
-                        AttackChainingViewModel(application) as T
+                        val repository = com.hereliesaz.blusnu.data.AttackChainRepository(application)
+                        AttackChainingViewModel(application, repository) as T
                     }
                     modelClass.isAssignableFrom(DashboardViewModel::class.java) -> {
                         DashboardViewModel(application, deviceRepository) as T
@@ -274,7 +275,7 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable("attack_chaining") {
                                     val viewModel: AttackChainingViewModel = viewModel(factory = viewModelFactory)
-                                    com.hereliesaz.blusnu.AttackChainingScreen(viewModel = viewModel)
+                                    AttackChainingScreen(viewModel = viewModel)
                                 }
                                 composable("gattfuzzing") {
                                     val viewModel: GattFuzzingViewModel = viewModel(factory = viewModelFactory)
@@ -333,10 +334,6 @@ fun KeystrokeInjectionScreen(viewModel: KeystrokeInjectionViewModel) {
     Text(text = "Keystroke Injection")
 }
 
-@Composable
-fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
-    Text(text = "Attack Chaining")
-}
 
 @Composable
 fun GattFuzzingScreen(viewModel: GattFuzzingViewModel) {
