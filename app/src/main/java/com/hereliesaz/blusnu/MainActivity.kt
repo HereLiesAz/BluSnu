@@ -87,12 +87,6 @@ import com.hereliesaz.blusnu.ui.reporting.ReportingViewModel
 import com.hereliesaz.blusnu.ui.settings.SettingsScreen
 import com.hereliesaz.blusnu.ui.settings.SettingsViewModel
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
-import com.hereliesaz.blusnu.ui.bluebugging.BluebuggingScreen
-import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen
-import com.hereliesaz.blusnu.ui.bluesmack.BlueSmackScreen
-import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingScreen
-import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingScreen
-import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
 
 
 
@@ -236,11 +230,11 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable("bluesnarfing") {
                                     val viewModel: BluesnarfingViewModel = viewModel(factory = viewModelFactory)
-                                    BluesnarfingScreen(viewModel = viewModel, hasPermissions = true)
+                                    BluesnarfingScreen(viewModel = viewModel)
                                 }
                                 composable("btlejacking") {
                                     val viewModel: BtlejackingViewModel = viewModel(factory = viewModelFactory)
-                                    BtlejackingScreen(viewModel = viewModel)
+                                    BtlejackingScreen(viewModel = viewModel, hasPermissions = !showDisclaimer)
                                 }
                                 composable(
                                     "btlejuice/{targetDevice}",
@@ -319,13 +313,6 @@ class MainActivity : ComponentActivity() {
         requestPermissionsLauncher.launch(requiredPermissions.toTypedArray())
     }
 }
-
-
-
-
-
-
-
 
 @Preview(showBackground = true)
 @Composable

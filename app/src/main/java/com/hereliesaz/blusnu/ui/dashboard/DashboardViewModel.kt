@@ -14,6 +14,7 @@ data class DashboardState(
     val bleDeviceCount: Int = 0,
     val classicDeviceCount: Int = 0,
     val isScanning: Boolean = false,
+    val devicesWithLocation: List<com.hereliesaz.blusnu.data.DeviceWithLocation> = emptyList(),
     val activeTasks: List<ActiveTask> = emptyList(),
     val savedSessions: List<SavedSession> = emptyList(),
     val attackChainTemplates: List<AttackChainTemplate> = emptyList()
@@ -28,9 +29,15 @@ class DashboardViewModel(
         .map { devices ->
             val bleCount = devices.count { it.protocol == Protocol.BLE }
             val classicCount = devices.count { it.protocol == Protocol.CLASSIC }
+            val devicesWithLocation = devices.mapNotNull { device ->
+                device.estimatedLocation?.let { location ->
+                    com.hereliesaz.blusnu.data.DeviceWithLocation(device, com.hereliesaz.blusnu.data.Location(location.latitude, location.longitude))
+                }
+            }
             DashboardState(
                 bleDeviceCount = bleCount,
                 classicDeviceCount = classicCount,
+                devicesWithLocation = devicesWithLocation,
                 activeTasks = getSampleActiveTasks(),
                 savedSessions = getSampleSavedSessions(),
                 attackChainTemplates = getSampleAttackChainTemplates()

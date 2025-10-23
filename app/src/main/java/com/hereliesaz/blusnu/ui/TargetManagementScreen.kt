@@ -33,12 +33,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.gson.Gson
 import com.hereliesaz.blusnu.data.TargetDevice
 import com.hereliesaz.blusnu.ui.components.ProgressDialog
+import androidx.compose.material3.MaterialTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -185,9 +187,9 @@ fun DeviceListItem(device: TargetDevice, viewModel: TargetManagementViewModel, n
             horizontalAlignment = Alignment.End
         ) {
             Row {
-                Text(text = device.name ?: "Unknown")
+                Text(text = device.name ?: "Unknown", color = if (device.isNew) MaterialTheme.colorScheme.primary else Color.Unspecified)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = device.protocol.name)
+                Text(text = device.protocol.name, color = if (device.isNew) MaterialTheme.colorScheme.primary else Color.Unspecified)
             }
             Row {
                 Text(text = device.macAddress)

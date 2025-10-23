@@ -16,6 +16,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -88,13 +92,26 @@ fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
             )
         }
 
-        FloatingActionButton(
-            onClick = { showAddNodeMenu = true },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = "Add Node")
+        Column(modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .background(Color.LightGray, RoundedCornerShape(8.dp))
+                    .padding(8.dp)
+            ) {
+                items(state.logs) { log ->
+                    Text(text = log)
+                }
+            }
+        }
+
+        Column(modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
+            FloatingActionButton(
+                onClick = { showAddNodeMenu = true },
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = "Add Node")
+            }
             DropdownMenu(
                 expanded = showAddNodeMenu,
                 onDismissRequest = { showAddNodeMenu = false }
@@ -123,6 +140,28 @@ fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
                     viewModel.addNode(LoopNode(id = UUID.randomUUID().toString()))
                     showAddNodeMenu = false
                 })
+            }
+            Spacer(modifier = Modifier.size(16.dp))
+            var showLoadTemplateMenu by remember { mutableStateOf(false) }
+            Button(onClick = { showLoadTemplateMenu = true }) {
+                Text("Load Template")
+            }
+            DropdownMenu(
+                expanded = showLoadTemplateMenu,
+                onDismissRequest = { showLoadTemplateMenu = false }
+            ) {
+                DropdownMenuItem(text = { Text("Simple Scan") }, onClick = {
+                    viewModel.loadTemplate("Simple Scan")
+                    showLoadTemplateMenu = false
+                })
+                DropdownMenuItem(text = { Text("Snarf and Inject") }, onClick = {
+                    viewModel.loadTemplate("Snarf and Inject")
+                    showLoadTemplateMenu = false
+                })
+            }
+            Spacer(modifier = Modifier.size(16.dp))
+            Button(onClick = { viewModel.executeChain() }) {
+                Text("Run")
             }
         }
     }

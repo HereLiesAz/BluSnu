@@ -11,80 +11,119 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 
 @Composable
 fun KeystrokeInjectionScreen(
-    state: KeystrokeInjectionState,
-    onAttemptAttack: () -> Unit,
-    onSendKeystrokes: (String) -> Unit
+    state: KeystrokeInjectionState = KeystrokeInjectionState(),
+    onAttemptAttack: () -> Unit = {},
+    onSendKeystrokes: (String) -> Unit = {}
 ) {
     var textToSend by remember { mutableStateOf("") }
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(top = screenHeight * 0.2f),
+        contentAlignment = Alignment.TopEnd
     ) {
-        Button(
-            onClick = onAttemptAttack,
-            enabled = !state.isPared
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.End
         ) {
-            Text(if (state.isPared) "Paired Successfully" else "Attempt Silent Pairing")
-        }
+            Button(
+                onClick = onAttemptAttack,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !state.isPared
+            ) {
+                val text = when {
+                    state.isPared -> "Paired Successfully"
+                    else -> "Attempt Silent Pairing"
+                }
+                Text(text)
+            }
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Keystroke Input
         if (state.isPared) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                TextField(
+                OutlinedTextField(
                     value = textToSend,
                     onValueChange = { textToSend = it },
-                    label = { Text("Enter text to send") },
+                    label = { Text("Enter Keystrokes") },
                     modifier = Modifier.weight(1f)
                 )
-                Button(
-                    onClick = { onSendKeystrokes(textToSend) },
-                    enabled = textToSend.isNotEmpty()
-                ) {
+                Button(onClick = {
+                    if (textToSend.isNotBlank()) {
+                        onSendKeystrokes(textToSend)
+                        textToSend = ""
+                    }
+                }) {
                     Text("Send")
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
 
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            reverseLayout = true
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Status Log
+        Text(
+            "Status Log",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            items(state.logMessages.reversed()) { log ->
-                Text(log)
+            LazyColumn(
+                modifier = Modifier.padding(16.dp),
+                reverseLayout = true
+            ) {
+                items(state.logMessages.reversed()) { message ->
+                    Text(message, style = MaterialTheme.typography.bodySmall)
+                }
             }
         }
+    }
     }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun KeystrokeInjectionScreenPreview() {
-    val state = KeystrokeInjectionState(
-        isPared = true,
-        logMessages = listOf("Attempting pairing...", "Pairing successful!", "Sending keystrokes: 'hello'")
-    )
-    KeystrokeInjectionScreen(state = state, onAttemptAttack = {}, onSendKeystrokes = {})
+    BluSnuTheme {
+        KeystrokeInjectionScreen(
+            state = KeystrokeInjectionState(
+                isPared = true,
+                logMessages = listOf("Attempting to pair...", "Paired successfully.", "Sent: 'Hello World'")
+            )
+        )
+    }
 }

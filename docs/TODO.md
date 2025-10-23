@@ -107,13 +107,13 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [ ] Implement the "Active Tasks", "Saved Sessions", and "Attack Chain Templates" widgets to display real data.
     -   [ ] Devices found in previous scans should be listed on the Targets screen upon app open.
     -   [ ] When scanning, newly discovered devices should have their text colored with the primary blue.
--   [ ] **Task 7.4: Implement Placeholder Screens**
-    -   [ ] Implement the UI and basic functionality for the Bluebugging screen.
-    -   [ ] Implement the UI and basic functionality for the Bluesnarfing screen.
-    -   [ ] Implement the UI and basic functionality for the BlueSmack screen.
-    -   [ ] Implement the UI and basic functionality for the GATT Fuzzing screen.
-    -   [ ] Implement the UI and basic functionality for the Btlejacking screen.
-    -   [ ] Implement the UI and basic functionality for the Attack Chaining screen.
+-   [x] **Task 7.4: Implement Placeholder Screens**
+    -   [x] Implement the UI and basic functionality for the Bluebugging screen.
+    -   [x] Implement the UI and basic functionality for the Bluesnarfing screen.
+    -   [x] Implement the UI and basic functionality for the BlueSmack screen.
+    -   [x] Implement the UI and basic functionality for the GATT Fuzzing screen.
+    -   [x] Implement the UI and basic functionality for the Btlejacking screen.
+    -   [x] Implement the UI and basic functionality for the Attack Chaining screen.
 -   [ ] **Task 7.5: Data Sharing and Analytics**
     -   [ ] Add a sentence to the ethical use prompt asking the user to share anonymized data with the developer.
     -   [ ] Add "Agree" and "Cancel" buttons to the new prompt.

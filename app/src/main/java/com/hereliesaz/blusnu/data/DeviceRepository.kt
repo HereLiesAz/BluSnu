@@ -35,4 +35,10 @@ class DeviceRepository {
             _discoveredDevicesMap.value = _discoveredDevicesMap.value + (macAddress to it.copy(vulnerabilities = vulnerabilities))
         }
     }
+
+    fun updateDeviceLocation(macAddress: String, location: com.google.android.gms.maps.model.LatLng) {
+        _discoveredDevicesMap.value[macAddress]?.let {
+            _discoveredDevicesMap.value = _discoveredDevicesMap.value + (macAddress to it.copy(estimatedLocation = location))
+        }
+    }
 }
