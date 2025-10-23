@@ -25,12 +25,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import com.hereliesaz.blusnu.data.DeviceWithLocation
 
 @Composable
 fun DashboardScreen(
     modifier: Modifier = Modifier,
     bleDeviceCount: Int = 0,
     classicDeviceCount: Int = 0,
+    devicesWithLocation: List<DeviceWithLocation> = emptyList(),
     activeTasks: List<ActiveTask> = emptyList(),
     savedSessions: List<SavedSession> = emptyList(),
     attackChainTemplates: List<AttackChainTemplate> = emptyList(),
@@ -81,6 +86,9 @@ fun DashboardScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Sections
+            DashboardSection(title = "Device Heatmap") {
+                Heatmap(devices = devicesWithLocation)
+            }
             DashboardSection(title = "Active Tasks") {
                 LazyRow {
                     items(activeTasks) { task ->
@@ -161,5 +169,21 @@ fun DashboardSection(title: String, content: @Composable () -> Unit) {
 fun DashboardScreenPreview() {
     BluSnuTheme {
         DashboardScreen(bleDeviceCount = 5, classicDeviceCount = 2)
+    }
+}
+
+@Composable
+fun Heatmap(devices: List<DeviceWithLocation>) {
+    Canvas(modifier = Modifier.fillMaxWidth().height(200.dp)) {
+        devices.forEach { device ->
+            drawCircle(
+                color = Color.Red,
+                center = Offset(
+                    x = size.width * (device.location.latitude.toFloat() / 180f),
+                    y = size.height * (device.location.longitude.toFloat() / 180f)
+                ),
+                radius = 10f
+            )
+        }
     }
 }

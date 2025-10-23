@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-fun BlueSmackScreen(viewModel: BlueSmackViewModel = viewModel()) {
+fun BlueSmackScreen(viewModel: BlueSmackViewModel) {
     val macAddress by viewModel.macAddress.collectAsState()
     val status by viewModel.status.collectAsState()
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp

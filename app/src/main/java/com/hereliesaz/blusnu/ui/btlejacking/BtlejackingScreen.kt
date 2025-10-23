@@ -32,7 +32,7 @@ import com.hereliesaz.blusnu.data.HardwareState
 import com.hereliesaz.blusnu.data.TargetDevice
 
 @Composable
-fun BtlejackingScreen(viewModel: BtlejackingViewModel) {
+fun BtlejackingScreen(viewModel: BtlejackingViewModel, hasPermissions: Boolean) {
     val state by viewModel.state.collectAsState()
     var selectedTarget by remember { mutableStateOf<TargetDevice?>(null) }
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp

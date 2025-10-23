@@ -16,7 +16,8 @@ import kotlinx.coroutines.launch
 
 data class AttackChainingState(
     val nodes: Map<NodeId, AttackNode> = emptyMap(),
-    val connections: List<Pair<NodeConnector, NodeConnector>> = emptyList()
+    val connections: List<Pair<NodeConnector, NodeConnector>> = emptyList(),
+    val logs: List<String> = emptyList()
 )
 
 class AttackChainingViewModel(
@@ -24,11 +25,17 @@ class AttackChainingViewModel(
     private val repository: AttackChainRepository
 ) : AndroidViewModel(application) {
 
+    private val executor = com.hereliesaz.blusnu.data.AttackChainExecutor()
     private val _uiState = MutableStateFlow(AttackChainingState())
     val uiState: StateFlow<AttackChainingState> = _uiState.asStateFlow()
 
     init {
         loadAttackChain("default")
+        viewModelScope.launch {
+            executor.output.collect { log ->
+                _uiState.update { it.copy(logs = it.logs + log) }
+            }
+        }
     }
 
     fun addNode(node: AttackNode) {
@@ -108,5 +115,9 @@ class AttackChainingViewModel(
         if (template != null) {
             _uiState.value = template
         }
+    }
+
+    fun executeChain() {
+        executor.execute(uiState.value, viewModelScope)
     }
 }

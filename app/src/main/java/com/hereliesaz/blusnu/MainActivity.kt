@@ -226,7 +226,7 @@ class MainActivity : ComponentActivity() {
                                 composable("settings") { SettingsScreen() }
                                 composable("bluebugging") {
                                     val viewModel: BluebuggingViewModel = viewModel(factory = viewModelFactory)
-                                    com.hereliesaz.blusnu.ui.bluebugging.BluebuggingScreen(viewModel = viewModel)
+                                    BluebuggingScreen(viewModel = viewModel)
                                 }
                                 composable("bluesnarfing") {
                                     val viewModel: BluesnarfingViewModel = viewModel(factory = viewModelFactory)
@@ -234,7 +234,7 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable("btlejacking") {
                                     val viewModel: BtlejackingViewModel = viewModel(factory = viewModelFactory)
-                                    com.hereliesaz.blusnu.ui.btlejacking.BtlejackingScreen(viewModel = viewModel)
+                                    BtlejackingScreen(viewModel = viewModel, hasPermissions = !showDisclaimer)
                                 }
                                 composable(
                                     "btlejuice/{targetDevice}",
@@ -279,11 +279,11 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable("gattfuzzing") {
                                     val viewModel: GattFuzzingViewModel = viewModel(factory = viewModelFactory)
-                                    com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingScreen(viewModel = viewModel)
+                                    GattFuzzingScreen(viewModel = viewModel)
                                 }
                                 composable("bluesmack") {
                                     val viewModel: BlueSmackViewModel = viewModel(factory = viewModelFactory)
-                                    com.hereliesaz.blusnu.ui.bluesmack.BlueSmackScreen(viewModel = viewModel)
+                                    BlueSmackScreen(viewModel = viewModel)
                                 }
                                 composable("reporting") {
                                     val viewModel: ReportingViewModel = viewModel(factory = viewModelFactory)
@@ -313,13 +313,6 @@ class MainActivity : ComponentActivity() {
         requestPermissionsLauncher.launch(requiredPermissions.toTypedArray())
     }
 }
-
-
-
-
-
-
-
 
 @Preview(showBackground = true)
 @Composable

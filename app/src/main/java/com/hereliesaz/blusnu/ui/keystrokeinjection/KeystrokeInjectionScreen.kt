@@ -37,12 +37,21 @@ fun KeystrokeInjectionScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Button(
-            onClick = onAttemptAttack,
-            enabled = !state.isPared
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.End
         ) {
-            Text("Attempt Silent Pairing")
-        }
+            Button(
+                onClick = onAttemptAttack,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !state.isPared
+            ) {
+                val text = when {
+                    state.isPared -> "Paired Successfully"
+                    else -> "Attempt Silent Pairing"
+                }
+                Text(text)
+            }
 
         Spacer(modifier = Modifier.height(16.dp))
 

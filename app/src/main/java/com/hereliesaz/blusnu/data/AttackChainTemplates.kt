@@ -1,57 +1,55 @@
 package com.hereliesaz.blusnu.data
 
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingState
-import com.hereliesaz.blusnu.ui.attackchaining.nodes.ScanBleNode
 import com.hereliesaz.blusnu.ui.attackchaining.nodes.BluesnarfNode
-import com.hereliesaz.blusnu.ui.attackchaining.nodes.IfElseNode
 import com.hereliesaz.blusnu.ui.attackchaining.nodes.KeystrokeInjectionNode
-import com.hereliesaz.blusnu.ui.attackchaining.nodes.LoopNode
-import com.hereliesaz.blusnu.ui.attackchaining.nodes.WaitNode
+import com.hereliesaz.blusnu.ui.attackchaining.nodes.ScanBleNode
+import com.hereliesaz.blusnu.ui.attackchaining.nodes.StartNode
 
 object AttackChainTemplates {
 
-    val templates = mapOf(
-        "BLE Smart Lock Audit" to createBleSmartLockAuditTemplate(),
-        "Opportunistic Eavesdropping" to createOpportunisticEavesdroppingTemplate()
-    )
-
-    private fun createBleSmartLockAuditTemplate(): AttackChainingState {
-        val scanNode = ScanBleNode(id = "scan_ble")
-        val ifNode = IfElseNode(id = "if_lock_found")
-        val keystrokeNode = KeystrokeInjectionNode(id = "keystroke_injection")
-
-        return AttackChainingState(
+    private val simpleScanTemplate: AttackChainingState by lazy {
+        val startNode = StartNode(id = "start")
+        val scanNode = ScanBleNode(id = "scan")
+        AttackChainingState(
             nodes = mapOf(
-                scanNode.id to scanNode,
-                ifNode.id to ifNode,
+                startNode.id to startNode,
+                scanNode.id to scanNode
+            ),
+            connections = listOf(
+                Pair(
+                    startNode.outputs.first(),
+                    scanNode.inputs.first()
+                )
+            )
+        )
+    }
+
+    private val snarfAndInjectTemplate: AttackChainingState by lazy {
+        val startNode = StartNode(id = "start")
+        val bluesnarfNode = BluesnarfNode(id = "bluesnarf")
+        val keystrokeNode = KeystrokeInjectionNode(id = "keystroke")
+        AttackChainingState(
+            nodes = mapOf(
+                startNode.id to startNode,
+                bluesnarfNode.id to bluesnarfNode,
                 keystrokeNode.id to keystrokeNode
             ),
             connections = listOf(
-                Pair(scanNode.outputs.first(), ifNode.inputs.first()),
-                Pair(ifNode.outputs.first(), keystrokeNode.inputs.first())
+                Pair(
+                    startNode.outputs.first(),
+                    bluesnarfNode.inputs.first()
+                ),
+                Pair(
+                    bluesnarfNode.outputs.first(),
+                    keystrokeNode.inputs.first()
+                )
             )
         )
     }
 
-    private fun createOpportunisticEavesdroppingTemplate(): AttackChainingState {
-        val scanNode = ScanBleNode(id = "scan_ble")
-        val loopNode = LoopNode(id = "loop_devices")
-        val bluesnarfNode = BluesnarfNode(id = "bluesnarf")
-        val waitNode = WaitNode(id = "wait")
-
-        return AttackChainingState(
-            nodes = mapOf(
-                scanNode.id to scanNode,
-                loopNode.id to loopNode,
-                bluesnarfNode.id to bluesnarfNode,
-                waitNode.id to waitNode
-            ),
-            connections = listOf(
-                Pair(scanNode.outputs.first(), loopNode.inputs.first()),
-                Pair(loopNode.outputs.first(), bluesnarfNode.inputs.first()),
-                Pair(bluesnarfNode.outputs.first(), waitNode.inputs.first()),
-                Pair(waitNode.outputs.first(), loopNode.inputs.first())
-            )
-        )
-    }
+    val templates = mapOf(
+        "Simple Scan" to simpleScanTemplate,
+        "Snarf and Inject" to snarfAndInjectTemplate
+    )
 }

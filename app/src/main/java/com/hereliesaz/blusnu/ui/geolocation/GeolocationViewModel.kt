@@ -74,14 +74,7 @@ class GeolocationViewModel(
 
             val estimatedLocation = Trilateration.calculate(p1.location, d1, p2.location, d2, p3.location, d3)
             if (estimatedLocation != null) {
-                val updatedDevices = _uiState.value.devices.map {
-                    if (it.device.macAddress == device.macAddress) {
-                        it.copy(estimatedLocation = estimatedLocation)
-                    } else {
-                        it
-                    }
-                }
-                _uiState.value = _uiState.value.copy(devices = updatedDevices)
+                deviceRepository.updateDeviceLocation(device.macAddress, estimatedLocation)
             }
         }
     }

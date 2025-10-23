@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-fun GattFuzzingScreen(viewModel: GattFuzzingViewModel = viewModel()) {
+fun GattFuzzingScreen(viewModel: GattFuzzingViewModel) {
     val macAddress by viewModel.macAddress.collectAsState()
     val status by viewModel.status.collectAsState()
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
@@ -37,7 +37,14 @@ fun GattFuzzingScreen(viewModel: GattFuzzingViewModel = viewModel()) {
                 label = { Text("Target MAC Address") }
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = { viewModel.startAttack() }) {
+
+            // MAC address validation (simple regex for 6 pairs of hex digits)
+            val isMacValid = Regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$").matches(macAddress)
+
+            Button(
+                onClick = { viewModel.startAttack() },
+                enabled = isMacValid
+            ) {
                 Text("Start Fuzzing")
             }
             Spacer(modifier = Modifier.height(8.dp))
