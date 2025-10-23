@@ -230,7 +230,7 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable("bluesnarfing") {
                                     val viewModel: BluesnarfingViewModel = viewModel(factory = viewModelFactory)
-                                    BluesnarfingScreen(viewModel = viewModel)
+                                    com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen(viewModel = viewModel, hasPermissions = true)
                                 }
                                 composable("btlejacking") {
                                     val viewModel: BtlejackingViewModel = viewModel(factory = viewModelFactory)
@@ -267,7 +267,7 @@ class MainActivity : ComponentActivity() {
                                 composable("keystroke_injection") {
                                     val viewModel: KeystrokeInjectionViewModel = viewModel(factory = viewModelFactory)
                                     val state by viewModel.state.collectAsState()
-                                    KeystrokeInjectionScreen(
+                                    com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen(
                                         state = state,
                                         onAttemptAttack = viewModel::onAttemptAttack,
                                         onSendKeystrokes = viewModel::onSendKeystrokes
