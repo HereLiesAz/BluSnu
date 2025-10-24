@@ -14,15 +14,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+import com.hereliesaz.blusnu.data.TargetDevice
+
 data class AttackChainingState(
     val nodes: Map<NodeId, AttackNode> = emptyMap(),
     val connections: List<Pair<NodeConnector, NodeConnector>> = emptyList(),
-    val logs: List<String> = emptyList()
+    val logs: List<String> = emptyList(),
+    val devices: List<TargetDevice> = emptyList()
 )
 
 class AttackChainingViewModel(
     application: Application,
-    private val repository: AttackChainRepository
+    private val repository: AttackChainRepository,
+    private val deviceRepository: com.hereliesaz.blusnu.data.DeviceRepository
 ) : AndroidViewModel(application) {
 
     private val executor = com.hereliesaz.blusnu.data.AttackChainExecutor()
@@ -34,6 +38,26 @@ class AttackChainingViewModel(
         viewModelScope.launch {
             executor.output.collect { log ->
                 _uiState.update { it.copy(logs = it.logs + log) }
+            }
+        }
+        viewModelScope.launch {
+            deviceRepository.allDevices.collect { devices ->
+                _uiState.update { it.copy(devices = devices) }
+            }
+        }
+    }
+
+    fun updateNodeTarget(nodeId: NodeId, device: TargetDevice) {
+        viewModelScope.launch {
+            _uiState.update { currentState ->
+                val newNodes = currentState.nodes.toMutableMap()
+                val nodeToUpdate = newNodes[nodeId]
+                if (nodeToUpdate != null) {
+                    newNodes[nodeId] = nodeToUpdate.withTarget(device)
+                    currentState.copy(nodes = newNodes)
+                } else {
+                    currentState
+                }
             }
         }
     }
