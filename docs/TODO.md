@@ -26,6 +26,7 @@ This document outlines the development tasks required to implement the Blu Snu f
 -   [x] **Task 2.2: Implement Target Management UI**
     -   [x] Design and implement the filterable and sortable list for discovered devices.
     -   [x] Implement filtering logic for protocol, RSSI, and vendor.
+    -   [x] Replaced `TargetManagementScreen` with `DeviceManagementScreen` to allow for adding notes to devices.
 -   [x] **Task 2.3: Service Enumeration**
     -   [x] Implement SDP enumeration for Classic devices (`fetchUuidsWithSdp()`).
     -   [x] Implement GATT service discovery for BLE devices (`bluetoothGatt.discoverServices()`).
@@ -92,21 +93,20 @@ This document outlines the development tasks required to implement the Blu Snu f
 
 ## Milestone 7: UI/UX Overhaul and Feature Expansion
 
--   [ ] **Task 7.1: Global UI Consistency**
-    -   [ ] Remove all hardcoded screen titles from individual composables.
-    -   [ ] Style the AzNavRail-provided titles to be bold, primary color, and a larger font size.
-    -   [ ] Implement a global layout rule: all screen content must have a top margin of 20% of the screen height.
-    -   [ ] Implement a global layout rule: all screen content must be right-aligned.
--   [ ] **Task 7.2: Advanced Geolocation with Map**
-    -   [ ] Replace the "Radar" view with a real map using the Overpass API.
-    -   [ ] Implement a device triangulation algorithm that improves in accuracy as the user moves their phone.
-    -   [ ] Add a heatmap widget to the Dashboard showing where devices have been found in scans.
--   [ ] **Task 7.3: Dashboard and Data Persistence**
-    -   [ ] The vulnerability database should be loaded automatically on app open, not manually.
-    -   [ ] Remove the "Load Session" button from the Dashboard.
-    -   [ ] Implement the "Active Tasks", "Saved Sessions", and "Attack Chain Templates" widgets to display real data.
-    -   [ ] Devices found in previous scans should be listed on the Targets screen upon app open.
-    -   [ ] When scanning, newly discovered devices should have their text colored with the primary blue.
+-   [x] **Task 7.1: Global UI Consistency**
+    -   [x] Remove all hardcoded screen titles from individual composables.
+    -   [x] Implement a global layout rule: all screen content must have a top margin of 20% of the screen height.
+    -   [x] Implement a global layout rule: all screen content must be right-aligned.
+-   [x] **Task 7.2: Advanced Geolocation with Map**
+    -   [x] Replace the "Radar" view with a real map using OpenStreetMaps.
+    -   [x] Implement a device triangulation algorithm that improves in accuracy as the user moves their phone.
+    -   [x] Add a heatmap widget to the Dashboard showing where devices have been found in scans.
+-   [x] **Task 7.3: Dashboard and Data Persistence**
+    -   [x] The vulnerability database should be loaded automatically on app open, not manually.
+    -   [x] Remove the "Load Session" button from the Dashboard.
+    -   [x] Implement the "Active Tasks", "Saved Sessions", and "Attack Chain Templates" widgets to display real data.
+    -   [x] Devices found in previous scans should be listed on the Targets screen upon app open.
+    -   [x] When scanning, newly discovered devices should have their text colored with the primary blue.
 -   [x] **Task 7.4: Implement Placeholder Screens**
     -   [x] Implement the UI and basic functionality for the Bluebugging screen.
     -   [x] Implement the UI and basic functionality for the Bluesnarfing screen.
@@ -114,7 +114,7 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Implement the UI and basic functionality for the GATT Fuzzing screen.
     -   [x] Implement the UI and basic functionality for the Btlejacking screen.
     -   [x] Implement the UI and basic functionality for the Attack Chaining screen.
--   [ ] **Task 7.5: Data Sharing and Analytics**
-    -   [ ] Add a sentence to the ethical use prompt asking the user to share anonymized data with the developer.
-    -   [ ] Add "Agree" and "Cancel" buttons to the new prompt.
-    -   [ ] If the user agrees, implement functionality to back up their local database to a secure cloud database.
+-   [x] **Task 7.5: Data Sharing and Analytics**
+    -   [x] Add a sentence to the ethical use prompt asking the user to share anonymized data with the developer.
+    -   [x] Add "Agree" and "Cancel" buttons to the new prompt.
+    -   [x] If the user agrees, implement functionality to back up their local database to a secure cloud database.

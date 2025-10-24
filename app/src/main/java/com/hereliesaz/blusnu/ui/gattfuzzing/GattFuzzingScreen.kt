@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,13 +15,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GattFuzzingScreen(viewModel: GattFuzzingViewModel) {
-    val macAddress by viewModel.macAddress.collectAsState()
+    val selectedDevice by viewModel.selectedDevice.collectAsState()
+    val devices by viewModel.devices.collectAsState()
     val status by viewModel.status.collectAsState()
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    var expanded by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -30,20 +42,39 @@ fun GattFuzzingScreen(viewModel: GattFuzzingViewModel) {
             .padding(top = screenHeight * 0.2f),
         contentAlignment = Alignment.TopEnd
     ) {
-        Column {
-            TextField(
-                value = macAddress,
-                onValueChange = { viewModel.onMacAddressChanged(it) },
-                label = { Text("Target MAC Address") }
-            )
+        Column(horizontalAlignment = Alignment.End) {
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                TextField(
+                    value = selectedDevice?.name ?: "Select a target device",
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    devices.forEach { device ->
+                        val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
+                        val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
+                        DropdownMenuItem(
+                            text = { Text(device.name ?: "Unknown", color = textColor) },
+                            onClick = {
+                                viewModel.onDeviceSelected(device)
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
             Spacer(modifier = Modifier.height(8.dp))
-
-            // MAC address validation (simple regex for 6 pairs of hex digits)
-            val isMacValid = Regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$").matches(macAddress)
-
             Button(
                 onClick = { viewModel.startAttack() },
-                enabled = isMacValid
+                enabled = selectedDevice != null
             ) {
                 Text("Start Fuzzing")
             }

@@ -3,7 +3,9 @@ package com.hereliesaz.blusnu.ui.spoofing
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.SpoofingModule
+import com.hereliesaz.blusnu.data.TargetDevice
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,12 +14,15 @@ import kotlinx.coroutines.launch
 
 data class SpoofingState(
     val logMessages: List<String> = emptyList(),
-    val isError: Boolean = false
+    val isError: Boolean = false,
+    val devices: List<TargetDevice> = emptyList(),
+    val selectedDevice: TargetDevice? = null
 )
 
 class SpoofingViewModel(
     application: Application,
-    private val spoofingModule: SpoofingModule
+    private val spoofingModule: SpoofingModule,
+    deviceRepository: DeviceRepository
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(SpoofingState())
@@ -25,6 +30,17 @@ class SpoofingViewModel(
 
     private var macAddress: String = ""
 
+    init {
+        viewModelScope.launch {
+            deviceRepository.allDevices.collect { devices ->
+                _state.update { it.copy(devices = devices) }
+            }
+        }
+    }
+    fun onDeviceSelected(device: TargetDevice) {
+        macAddress = device.macAddress
+        _state.update { it.copy(selectedDevice = device, isError = !isValidMacAddress(macAddress)) }
+    }
     fun onMacAddressChanged(newMacAddress: String) {
         macAddress = newMacAddress
         _state.update { it.copy(isError = !isValidMacAddress(newMacAddress)) }

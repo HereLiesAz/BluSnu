@@ -4,7 +4,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.ActionLogger
+import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.KeystrokeInjectionModule
+import com.hereliesaz.blusnu.data.TargetDevice
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,22 +15,37 @@ import kotlinx.coroutines.launch
 
 data class KeystrokeInjectionState(
     val isPared: Boolean = false,
-    val logMessages: List<String> = emptyList()
+    val logMessages: List<String> = emptyList(),
+    val devices: List<TargetDevice> = emptyList(),
+    val selectedDevice: TargetDevice? = null
 )
 
 class KeystrokeInjectionViewModel(
     application: Application,
-    private val keystrokeInjectionModule: KeystrokeInjectionModule
+    private val keystrokeInjectionModule: KeystrokeInjectionModule,
+    deviceRepository: DeviceRepository
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(KeystrokeInjectionState())
     val state: StateFlow<KeystrokeInjectionState> = _state.asStateFlow()
 
-    fun onAttemptAttack() {
-        ActionLogger.log("Keystroke injection attack started.")
+    init {
         viewModelScope.launch {
-            log("Attempting silent pairing...")
-            val success = keystrokeInjectionModule.attemptPairing()
+            deviceRepository.allDevices.collect { devices ->
+                _state.update { it.copy(devices = devices) }
+            }
+        }
+    }
+    fun onDeviceSelected(device: TargetDevice) {
+        _state.update { it.copy(selectedDevice = device) }
+    }
+
+    fun onAttemptAttack() {
+        val selected = state.value.selectedDevice ?: return
+        ActionLogger.log("Keystroke injection attack started against ${selected.macAddress}.")
+        viewModelScope.launch {
+            log("Attempting silent pairing with ${selected.name ?: selected.macAddress}...")
+            val success = keystrokeInjectionModule.attemptPairing(selected)
             if (success) {
                 log("Pairing successful!")
                 _state.update { it.copy(isPared = true) }
