@@ -12,7 +12,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -20,7 +20,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -196,8 +198,8 @@ class MainActivity : ComponentActivity() {
                     }
                 } else {
                     val navController = rememberNavController()
-                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                        Row(Modifier.fillMaxSize().padding(innerPadding)) {
+                    Surface(modifier = Modifier.fillMaxSize()) {
+                        Row(Modifier.fillMaxSize()) {
                             AzNavRail {
                                 azSettings(
                                     displayAppNameInHeader = false,
@@ -209,18 +211,21 @@ class MainActivity : ComponentActivity() {
                                 azRailItem(id = "bluesnarfing", text = "Snarfing", onClick = { navController.navigate("bluesnarfing") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "bluesmack", text = "Smack", onClick = { navController.navigate("bluesmack") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "gattfuzzing", text = "Fuzzing", onClick = { navController.navigate("gattfuzzing") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "spoofing", text = "Spoofing", onClick = { navController.navigate("spoofing") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "keystroke_injection", text = "Injection", onClick = { navController.navigate("keystroke_injection") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "btlejacking", text = "Jacking", onClick = { navController.navigate("btlejacking") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "btlejuice", text = "Juice", onClick = { navController.navigate("btlejuice/null") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "geolocation", text = "Location", onClick = { navController.navigate("geolocation") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "keystroke_injection", text = "Injection", onClick = { navController.navigate("keystroke_injection") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "attack_chaining", text = "Chaining", onClick = { navController.navigate("attack_chaining") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "reporting", text = "Reporting", onClick = { navController.navigate("reporting") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "settings", text = "Settings", onClick = { navController.navigate("settings") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "spoofing", text = "Spoofing", onClick = { navController.navigate("spoofing") }, shape = AzButtonShape.RECTANGLE)
                             }
+
+                            val screenHeight = LocalConfiguration.current.screenHeightDp.dp
                             NavHost(
                                 navController = navController,
-                                startDestination = "dashboard"
+                                startDestination = "dashboard",
+                                modifier = Modifier.padding(top=screenHeight*0.2f)
                             ) {
                                 composable("dashboard") {
                                     val viewModel: DashboardViewModel = viewModel(factory = viewModelFactory)
