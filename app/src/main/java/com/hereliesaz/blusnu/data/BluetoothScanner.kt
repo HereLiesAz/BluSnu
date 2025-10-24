@@ -48,7 +48,8 @@ class BluetoothScanner(
                             macAddress = it.address,
                             name = it.name,
                             rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt(),
-                            protocol = Protocol.CLASSIC
+                            protocol = Protocol.CLASSIC,
+                            lastSeen = System.currentTimeMillis()
                         )
                         coroutineScope.launch {
                             deviceRepository.insert(targetDevice)
@@ -76,7 +77,8 @@ class BluetoothScanner(
                             name = it.name,
                             rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt(),
                             protocol = Protocol.CLASSIC,
-                            services = uuidExtra?.map { it.toString() } ?: emptyList()
+                            services = uuidExtra?.map { it.toString() } ?: emptyList(),
+                            lastSeen = System.currentTimeMillis()
                         )
                         coroutineScope.launch {
                             deviceRepository.insert(targetDevice)
@@ -95,7 +97,8 @@ class BluetoothScanner(
                 macAddress = device.address,
                 name = device.name,
                 rssi = result.rssi,
-                protocol = Protocol.BLE
+                protocol = Protocol.BLE,
+                lastSeen = System.currentTimeMillis()
             )
             coroutineScope.launch {
                 deviceRepository.insert(targetDevice)
@@ -121,7 +124,8 @@ class BluetoothScanner(
                     name = gatt.device.name,
                     rssi = 0,
                     protocol = Protocol.BLE,
-                    services = services
+                    services = services,
+                    lastSeen = System.currentTimeMillis()
                 )
                 coroutineScope.launch {
                     deviceRepository.insert(targetDevice)

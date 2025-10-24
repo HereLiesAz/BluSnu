@@ -5,6 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.TargetDevice
@@ -100,8 +101,10 @@ private fun TargetSelection(
             onDismissRequest = { expanded = false }
         ) {
             devices.forEach { device ->
+                val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
+                val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
                 DropdownMenuItem(
-                    text = { Text(device.name ?: "Unknown") },
+                    text = { Text(device.name ?: "Unknown", color = textColor) },
                     onClick = {
                         onDeviceSelected(device)
                         expanded = false

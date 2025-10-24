@@ -15,11 +15,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
+import com.hereliesaz.blusnu.data.TargetDevice
+
 data class DashboardState(
     val bleDeviceCount: Int = 0,
     val classicDeviceCount: Int = 0,
     val isScanning: Boolean = false,
-    val devicesWithLocation: List<com.hereliesaz.blusnu.data.DeviceWithLocation> = emptyList(),
+    val devicesWithLocation: List<TargetDevice> = emptyList(),
     val savedSessions: List<SavedSession> = emptyList(),
     val attackChainTemplates: List<AttackChainTemplate> = emptyList()
 )
@@ -38,11 +40,7 @@ class DashboardViewModel(
     ) { devices, sessions, templates ->
         val bleCount = devices.count { it.protocol == Protocol.BLE }
         val classicCount = devices.count { it.protocol == Protocol.CLASSIC }
-        val devicesWithLocation = devices.mapNotNull { device ->
-            device.estimatedLocation?.let { location ->
-                DeviceWithLocation(device, Location(location.latitude, location.longitude))
-            }
-        }
+        val devicesWithLocation = devices.filter { it.latitude != null && it.longitude != null }
         DashboardState(
             bleDeviceCount = bleCount,
             classicDeviceCount = classicCount,

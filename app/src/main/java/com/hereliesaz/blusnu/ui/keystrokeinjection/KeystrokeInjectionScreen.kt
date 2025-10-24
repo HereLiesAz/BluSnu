@@ -1,6 +1,7 @@
 package com.hereliesaz.blusnu.ui.keystrokeinjection
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.ui.components.ScreenTitle
 
@@ -30,14 +32,21 @@ fun KeystrokeInjectionScreen(
     onSendKeystrokes: (String) -> Unit
 ) {
     var textToSend by remember { mutableStateOf("") }
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(top = screenHeight * 0.2f),
+        contentAlignment = Alignment.TopEnd
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Button(
                 onClick = onAttemptAttack,
                 modifier = Modifier.fillMaxWidth(),
@@ -50,33 +59,34 @@ fun KeystrokeInjectionScreen(
                 Text(text)
             }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        if (state.isPared) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TextField(
-                    value = textToSend,
-                    onValueChange = { textToSend = it },
-                    label = { Text("Enter text to send") },
-                    modifier = Modifier.weight(1f)
-                )
-                Button(
-                    onClick = { onSendKeystrokes(textToSend) },
-                    enabled = textToSend.isNotEmpty()
+            if (state.isPared) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Send")
+                    TextField(
+                        value = textToSend,
+                        onValueChange = { textToSend = it },
+                        label = { Text("Enter text to send") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    Button(
+                        onClick = { onSendKeystrokes(textToSend) },
+                        enabled = textToSend.isNotEmpty()
+                    ) {
+                        Text("Send")
+                    }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        LazyColumn(modifier = Modifier.weight(1f)) {
-            items(state.logMessages) { log ->
-                Text(log)
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                items(state.logMessages) { log ->
+                    Text(log)
+                }
             }
         }
     }

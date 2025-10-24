@@ -1,6 +1,7 @@
 package com.hereliesaz.blusnu.ui.spoofing
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,7 +21,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -34,54 +37,62 @@ fun SpoofingScreen(
     onApplyClicked: () -> Unit = {}
 ) {
     var macAddress by remember { mutableStateOf("") }
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(top = screenHeight * 0.2f),
+        contentAlignment = Alignment.TopEnd
     ) {
-        OutlinedTextField(
-            value = macAddress,
-            onValueChange = {
-                macAddress = it
-                onMacAddressChanged(it)
-            },
-            label = { Text("New MAC Address") },
-            modifier = Modifier.fillMaxWidth(),
-            isError = state.isError
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = onApplyClicked,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !state.isError
-        ) {
-            Text("Apply")
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Status Log
-        Text(
-            "Status Log",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Card(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                .fillMaxSize()
+                .padding(16.dp)
         ) {
-            LazyColumn(
-                modifier = Modifier.padding(16.dp),
-                reverseLayout = true
+            OutlinedTextField(
+                value = macAddress,
+                onValueChange = {
+                    macAddress = it
+                    onMacAddressChanged(it)
+                },
+                label = { Text("New MAC Address") },
+                modifier = Modifier.fillMaxWidth(),
+                isError = state.isError
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = onApplyClicked,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !state.isError
             ) {
-                items(state.logMessages.reversed()) { message ->
-                    Text(message, style = MaterialTheme.typography.bodySmall)
+                Text("Apply")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Status Log
+            Text(
+                "Status Log",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                LazyColumn(
+                    modifier = Modifier.padding(16.dp),
+                    reverseLayout = true
+                ) {
+                    items(state.logMessages.reversed()) { message ->
+                        Text(message, style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
         }
