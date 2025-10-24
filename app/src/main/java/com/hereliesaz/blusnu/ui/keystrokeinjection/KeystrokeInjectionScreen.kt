@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.hereliesaz.blusnu.ui.components.ScreenTitle
 
 @Composable
 fun KeystrokeInjectionScreen(
@@ -37,10 +38,6 @@ fun KeystrokeInjectionScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.End
-        ) {
             Button(
                 onClick = onAttemptAttack,
                 modifier = Modifier.fillMaxWidth(),
@@ -82,6 +79,5 @@ fun KeystrokeInjectionScreen(
                 Text(log)
             }
         }
-    }
     }
 }

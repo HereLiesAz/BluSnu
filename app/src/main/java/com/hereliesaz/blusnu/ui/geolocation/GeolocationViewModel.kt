@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 data class LocationDataPoint(
     val location: LatLng,
@@ -40,7 +41,7 @@ class GeolocationViewModel(
     val uiState: StateFlow<GeolocationUiState> = _uiState.asStateFlow()
 
     init {
-        deviceRepository.discoveredDevices
+        deviceRepository.allDevices
             .onEach { devices ->
                 val devicesWithLocation = devices.map { device ->
                     TargetDeviceWithLocation(
@@ -74,7 +75,10 @@ class GeolocationViewModel(
 
             val estimatedLocation = Trilateration.calculate(p1.location, d1, p2.location, d2, p3.location, d3)
             if (estimatedLocation != null) {
-                deviceRepository.updateDeviceLocation(device.macAddress, estimatedLocation)
+                val updatedDevice = device.copy(latitude = estimatedLocation.latitude, longitude = estimatedLocation.longitude)
+                viewModelScope.launch {
+                    deviceRepository.insert(updatedDevice)
+                }
             }
         }
     }

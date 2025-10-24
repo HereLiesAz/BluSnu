@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.BtlejackingState
 import com.hereliesaz.blusnu.data.HardwareState
 import com.hereliesaz.blusnu.data.TargetDevice
+import com.hereliesaz.blusnu.ui.components.ScreenTitle
 
 @Composable
 fun BtlejackingScreen(viewModel: BtlejackingViewModel, hasPermissions: Boolean) {

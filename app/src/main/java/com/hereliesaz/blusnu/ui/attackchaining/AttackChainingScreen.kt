@@ -47,6 +47,7 @@ import com.hereliesaz.blusnu.ui.attackchaining.nodes.LoopNode
 import com.hereliesaz.blusnu.ui.attackchaining.nodes.NodeConnector
 import com.hereliesaz.blusnu.ui.attackchaining.nodes.ScanBleNode
 import com.hereliesaz.blusnu.ui.attackchaining.nodes.WaitNode
+import com.hereliesaz.blusnu.ui.components.ScreenTitle
 import java.util.UUID
 import kotlin.math.roundToInt
 

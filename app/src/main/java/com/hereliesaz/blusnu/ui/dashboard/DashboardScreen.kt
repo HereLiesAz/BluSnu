@@ -29,6 +29,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import com.hereliesaz.blusnu.data.DeviceWithLocation
+import com.hereliesaz.blusnu.ui.components.ScreenTitle
 
 @Composable
 fun DashboardScreen(
@@ -36,9 +37,8 @@ fun DashboardScreen(
     bleDeviceCount: Int = 0,
     classicDeviceCount: Int = 0,
     devicesWithLocation: List<DeviceWithLocation> = emptyList(),
-    activeTasks: List<ActiveTask> = emptyList(),
-    savedSessions: List<SavedSession> = emptyList(),
-    attackChainTemplates: List<AttackChainTemplate> = emptyList(),
+    savedSessions: List<com.hereliesaz.blusnu.data.SavedSession> = emptyList(),
+    attackChainTemplates: List<com.hereliesaz.blusnu.data.AttackChainTemplate> = emptyList(),
     onStartScanClicked: () -> Unit = {}
 ) {
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
@@ -88,13 +88,6 @@ fun DashboardScreen(
             // Sections
             DashboardSection(title = "Device Heatmap") {
                 Heatmap(devices = devicesWithLocation)
-            }
-            DashboardSection(title = "Active Tasks") {
-                LazyRow {
-                    items(activeTasks) { task ->
-                        DashboardCard(title = task.name, description = task.description)
-                    }
-                }
             }
             DashboardSection(title = "Saved Sessions") {
                 LazyRow {
