@@ -63,7 +63,6 @@ class DeviceManagementViewModel(
     fun updateDeviceNotes(device: TargetDevice, notes: String) {
         viewModelScope.launch {
             deviceRepository.updateNotes(device.macAddress, notes)
-_state.value = _state.value.copy(isScanning = false)
         }
     }
 }
