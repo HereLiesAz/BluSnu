@@ -45,7 +45,7 @@ class BtlejackingViewModel(
             }
             .launchIn(viewModelScope)
 
-        deviceRepository.discoveredDevices
+        deviceRepository.allDevices
             .onEach { devices ->
                 _state.value = _state.value.copy(discoveredDevices = devices)
             }

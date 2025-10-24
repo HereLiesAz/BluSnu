@@ -1,44 +1,16 @@
 package com.hereliesaz.blusnu.data
 
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.Flow
 
-class DeviceRepository {
+class DeviceRepository(private val targetDeviceDao: TargetDeviceDao) {
 
-    private val _discoveredDevicesMap = MutableStateFlow<Map<String, TargetDevice>>(emptyMap())
-    val discoveredDevices: kotlinx.coroutines.flow.Flow<List<TargetDevice>> = _discoveredDevicesMap.map { it.values.toList() }
+    val allDevices: Flow<List<TargetDevice>> = targetDeviceDao.getAll()
 
-    fun addDevice(device: TargetDevice) {
-        if (!_discoveredDevicesMap.value.containsKey(device.macAddress)) {
-            _discoveredDevicesMap.value = _discoveredDevicesMap.value + (device.macAddress to device)
-        }
+    suspend fun insert(device: TargetDevice) {
+        targetDeviceDao.insert(device)
     }
 
-    fun getDevice(macAddress: String): TargetDevice? {
-        return _discoveredDevicesMap.value[macAddress]
-    }
-
-    fun clearDevices() {
-        _discoveredDevicesMap.value = emptyMap()
-    }
-
-    fun updateDeviceServices(macAddress: String, services: List<String>) {
-        _discoveredDevicesMap.value[macAddress]?.let {
-            _discoveredDevicesMap.value = _discoveredDevicesMap.value + (macAddress to it.copy(services = services))
-        }
-    }
-
-    fun updateDeviceVulnerabilities(macAddress: String, vulnerabilities: List<Vulnerability>) {
-        _discoveredDevicesMap.value[macAddress]?.let {
-            _discoveredDevicesMap.value = _discoveredDevicesMap.value + (macAddress to it.copy(vulnerabilities = vulnerabilities))
-        }
-    }
-
-    fun updateDeviceLocation(macAddress: String, location: com.google.android.gms.maps.model.LatLng) {
-        _discoveredDevicesMap.value[macAddress]?.let {
-            _discoveredDevicesMap.value = _discoveredDevicesMap.value + (macAddress to it.copy(estimatedLocation = location))
-        }
+    suspend fun updateNotes(macAddress: String, notes: String) {
+        targetDeviceDao.updateNotes(macAddress, notes)
     }
 }
