@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceHardwareState
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceState
 import com.hereliesaz.blusnu.ui.btlejuice.GattTraffic
+import com.hereliesaz.blusnu.ui.components.ScreenTitle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

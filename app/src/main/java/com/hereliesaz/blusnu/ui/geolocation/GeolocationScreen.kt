@@ -30,6 +30,7 @@ import org.osmdroid.views.overlay.Marker
 import kotlin.random.Random
 import androidx.compose.ui.viewinterop.AndroidView
 import com.hereliesaz.blusnu.data.DeviceRepository
+import com.hereliesaz.blusnu.ui.components.ScreenTitle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.AttackChainTemplate
 import com.hereliesaz.blusnu.data.AttackChainTemplateRepository
 import com.hereliesaz.blusnu.data.DeviceRepository
+import com.hereliesaz.blusnu.data.DeviceWithLocation
+import com.hereliesaz.blusnu.data.Location
 import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.SavedSession
 import kotlinx.coroutines.flow.SharingStarted

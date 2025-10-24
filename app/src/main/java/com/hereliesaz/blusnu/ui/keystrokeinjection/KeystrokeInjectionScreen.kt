@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
+import com.hereliesaz.blusnu.ui.components.ScreenTitle
 
 @Composable
 fun KeystrokeInjectionScreen(

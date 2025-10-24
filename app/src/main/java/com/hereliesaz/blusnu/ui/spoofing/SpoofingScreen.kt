@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.hereliesaz.blusnu.ui.components.ScreenTitle
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 
 @Composable
