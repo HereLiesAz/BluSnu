@@ -1,7 +1,6 @@
 package com.hereliesaz.blusnu.ui.keystrokeinjection
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,7 +20,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.ui.components.ScreenTitle
 
@@ -32,18 +30,18 @@ fun KeystrokeInjectionScreen(
     onSendKeystrokes: (String) -> Unit
 ) {
     var textToSend by remember { mutableStateOf("") }
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = screenHeight * 0.2f),
-        contentAlignment = Alignment.TopEnd
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        ScreenTitle(title = "Keystroke Injection")
+        Spacer(modifier = Modifier.height(16.dp))
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
+                .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
