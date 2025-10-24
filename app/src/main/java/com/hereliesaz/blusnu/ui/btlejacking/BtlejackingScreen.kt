@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.BtlejackingState
@@ -133,6 +135,8 @@ fun BtlejackingScreen(viewModel: BtlejackingViewModel, hasPermissions: Boolean) 
 
 @Composable
 fun DeviceRow(device: TargetDevice, onDeviceSelected: (TargetDevice) -> Unit) {
+    val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
+    val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -140,8 +144,8 @@ fun DeviceRow(device: TargetDevice, onDeviceSelected: (TargetDevice) -> Unit) {
             .padding(8.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(device.name ?: "Unknown")
-        Text(device.macAddress)
-        Text("${device.rssi} dBm")
+        Text(device.name ?: "Unknown", color = textColor)
+        Text(device.macAddress, color = textColor)
+        Text("${device.rssi} dBm", color = textColor)
     }
 }
