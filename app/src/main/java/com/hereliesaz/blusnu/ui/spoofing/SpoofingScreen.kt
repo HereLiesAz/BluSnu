@@ -57,7 +57,8 @@ fun SpoofingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.End
         ) {
             ExposedDropdownMenuBox(
                 expanded = expanded,

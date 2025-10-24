@@ -93,11 +93,10 @@ This document outlines the development tasks required to implement the Blu Snu f
 
 ## Milestone 7: UI/UX Overhaul and Feature Expansion
 
--   [ ] **Task 7.1: Global UI Consistency**
-    -   [ ] Remove all hardcoded screen titles from individual composables.
-    -   [ ] Style the AzNavRail-provided titles to be bold, primary color, and a larger font size.
-    -   [ ] Implement a global layout rule: all screen content must have a top margin of 20% of the screen height.
-    -   [ ] Implement a global layout rule: all screen content must be right-aligned.
+-   [x] **Task 7.1: Global UI Consistency**
+    -   [x] Remove all hardcoded screen titles from individual composables.
+    -   [x] Implement a global layout rule: all screen content must have a top margin of 20% of the screen height.
+    -   [x] Implement a global layout rule: all screen content must be right-aligned.
 -   [x] **Task 7.2: Advanced Geolocation with Map**
     -   [x] Replace the "Radar" view with a real map using OpenStreetMaps.
     -   [x] Implement a device triangulation algorithm that improves in accuracy as the user moves their phone.
@@ -115,7 +114,7 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Implement the UI and basic functionality for the GATT Fuzzing screen.
     -   [x] Implement the UI and basic functionality for the Btlejacking screen.
     -   [x] Implement the UI and basic functionality for the Attack Chaining screen.
--   [ ] **Task 7.5: Data Sharing and Analytics**
-    -   [ ] Add a sentence to the ethical use prompt asking the user to share anonymized data with the developer.
-    -   [ ] Add "Agree" and "Cancel" buttons to the new prompt.
-    -   [ ] If the user agrees, implement functionality to back up their local database to a secure cloud database.
+-   [x] **Task 7.5: Data Sharing and Analytics**
+    -   [x] Add a sentence to the ethical use prompt asking the user to share anonymized data with the developer.
+    -   [x] Add "Agree" and "Cancel" buttons to the new prompt.
+    -   [x] If the user agrees, implement functionality to back up their local database to a secure cloud database.

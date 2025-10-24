@@ -74,9 +74,13 @@ import com.hereliesaz.blusnu.ui.spoofing.SpoofingScreen
 import com.hereliesaz.blusnu.ui.spoofing.SpoofingViewModel
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import com.hereliesaz.blusnu.data.CloudBackup
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 
 class MainActivity : ComponentActivity() {
@@ -178,7 +182,10 @@ class MainActivity : ComponentActivity() {
                 var showDisclaimer by remember { mutableStateOf(!getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).getBoolean("disclaimer_accepted", false)) }
 
                 if (showDisclaimer) {
-                    DisclaimerDialog {
+                    DisclaimerDialog { agreed ->
+                        if (agreed) {
+                            simulateDatabaseBackup()
+                        }
                         getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).edit {
                             putBoolean(
                                 "disclaimer_accepted",
@@ -330,6 +337,14 @@ class MainActivity : ComponentActivity() {
         }
 
         requestPermissionsLauncher.launch(requiredPermissions.toTypedArray())
+    }
+
+    private fun simulateDatabaseBackup() {
+        // In a real app, this would connect to a cloud service and upload the database.
+        // For now, we'll just log a message.
+        CoroutineScope(Dispatchers.IO).launch {
+            CloudBackup().backupDatabase()
+        }
     }
 }
 

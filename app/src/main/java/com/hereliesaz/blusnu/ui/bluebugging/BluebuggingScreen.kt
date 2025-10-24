@@ -43,7 +43,7 @@ fun BluebuggingScreen(viewModel: BluebuggingViewModel) {
             .padding(top = screenHeight * 0.2f),
         contentAlignment = Alignment.TopEnd
     ) {
-        Column {
+        Column(horizontalAlignment = Alignment.End) {
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }
