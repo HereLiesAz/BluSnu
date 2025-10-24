@@ -27,11 +27,17 @@ class BluesnarfingViewModel(application: Application) : AndroidViewModel(applica
     private val bluesnarfingModule = BluesnarfingModule()
     private val bluetoothAdapter: BluetoothAdapter? = (application.getSystemService(BluetoothManager::class.java) as BluetoothManager).adapter
 
+    private var hasPermissions = false
+
+    fun onPermissionsResult(hasPermissions: Boolean) {
+        this.hasPermissions = hasPermissions
+    }
+
     fun onMacAddressChanged(macAddress: String) {
         _macAddress.value = macAddress
     }
 
-    fun startAttack(hasPermissions: Boolean) {
+    fun startAttack() {
         if (!hasPermissions) {
             _status.value = "Bluetooth connect permission is required"
             return

@@ -26,6 +26,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,8 +45,18 @@ import androidx.compose.material3.MaterialTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TargetManagementScreen(modifier: Modifier = Modifier, viewModel: TargetManagementViewModel, navController: NavController) {
+fun TargetManagementScreen(
+    modifier: Modifier = Modifier,
+    viewModel: TargetManagementViewModel,
+    navController: NavController,
+    hasPermissions: Boolean
+) {
     val state by viewModel.state.collectAsState()
+
+    LaunchedEffect(hasPermissions) {
+        viewModel.onPermissionsResult(hasPermissions)
+    }
+
     var textFilter by remember { mutableStateOf("") }
     var filterType by remember { mutableStateOf<FilterType>(FilterType.Text) }
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp

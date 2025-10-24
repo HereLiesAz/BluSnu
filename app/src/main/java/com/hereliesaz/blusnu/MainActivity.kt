@@ -87,11 +87,14 @@ import com.hereliesaz.blusnu.ui.reporting.ReportingViewModel
 import com.hereliesaz.blusnu.ui.settings.SettingsScreen
 import com.hereliesaz.blusnu.ui.settings.SettingsViewModel
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
-
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 
 class MainActivity : ComponentActivity() {
 
+    private val _hasPermissions = MutableStateFlow(false)
+    val hasPermissions: StateFlow<Boolean> = _hasPermissions
     private val deviceRepository by lazy { DeviceRepository() }
     private val hardwareManager by lazy { HardwareManager() }
     private val btlejuiceModule by lazy { BtlejuiceModule(hardwareManager) }
@@ -152,9 +155,7 @@ class MainActivity : ComponentActivity() {
 
     private val requestPermissionsLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-            permissions.entries.forEach {
-                // Log or handle individual permission results
-            }
+            _hasPermissions.value = permissions.values.all { it }
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -166,6 +167,8 @@ class MainActivity : ComponentActivity() {
         requestRequiredPermissions()
 
         setContent {
+            val hasPermissions by hasPermissions.collectAsState()
+
             BluSnuTheme {
                 var showDisclaimer by remember { mutableStateOf(!getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).getBoolean("disclaimer_accepted", false)) }
 
@@ -221,7 +224,7 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable("targets") {
                                     val viewModel: TargetManagementViewModel = viewModel(factory = viewModelFactory)
-                                    TargetManagementScreen(viewModel = viewModel, navController = navController)
+                                    TargetManagementScreen(viewModel = viewModel, navController = navController, hasPermissions = hasPermissions)
                                 }
                                 composable("settings") { SettingsScreen() }
                                 composable("bluebugging") {
@@ -230,11 +233,11 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable("bluesnarfing") {
                                     val viewModel: BluesnarfingViewModel = viewModel(factory = viewModelFactory)
-                                    com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen(viewModel = viewModel, hasPermissions = true)
+                                    com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen(viewModel = viewModel, hasPermissions = hasPermissions)
                                 }
                                 composable("btlejacking") {
                                     val viewModel: BtlejackingViewModel = viewModel(factory = viewModelFactory)
-                                    BtlejackingScreen(viewModel = viewModel, hasPermissions = !showDisclaimer)
+                                    BtlejackingScreen(viewModel = viewModel, hasPermissions = hasPermissions)
                                 }
                                 composable(
                                     "btlejuice/{targetDevice}",
