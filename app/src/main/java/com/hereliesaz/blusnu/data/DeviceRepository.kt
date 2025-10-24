@@ -13,4 +13,8 @@ class DeviceRepository(private val targetDeviceDao: TargetDeviceDao) {
     suspend fun updateNotes(macAddress: String, notes: String) {
         targetDeviceDao.updateNotes(macAddress, notes)
     }
+
+    suspend fun updateIsFavorite(macAddress: String, isFavorite: Boolean) {
+        targetDeviceDao.updateIsFavorite(macAddress, isFavorite)
+    }
 }
