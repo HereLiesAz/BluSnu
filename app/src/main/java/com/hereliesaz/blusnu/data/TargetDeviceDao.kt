@@ -21,4 +21,7 @@ interface TargetDeviceDao {
 
     @Query("UPDATE target_devices SET notes = :notes WHERE macAddress = :macAddress")
     suspend fun updateNotes(macAddress: String, notes: String)
+
+    @Query("UPDATE target_devices SET isFavorite = :isFavorite WHERE macAddress = :macAddress")
+    suspend fun updateIsFavorite(macAddress: String, isFavorite: Boolean)
 }

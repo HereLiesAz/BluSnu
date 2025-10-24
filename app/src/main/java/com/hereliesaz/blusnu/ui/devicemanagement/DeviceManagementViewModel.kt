@@ -44,7 +44,16 @@ class DeviceManagementViewModel(
     init {
         deviceRepository.allDevices
             .onEach { devices ->
-                _state.value = _state.value.copy(devices = devices)
+                val devicesInCurrentScan = devices.filter { it.lastSeen >= _state.value.scanStartTime }
+                val newDevicesInCurrentScan = devicesInCurrentScan.filter { device ->
+                    devices.none { it.macAddress == device.macAddress && it.lastSeen < _state.value.scanStartTime }
+                }
+                _state.value = _state.value.copy(
+                    devices = devices,
+                    devicesInCurrentScan = devicesInCurrentScan.size,
+                    newDevicesInCurrentScan = newDevicesInCurrentScan.size,
+                    totalDevicesInDb = devices.size
+                )
             }
             .launchIn(viewModelScope)
     }
@@ -67,6 +76,12 @@ class DeviceManagementViewModel(
         }
     }
 
+    fun toggleFavorite(device: TargetDevice) {
+        viewModelScope.launch {
+            deviceRepository.updateIsFavorite(device.macAddress, !device.isFavorite)
+        }
+    }
+
     fun onDeviceSelected(device: TargetDevice) {
         _state.value = _state.value.copy(selectedDevice = device)
         guessVendor(device)
@@ -85,5 +100,8 @@ data class DeviceManagementScreenState(
     val scanStartTime: Long = 0L,
     val isScanning: Boolean = false,
     val selectedDevice: TargetDevice? = null,
-    val vendor: String? = null
+    val vendor: String? = null,
+    val devicesInCurrentScan: Int = 0,
+    val newDevicesInCurrentScan: Int = 0,
+    val totalDevicesInDb: Int = 0
 )
