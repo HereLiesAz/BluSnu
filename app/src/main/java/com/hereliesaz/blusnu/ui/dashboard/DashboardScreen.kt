@@ -28,14 +28,14 @@ import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import com.hereliesaz.blusnu.data.DeviceWithLocation
+import com.hereliesaz.blusnu.data.TargetDevice
 
 @Composable
 fun DashboardScreen(
     modifier: Modifier = Modifier,
     bleDeviceCount: Int = 0,
     classicDeviceCount: Int = 0,
-    devicesWithLocation: List<DeviceWithLocation> = emptyList(),
+    devicesWithLocation: List<TargetDevice> = emptyList(),
     savedSessions: List<com.hereliesaz.blusnu.data.SavedSession> = emptyList(),
     attackChainTemplates: List<com.hereliesaz.blusnu.data.AttackChainTemplate> = emptyList(),
     onStartScanClicked: () -> Unit = {}
@@ -165,17 +165,19 @@ fun DashboardScreenPreview() {
 }
 
 @Composable
-fun Heatmap(devices: List<DeviceWithLocation>) {
+fun Heatmap(devices: List<TargetDevice>) {
     Canvas(modifier = Modifier.fillMaxWidth().height(200.dp)) {
         devices.forEach { device ->
-            drawCircle(
-                color = Color.Red,
-                center = Offset(
-                    x = size.width * (device.location.latitude.toFloat() / 180f),
-                    y = size.height * (device.location.longitude.toFloat() / 180f)
-                ),
-                radius = 10f
-            )
+            if (device.latitude != null && device.longitude != null) {
+                drawCircle(
+                    color = Color.Red,
+                    center = Offset(
+                        x = size.width * (device.latitude.toFloat() / 180f),
+                        y = size.height * (device.longitude.toFloat() / 180f)
+                    ),
+                    radius = 10f
+                )
+            }
         }
     }
 }

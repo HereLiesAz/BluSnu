@@ -3,9 +3,9 @@ package com.hereliesaz.blusnu.ui.geolocation
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.android.gms.maps.model.LatLng
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.GeolocationModule
+import com.hereliesaz.blusnu.data.LocationManager
 import com.hereliesaz.blusnu.data.TargetDevice
 import com.hereliesaz.blusnu.utils.Trilateration
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,18 +15,16 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
+data class Location(val latitude: Double, val longitude: Double)
+
 data class LocationDataPoint(
-    val location: LatLng,
+    val location: Location,
     val rssi: Int
 )
 
 data class GeolocationUiState(
-    val devices: List<TargetDeviceWithLocation> = emptyList()
-)
-
-data class TargetDeviceWithLocation(
-    val device: TargetDevice,
-    val estimatedLocation: LatLng? = null
+    val devices: List<TargetDevice> = emptyList(),
+    val userLocation: Location? = null
 )
 
 class GeolocationViewModel(
@@ -34,6 +32,7 @@ class GeolocationViewModel(
     private val deviceRepository: DeviceRepository
 ) : AndroidViewModel(application) {
 
+    private val locationManager = LocationManager(application)
     private val geolocationModule = GeolocationModule()
     private val deviceRssiHistory = mutableMapOf<String, MutableList<LocationDataPoint>>()
 
@@ -43,18 +42,19 @@ class GeolocationViewModel(
     init {
         deviceRepository.allDevices
             .onEach { devices ->
-                val devicesWithLocation = devices.map { device ->
-                    TargetDeviceWithLocation(
-                        device = device,
-                        estimatedLocation = _uiState.value.devices.find { it.device.macAddress == device.macAddress }?.estimatedLocation
-                    )
-                }
-                _uiState.value = _uiState.value.copy(devices = devicesWithLocation)
+                _uiState.value = _uiState.value.copy(devices = devices)
+            }
+            .launchIn(viewModelScope)
+
+        locationManager.locationFlow()
+            .onEach { location ->
+                _uiState.value = _uiState.value.copy(userLocation = Location(location.latitude, location.longitude))
             }
             .launchIn(viewModelScope)
     }
 
-    fun onDeviceRssiUpdated(device: TargetDevice, rssi: Int, userLocation: LatLng) {
+    fun onDeviceRssiUpdated(device: TargetDevice, rssi: Int) {
+        val userLocation = _uiState.value.userLocation ?: return
         val smoothedRssi = geolocationModule.smoothRssi(device.macAddress, rssi.toDouble())
         val distance = geolocationModule.calculateDistance(smoothedRssi)
 

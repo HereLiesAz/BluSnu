@@ -14,23 +14,36 @@ import com.hereliesaz.blusnu.data.TargetDevice
 fun DeviceManagementScreen(viewModel: DeviceManagementViewModel) {
     val state by viewModel.state.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.onStartScan()
-    }
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(state.devices) { device ->
-            DeviceRow(
-                device = device,
-                isNew = device.lastSeen > state.scanStartTime,
-                onNotesChanged = { notes ->
-                    viewModel.updateDeviceNotes(device, notes)
+    Column(modifier = Modifier.fillMaxSize()) {
+        Button(
+            onClick = {
+                if (state.isScanning) {
+                    viewModel.stopScan()
+                } else {
+                    viewModel.startScan()
                 }
-            )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(if (state.isScanning) "Stop Scan" else "Start Scan")
+        }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(state.devices) { device ->
+                DeviceRow(
+                    device = device,
+                    isNew = device.lastSeen > state.scanStartTime,
+                    onNotesChanged = { notes ->
+                        viewModel.updateDeviceNotes(device, notes)
+                    }
+                )
+            }
         }
     }
 }

@@ -4,7 +4,6 @@ import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
-import com.google.android.gms.maps.model.LatLng
 
 @Entity(tableName = "target_devices")
 @TypeConverters(Converters::class)
@@ -22,14 +21,6 @@ data class TargetDevice(
 ) {
     @Ignore
     var vulnerabilities: List<Vulnerability> = emptyList()
-
-    @get:Ignore
-    val estimatedLocation: LatLng?
-        get() = if (latitude != null && longitude != null) {
-            LatLng(latitude, longitude)
-        } else {
-            null
-        }
 }
 
 data class Vulnerability(
