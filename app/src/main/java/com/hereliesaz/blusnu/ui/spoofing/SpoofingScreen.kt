@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.hereliesaz.blusnu.ui.components.ScreenTitle
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 
 @Composable
@@ -39,17 +40,6 @@ fun SpoofingScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            "Bluetooth MAC Address Spoofing",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            "Change the Bluetooth adapter's MAC address. Requires root access.",
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-
         OutlinedTextField(
             value = macAddress,
             onValueChange = {

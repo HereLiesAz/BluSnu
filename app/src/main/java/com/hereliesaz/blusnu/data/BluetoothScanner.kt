@@ -16,11 +16,14 @@ import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothProfile
 import android.os.Parcelable
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+
 class BluetoothScanner(
     private val context: Context,
     private val deviceRepository: DeviceRepository,
     private val bluetoothAdapter: BluetoothAdapter,
-    private val onClassicServicesDiscovered: (String, List<String>) -> Unit
+    private val coroutineScope: CoroutineScope
 ) {
 
     private var isClassicReceiverRegistered = false
@@ -47,7 +50,9 @@ class BluetoothScanner(
                             rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt(),
                             protocol = Protocol.CLASSIC
                         )
-                        deviceRepository.addDevice(targetDevice)
+                        coroutineScope.launch {
+                            deviceRepository.insert(targetDevice)
+                        }
                     }
                 }
                 BluetoothDevice.ACTION_UUID -> {
@@ -65,9 +70,17 @@ class BluetoothScanner(
                         intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID)
                     }
                     device?.let {
-                        val services = uuidExtra?.map { it.toString() } ?: emptyList()
-                        deviceRepository.updateDeviceServices(it.address, services)
-                        onClassicServicesDiscovered(it.address, services)
+                        @SuppressLint("MissingPermission")
+                        val targetDevice = TargetDevice(
+                            macAddress = it.address,
+                            name = it.name,
+                            rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt(),
+                            protocol = Protocol.CLASSIC,
+                            services = uuidExtra?.map { it.toString() } ?: emptyList()
+                        )
+                        coroutineScope.launch {
+                            deviceRepository.insert(targetDevice)
+                        }
                     }
                 }
             }
@@ -84,7 +97,9 @@ class BluetoothScanner(
                 rssi = result.rssi,
                 protocol = Protocol.BLE
             )
-            deviceRepository.addDevice(targetDevice)
+            coroutineScope.launch {
+                deviceRepository.insert(targetDevice)
+            }
         }
     }
 
@@ -100,7 +115,17 @@ class BluetoothScanner(
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 val services = gatt.services.map { it.uuid.toString() }
-                deviceRepository.updateDeviceServices(gatt.device.address, services)
+                @SuppressLint("MissingPermission")
+                val targetDevice = TargetDevice(
+                    macAddress = gatt.device.address,
+                    name = gatt.device.name,
+                    rssi = 0,
+                    protocol = Protocol.BLE,
+                    services = services
+                )
+                coroutineScope.launch {
+                    deviceRepository.insert(targetDevice)
+                }
             }
             gatt.close()
         }
