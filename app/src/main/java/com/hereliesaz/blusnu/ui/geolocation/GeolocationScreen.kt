@@ -42,10 +42,8 @@ fun GeolocationScreen(viewModel: GeolocationViewModel, deviceRepository: DeviceR
     val uiState by viewModel.uiState.collectAsState()
     var selectedDevice by remember { mutableStateOf<TargetDevice?>(null) }
     var expanded by remember { mutableStateOf(false) }
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Spacer(modifier = Modifier.height(screenHeight * 0.2f))
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -91,38 +89,44 @@ fun GeolocationScreen(viewModel: GeolocationViewModel, deviceRepository: DeviceR
             }
         }
 
-        AndroidView(
-            modifier = Modifier.fillMaxSize(),
-            factory = { context ->
-                MapView(context).apply {
-                    setTileSource(TileSourceFactory.MAPNIK)
-                    setMultiTouchControls(true)
-                    controller.setZoom(15.0)
-                    // Apply dark theme
-                    overlayManager.tilesOverlay.setColorFilter(TilesOverlay.INVERT_COLORS)
-                }
-            },
-            update = { mapView ->
-                mapView.overlays.clear()
-                uiState.userLocation?.let {
-                    val userMarker = Marker(mapView)
-                    userMarker.position = GeoPoint(it.latitude, it.longitude)
-                    userMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                    userMarker.title = "Your Location"
-                    mapView.overlays.add(userMarker)
-                    mapView.controller.setCenter(userMarker.position)
-                }
-                uiState.devices.forEach { device ->
-                    if (device.latitude != null && device.longitude != null) {
-                        val deviceMarker = Marker(mapView)
-                        deviceMarker.position = GeoPoint(device.latitude, device.longitude)
-                        deviceMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                        deviceMarker.title = device.name ?: device.macAddress
-                        mapView.overlays.add(deviceMarker)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            AndroidView(
+                modifier = Modifier.fillMaxSize(),
+                factory = { context ->
+                    MapView(context).apply {
+                        setTileSource(TileSourceFactory.MAPNIK)
+                        setMultiTouchControls(true)
+                        controller.setZoom(15.0)
+                        // Apply dark theme
+                        overlayManager.tilesOverlay.setColorFilter(TilesOverlay.INVERT_COLORS)
                     }
+                },
+                update = { mapView ->
+                    mapView.overlays.clear()
+                    uiState.userLocation?.let {
+                        val userMarker = Marker(mapView)
+                        userMarker.position = GeoPoint(it.latitude, it.longitude)
+                        userMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                        userMarker.title = "Your Location"
+                        mapView.overlays.add(userMarker)
+                        mapView.controller.setCenter(userMarker.position)
+                    }
+                    uiState.devices.forEach { device ->
+                        if (device.latitude != null && device.longitude != null) {
+                            val deviceMarker = Marker(mapView)
+                            deviceMarker.position = GeoPoint(device.latitude, device.longitude)
+                            deviceMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            deviceMarker.title = device.name ?: device.macAddress
+                            mapView.overlays.add(deviceMarker)
+                        }
+                    }
+                    mapView.invalidate()
                 }
-                mapView.invalidate()
-            }
-        )
+            )
+        }
     }
 }
