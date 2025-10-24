@@ -91,30 +91,18 @@ class TargetManagementViewModel(
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TargetManagementScreenState())
 
-        updatePermissionsState()
         updateBluetoothState()
-    }
-
-    private fun updatePermissionsState() {
-        val hasPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            ContextCompat.checkSelfPermission(
-                getApplication(),
-                Manifest.permission.BLUETOOTH_SCAN
-            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
-                getApplication(),
-                Manifest.permission.BLUETOOTH_CONNECT
-            ) == PackageManager.PERMISSION_GRANTED
-        } else {
-            ContextCompat.checkSelfPermission(
-                getApplication(),
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        }
-        _state.update { it.copy(hasPermissions = hasPermissions) }
     }
 
     private fun updateBluetoothState() {
         _state.update { it.copy(isBluetoothEnabled = bluetoothAdapter?.isEnabled == true) }
+    }
+
+    fun onPermissionsResult(hasPermissions: Boolean) {
+        _state.update { it.copy(hasPermissions = hasPermissions) }
+        if (hasPermissions) {
+            startScan()
+        }
     }
 
     fun addFilter(filterType: FilterType, value: Any) {

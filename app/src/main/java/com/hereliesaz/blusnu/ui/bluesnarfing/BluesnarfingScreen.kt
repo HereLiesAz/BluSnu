@@ -18,12 +18,18 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+import androidx.compose.runtime.LaunchedEffect
+
 @Composable
 fun BluesnarfingScreen(viewModel: BluesnarfingViewModel, hasPermissions: Boolean) {
     val macAddress by viewModel.macAddress.collectAsState()
     val status by viewModel.status.collectAsState()
     val result by viewModel.result.collectAsState()
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+
+    LaunchedEffect(hasPermissions) {
+        viewModel.onPermissionsResult(hasPermissions)
+    }
 
     Box(
         modifier = Modifier
@@ -38,7 +44,7 @@ fun BluesnarfingScreen(viewModel: BluesnarfingViewModel, hasPermissions: Boolean
             label = { Text("Target MAC Address") }
         )
         Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = { viewModel.startAttack(hasPermissions) }) {
+        Button(onClick = { viewModel.startAttack() }) {
             Text("Start Attack")
         }
         Spacer(modifier = Modifier.height(8.dp))
