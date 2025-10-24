@@ -16,7 +16,10 @@ import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.TargetDevice
 
 @Composable
-fun DeviceManagementScreen(viewModel: DeviceManagementViewModel) {
+fun DeviceManagementScreen(
+    viewModel: DeviceManagementViewModel,
+    onNavigateToBtlejuice: (TargetDevice) -> Unit
+) {
     val state by viewModel.state.collectAsState()
     var selectedDevice by remember { mutableStateOf<TargetDevice?>(null) }
 
@@ -27,6 +30,9 @@ fun DeviceManagementScreen(viewModel: DeviceManagementViewModel) {
             onDismiss = { selectedDevice = null },
             onNotesChanged = { notes ->
                 viewModel.updateDeviceNotes(selectedDevice!!, notes)
+            },
+            onBtlejuiceClick = {
+                onNavigateToBtlejuice(selectedDevice!!)
             }
         )
     }
@@ -127,7 +133,8 @@ fun DeviceDetailsDialog(
     device: TargetDevice,
     vendor: String?,
     onDismiss: () -> Unit,
-    onNotesChanged: (String) -> Unit
+    onNotesChanged: (String) -> Unit,
+    onBtlejuiceClick: () -> Unit
 ) {
     var notes by remember { mutableStateOf(device.notes) }
 
@@ -156,6 +163,11 @@ fun DeviceDetailsDialog(
         confirmButton = {
             Button(onClick = onDismiss) {
                 Text("Close")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onBtlejuiceClick) {
+                Text("Btlejuice")
             }
         }
     )

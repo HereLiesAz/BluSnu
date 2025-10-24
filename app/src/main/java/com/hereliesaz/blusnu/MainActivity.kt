@@ -210,7 +210,7 @@ class MainActivity : ComponentActivity() {
                                 azRailItem(id = "bluesmack", text = "Smack", onClick = { navController.navigate("bluesmack") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "gattfuzzing", text = "Fuzzing", onClick = { navController.navigate("gattfuzzing") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "btlejacking", text = "Jacking", onClick = { navController.navigate("btlejacking") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "btlejuice", text = "Juice", onClick = { navController.navigate("btlejuice/null") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "btlejuice", text = "Juice", onClick = { navController.navigate("btlejuice") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "geolocation", text = "Location", onClick = { navController.navigate("geolocation") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "keystroke_injection", text = "Injection", onClick = { navController.navigate("keystroke_injection") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "attack_chaining", text = "Chaining", onClick = { navController.navigate("attack_chaining") }, shape = AzButtonShape.RECTANGLE)
@@ -236,7 +236,10 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable("targets") {
                                     val viewModel: DeviceManagementViewModel = viewModel(factory = viewModelFactory)
-                                    DeviceManagementScreen(viewModel = viewModel)
+                                    DeviceManagementScreen(viewModel = viewModel) {
+                                        val targetDeviceJson = Gson().toJson(it)
+                                        navController.navigate("btlejuice/$targetDeviceJson")
+                                    }
                                 }
                                 composable("settings") { SettingsScreen() }
                                 composable("bluebugging") {
@@ -252,11 +255,17 @@ class MainActivity : ComponentActivity() {
                                     BtlejackingScreen(viewModel = viewModel, hasPermissions = hasPermissions)
                                 }
                                 composable(
-                                    "btlejuice/{targetDevice}",
-                                    arguments = listOf(navArgument("targetDevice") { type = NavType.StringType })
+                                    "btlejuice?targetDevice={targetDevice}",
+                                    arguments = listOf(
+                                        navArgument("targetDevice") {
+                                            type = NavType.StringType
+                                            nullable = true
+                                            defaultValue = null
+                                        }
+                                    )
                                 ) { backStackEntry ->
                                     val targetDeviceJson = backStackEntry.arguments?.getString("targetDevice")
-                                    val targetDevice = Gson().fromJson(targetDeviceJson, TargetDevice::class.java)
+                                    val targetDevice = targetDeviceJson?.let { Gson().fromJson(it, TargetDevice::class.java) }
                                     val viewModel: BtlejuiceViewModel = viewModel(factory = viewModelFactory)
                                     val hardwareState by viewModel.hardwareState.collectAsState()
                                     val btlejuiceState by viewModel.btlejuiceState.collectAsState()
@@ -270,7 +279,7 @@ class MainActivity : ComponentActivity() {
                                         discoveredDevices = discoveredDevices,
                                         onConnectHardware = viewModel::onConnectHardware,
                                         onConnectDual = viewModel::onConnectDual,
-                                        onStartProxy = { viewModel.onStartProxy(targetDevice) },
+                                        onStartProxy = { targetDevice?.let { viewModel.onStartProxy(it) } },
                                         onStopProxy = viewModel::onStopProxy,
                                         gattTraffic = gattTraffic
                                     )
