@@ -41,6 +41,7 @@ import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.HardwareManager
 import com.hereliesaz.blusnu.data.SavedSessionRepository
 import com.hereliesaz.blusnu.data.TargetDevice
+import com.hereliesaz.blusnu.data.MacLookupClient
 import com.hereliesaz.blusnu.data.VulnerabilityCorrelator
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingScreen
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingViewModel
@@ -72,6 +73,8 @@ import com.hereliesaz.blusnu.ui.settings.SettingsViewModel
 import com.hereliesaz.blusnu.ui.spoofing.SpoofingScreen
 import com.hereliesaz.blusnu.ui.spoofing.SpoofingViewModel
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -88,6 +91,16 @@ class MainActivity : ComponentActivity() {
     private val btlejuiceModule by lazy { BtlejuiceModule(hardwareManager) }
     private val keystrokeInjectionModule by lazy { com.hereliesaz.blusnu.data.KeystrokeInjectionModule() }
     private val vulnerabilityCorrelator by lazy { VulnerabilityCorrelator(applicationContext) }
+    private val httpClient by lazy {
+        io.ktor.client.HttpClient(io.ktor.client.engine.android.Android) {
+            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+                json(kotlinx.serialization.json.Json {
+                    ignoreUnknownKeys = true
+                })
+            }
+        }
+    }
+    private val macLookupClient by lazy { MacLookupClient(httpClient) }
 
     private val viewModelFactory by lazy {
         object : ViewModelProvider.Factory {
@@ -95,16 +108,16 @@ class MainActivity : ComponentActivity() {
                 @Suppress("UNCHECKED_CAST")
                 return when {
                     modelClass.isAssignableFrom(BluebuggingViewModel::class.java) -> {
-                        BluebuggingViewModel(application) as T
+                        BluebuggingViewModel(application, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BlueSmackViewModel::class.java) -> {
-                        BlueSmackViewModel(application) as T
+                        BlueSmackViewModel(application, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BluesnarfingViewModel::class.java) -> {
-                        BluesnarfingViewModel(application) as T
+                        BluesnarfingViewModel(application, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(GattFuzzingViewModel::class.java) -> {
-                        GattFuzzingViewModel(application) as T
+                        GattFuzzingViewModel(application, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BtlejackingViewModel::class.java) -> {
                         val btlejackingModule = BtlejackingModule(hardwareManager)
@@ -117,11 +130,11 @@ class MainActivity : ComponentActivity() {
                         GeolocationViewModel(application, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(KeystrokeInjectionViewModel::class.java) -> {
-                        KeystrokeInjectionViewModel(application, keystrokeInjectionModule) as T
+                        KeystrokeInjectionViewModel(application, keystrokeInjectionModule, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(AttackChainingViewModel::class.java) -> {
                         val repository = com.hereliesaz.blusnu.data.AttackChainRepository(application)
-                        AttackChainingViewModel(application, repository) as T
+                        AttackChainingViewModel(application, repository, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(DashboardViewModel::class.java) -> {
                         DashboardViewModel(application, deviceRepository, savedSessionRepository, attackChainTemplateRepository) as T
@@ -133,11 +146,11 @@ class MainActivity : ComponentActivity() {
                         SettingsViewModel(application) as T
                     }
                     modelClass.isAssignableFrom(DeviceManagementViewModel::class.java) -> {
-                        DeviceManagementViewModel(application, deviceRepository, vulnerabilityCorrelator) as T
+                        DeviceManagementViewModel(application, deviceRepository, vulnerabilityCorrelator, macLookupClient) as T
                     }
                     modelClass.isAssignableFrom(SpoofingViewModel::class.java) -> {
                         val spoofingModule = com.hereliesaz.blusnu.data.SpoofingModule()
-                        SpoofingViewModel(application, spoofingModule) as T
+                        SpoofingViewModel(application, spoofingModule, deviceRepository) as T
                     }
                     else -> throw IllegalArgumentException("Unknown ViewModel class")
                 }
@@ -190,7 +203,7 @@ class MainActivity : ComponentActivity() {
                                 azRailItem(id = "bluesmack", text = "Smack", onClick = { navController.navigate("bluesmack") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "gattfuzzing", text = "Fuzzing", onClick = { navController.navigate("gattfuzzing") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "btlejacking", text = "Jacking", onClick = { navController.navigate("btlejacking") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "btlejuice", text = "Juice", onClick = { navController.navigate("btlejuice") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "btlejuice", text = "Juice", onClick = { navController.navigate("btlejuice/null") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "geolocation", text = "Location", onClick = { navController.navigate("geolocation") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "keystroke_injection", text = "Injection", onClick = { navController.navigate("keystroke_injection") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "attack_chaining", text = "Chaining", onClick = { navController.navigate("attack_chaining") }, shape = AzButtonShape.RECTANGLE)
@@ -232,14 +245,11 @@ class MainActivity : ComponentActivity() {
                                     BtlejackingScreen(viewModel = viewModel, hasPermissions = hasPermissions)
                                 }
                                 composable(
-                                    "btlejuice?targetDevice={targetDevice}",
-                                    arguments = listOf(navArgument("targetDevice") {
-                                        type = NavType.StringType
-                                        nullable = true
-                                    })
+                                    "btlejuice/{targetDevice}",
+                                    arguments = listOf(navArgument("targetDevice") { type = NavType.StringType })
                                 ) { backStackEntry ->
                                     val targetDeviceJson = backStackEntry.arguments?.getString("targetDevice")
-                                    val targetDevice = targetDeviceJson?.let { Gson().fromJson(it, TargetDevice::class.java) }
+                                    val targetDevice = Gson().fromJson(targetDeviceJson, TargetDevice::class.java)
                                     val viewModel: BtlejuiceViewModel = viewModel(factory = viewModelFactory)
                                     val hardwareState by viewModel.hardwareState.collectAsState()
                                     val btlejuiceState by viewModel.btlejuiceState.collectAsState()
@@ -253,7 +263,7 @@ class MainActivity : ComponentActivity() {
                                         discoveredDevices = discoveredDevices,
                                         onConnectHardware = viewModel::onConnectHardware,
                                         onConnectDual = viewModel::onConnectDual,
-                                        onStartProxy = { targetDevice?.let { viewModel.onStartProxy(it) } },
+                                        onStartProxy = { viewModel.onStartProxy(targetDevice) },
                                         onStopProxy = viewModel::onStopProxy,
                                         gattTraffic = gattTraffic
                                     )
@@ -268,7 +278,8 @@ class MainActivity : ComponentActivity() {
                                     com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen(
                                         state = state,
                                         onAttemptAttack = viewModel::onAttemptAttack,
-                                        onSendKeystrokes = viewModel::onSendKeystrokes
+                                        onSendKeystrokes = viewModel::onSendKeystrokes,
+                                        onDeviceSelected = viewModel::onDeviceSelected
                                     )
                                 }
                                 composable("attack_chaining") {
@@ -293,7 +304,8 @@ class MainActivity : ComponentActivity() {
                                     SpoofingScreen(
                                         state = state,
                                         onMacAddressChanged = viewModel::onMacAddressChanged,
-                                        onApplyClicked = viewModel::onApplyClicked
+                                        onApplyClicked = viewModel::onApplyClicked,
+                                        onDeviceSelected = viewModel::onDeviceSelected
                                     )
                                 }
                             }

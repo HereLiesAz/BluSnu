@@ -18,7 +18,8 @@ import kotlinx.coroutines.launch
 class DeviceManagementViewModel(
     application: Application,
     private val deviceRepository: DeviceRepository,
-    private val vulnerabilityCorrelator: com.hereliesaz.blusnu.data.VulnerabilityCorrelator
+    private val vulnerabilityCorrelator: com.hereliesaz.blusnu.data.VulnerabilityCorrelator,
+    private val macLookupClient: com.hereliesaz.blusnu.data.MacLookupClient
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(DeviceManagementScreenState())
@@ -65,10 +66,24 @@ class DeviceManagementViewModel(
             deviceRepository.updateNotes(device.macAddress, notes)
         }
     }
+
+    fun onDeviceSelected(device: TargetDevice) {
+        _state.value = _state.value.copy(selectedDevice = device)
+        guessVendor(device)
+    }
+
+    private fun guessVendor(device: TargetDevice) {
+        viewModelScope.launch {
+            val vendor = macLookupClient.getVendor(device.macAddress)
+            _state.value = _state.value.copy(vendor = vendor)
+        }
+    }
 }
 
 data class DeviceManagementScreenState(
     val devices: List<TargetDevice> = emptyList(),
     val scanStartTime: Long = 0L,
-    val isScanning: Boolean = false
+    val isScanning: Boolean = false,
+    val selectedDevice: TargetDevice? = null,
+    val vendor: String? = null
 )

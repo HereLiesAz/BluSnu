@@ -1,5 +1,6 @@
 package com.hereliesaz.blusnu.ui.devicemanagement
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,6 +14,18 @@ import com.hereliesaz.blusnu.data.TargetDevice
 @Composable
 fun DeviceManagementScreen(viewModel: DeviceManagementViewModel) {
     val state by viewModel.state.collectAsState()
+    var selectedDevice by remember { mutableStateOf<TargetDevice?>(null) }
+
+    if (selectedDevice != null) {
+        DeviceDetailsDialog(
+            device = selectedDevice!!,
+            vendor = state.vendor,
+            onDismiss = { selectedDevice = null },
+            onNotesChanged = { notes ->
+                viewModel.updateDeviceNotes(selectedDevice!!, notes)
+            }
+        )
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Button(
@@ -39,8 +52,9 @@ fun DeviceManagementScreen(viewModel: DeviceManagementViewModel) {
                 DeviceRow(
                     device = device,
                     isNew = device.lastSeen > state.scanStartTime,
-                    onNotesChanged = { notes ->
-                        viewModel.updateDeviceNotes(device, notes)
+                    onClick = {
+                        selectedDevice = device
+                        viewModel.onDeviceSelected(device)
                     }
                 )
             }
@@ -49,12 +63,13 @@ fun DeviceManagementScreen(viewModel: DeviceManagementViewModel) {
 }
 
 @Composable
-fun DeviceRow(device: TargetDevice, isNew: Boolean, onNotesChanged: (String) -> Unit) {
-    var notes by remember { mutableStateOf(device.notes) }
+fun DeviceRow(device: TargetDevice, isNew: Boolean, onClick: () -> Unit) {
     val textColor = if (isNew) MaterialTheme.colorScheme.primary else Color.Unspecified
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -68,16 +83,45 @@ fun DeviceRow(device: TargetDevice, isNew: Boolean, onNotesChanged: (String) -> 
                 style = MaterialTheme.typography.bodySmall,
                 color = textColor
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = notes,
-                onValueChange = {
-                    notes = it
-                    onNotesChanged(it)
-                },
-                label = { Text("Notes") },
-                modifier = Modifier.fillMaxWidth()
-            )
         }
     }
+}
+
+@Composable
+fun DeviceDetailsDialog(
+    device: TargetDevice,
+    vendor: String?,
+    onDismiss: () -> Unit,
+    onNotesChanged: (String) -> Unit
+) {
+    var notes by remember { mutableStateOf(device.notes) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(device.name ?: "Unknown Device") },
+        text = {
+            Column {
+                Text("MAC Address: ${device.macAddress}")
+                Text("Vendor: ${vendor ?: "Unknown"}")
+                Text("RSSI: ${device.rssi}")
+                Text("Protocol: ${device.protocol}")
+                Text("Last Seen: ${device.lastSeen}")
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = {
+                        notes = it
+                        onNotesChanged(it)
+                    },
+                    label = { Text("Notes") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
 }

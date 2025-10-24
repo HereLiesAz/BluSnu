@@ -9,14 +9,16 @@ class KeystrokeInjectionModule {
     /**
      * Simulates the process of emulating an HID keyboard and attempting to pair
      * with a host using the "Just Works" method.
+     * @param device The target device to pair with.
      * @return `true` if the simulated pairing is successful, `false` otherwise.
      */
-    suspend fun attemptPairing(): Boolean {
+    suspend fun attemptPairing(device: TargetDevice): Boolean {
         // Simulate the time it takes to attempt a pairing.
         delay(2000)
 
         // In a real implementation, this would involve complex, low-level Bluetooth operations.
         // For this simulation, we'll assume the attack is successful.
+        println("Simulating pairing with ${device.name ?: device.macAddress}")
         isPaired = true
         return isPaired
     }

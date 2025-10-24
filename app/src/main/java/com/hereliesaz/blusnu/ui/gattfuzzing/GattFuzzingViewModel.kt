@@ -6,28 +6,41 @@ import android.bluetooth.BluetoothManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.ActionLogger
+import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.GattFuzzingModule
+import com.hereliesaz.blusnu.data.TargetDevice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class GattFuzzingViewModel(application: Application) : AndroidViewModel(application) {
+class GattFuzzingViewModel(application: Application, deviceRepository: DeviceRepository) : AndroidViewModel(application) {
 
-    private val _macAddress = MutableStateFlow("")
-    val macAddress: StateFlow<String> = _macAddress
+    private val _selectedDevice = MutableStateFlow<TargetDevice?>(null)
+    val selectedDevice: StateFlow<TargetDevice?> = _selectedDevice
 
     private val _status = MutableStateFlow("")
     val status: StateFlow<String> = _status
+
+    private val _devices = MutableStateFlow<List<TargetDevice>>(emptyList())
+    val devices: StateFlow<List<TargetDevice>> = _devices.asStateFlow()
 
     private val gattFuzzingModule = GattFuzzingModule()
     private val bluetoothAdapter: BluetoothAdapter? = (application.getSystemService(BluetoothManager::class.java) as BluetoothManager).adapter
 
     var hasPermissions = false
 
-    fun onMacAddressChanged(macAddress: String) {
-        _macAddress.value = macAddress
+    init {
+        viewModelScope.launch {
+            deviceRepository.allDevices.collect {
+                _devices.value = it
+            }
+        }
+    }
+    fun onDeviceSelected(device: TargetDevice) {
+        _selectedDevice.value = device
     }
 
     fun startAttack() {
@@ -36,7 +49,8 @@ class GattFuzzingViewModel(application: Application) : AndroidViewModel(applicat
             return
         }
 
-        ActionLogger.log("GATT Fuzzing attack started against ${_macAddress.value}.")
+        val selected = _selectedDevice.value ?: return
+        ActionLogger.log("GATT Fuzzing attack started against ${selected.macAddress}.")
 
         if (bluetoothAdapter == null) {
             _status.value = "Bluetooth is not supported on this device"
@@ -44,7 +58,7 @@ class GattFuzzingViewModel(application: Application) : AndroidViewModel(applicat
         }
 
         val device = try {
-            bluetoothAdapter.getRemoteDevice(_macAddress.value)
+            bluetoothAdapter.getRemoteDevice(selected.macAddress)
         } catch (e: IllegalArgumentException) {
             _status.value = "Invalid MAC address"
             return

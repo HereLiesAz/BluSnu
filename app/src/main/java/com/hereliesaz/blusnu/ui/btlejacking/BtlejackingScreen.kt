@@ -24,6 +24,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.TextField
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,13 +38,14 @@ import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.BtlejackingState
 import com.hereliesaz.blusnu.data.HardwareState
 import com.hereliesaz.blusnu.data.TargetDevice
-import com.hereliesaz.blusnu.ui.components.ScreenTitle
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BtlejackingScreen(viewModel: BtlejackingViewModel, hasPermissions: Boolean) {
     val state by viewModel.state.collectAsState()
     var selectedTarget by remember { mutableStateOf<TargetDevice?>(null) }
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    var expanded by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -112,12 +119,31 @@ fun BtlejackingScreen(viewModel: BtlejackingViewModel, hasPermissions: Boolean) 
         Spacer(modifier = Modifier.height(16.dp))
 
         // Device List
-        if (state.discoveredDevices.isEmpty()) {
-            Text("No devices found. Go to the 'Targets' screen to scan for devices.")
-        } else {
-            LazyColumn(modifier = Modifier.weight(1f)) {
-                items(state.discoveredDevices) { device ->
-                    DeviceRow(device = device, onDeviceSelected = { selectedTarget = it })
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            TextField(
+                value = selectedTarget?.name ?: "Select a target device",
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                state.discoveredDevices.forEach { device ->
+                    val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
+                    val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
+                    DropdownMenuItem(
+                        text = { Text(device.name ?: "Unknown", color = textColor) },
+                        onClick = {
+                            selectedTarget = device
+                            expanded = false
+                        }
+                    )
                 }
             }
         }
@@ -134,19 +160,3 @@ fun BtlejackingScreen(viewModel: BtlejackingViewModel, hasPermissions: Boolean) 
     }
 }
 
-@Composable
-fun DeviceRow(device: TargetDevice, onDeviceSelected: (TargetDevice) -> Unit) {
-    val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
-    val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onDeviceSelected(device) }
-            .padding(8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(device.name ?: "Unknown", color = textColor)
-        Text(device.macAddress, color = textColor)
-        Text("${device.rssi} dBm", color = textColor)
-    }
-}

@@ -51,130 +51,152 @@ import com.hereliesaz.blusnu.ui.components.ScreenTitle
 import java.util.UUID
 import kotlin.math.roundToInt
 
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextField
+import com.hereliesaz.blusnu.data.TargetDevice
+
 @Composable
 fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
     val state by viewModel.uiState.collectAsState()
     var showAddNodeMenu by remember { mutableStateOf(false) }
     var selectedConnector by remember { mutableStateOf<NodeConnector?>(null) }
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            state.connections.forEach { (from, to) ->
-                val fromNode = state.nodes[from.nodeId]
-                val toNode = state.nodes[to.nodeId]
-                if (fromNode != null && toNode != null) {
-                    val fromConnectorPos = fromNode.position + Offset(150f, 60f + fromNode.outputs.indexOf(from) * 40f)
-                    val toConnectorPos = toNode.position + Offset(0f, 60f + toNode.inputs.indexOf(to) * 40f)
-                    drawLine(
-                        color = Color.Gray,
-                        start = fromConnectorPos,
-                        end = toConnectorPos,
-                        strokeWidth = 2.dp.toPx()
-                    )
-                }
-            }
-        }
-
-        state.nodes.values.forEach { node ->
-            DraggableNode(
-                node = node,
-                onDrag = { dragAmount ->
-                    viewModel.updateNodePosition(node.id, node.position + dragAmount)
-                },
-                onDelete = { viewModel.removeNode(node.id) },
-                onConnectorClick = { connector ->
-                    selectedConnector?.let {
-                        viewModel.addConnection(it, connector)
-                        selectedConnector = null
-                    } ?: run {
-                        selectedConnector = connector
+    Column(modifier = Modifier.fillMaxSize()) {
+        Spacer(modifier = Modifier.height(screenHeight * 0.2f))
+        Box(modifier = Modifier.weight(1f)) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                state.connections.forEach { (from, to) ->
+                    val fromNode = state.nodes[from.nodeId]
+                    val toNode = state.nodes[to.nodeId]
+                    if (fromNode != null && toNode != null) {
+                        val fromConnectorPos = fromNode.position + Offset(150f, 60f + fromNode.outputs.indexOf(from) * 40f)
+                        val toConnectorPos = toNode.position + Offset(0f, 60f + toNode.inputs.indexOf(to) * 40f)
+                        drawLine(
+                            color = Color.Gray,
+                            start = fromConnectorPos,
+                            end = toConnectorPos,
+                            strokeWidth = 2.dp.toPx()
+                        )
                     }
                 }
-            )
-        }
+            }
 
-        Column(modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .background(Color.LightGray, RoundedCornerShape(8.dp))
-                    .padding(8.dp)
-            ) {
-                items(state.logs) { log ->
-                    Text(text = log)
+            state.nodes.values.forEach { node ->
+                DraggableNode(
+                    node = node,
+                    devices = state.devices,
+                    onDrag = { dragAmount ->
+                        viewModel.updateNodePosition(node.id, node.position + dragAmount)
+                    },
+                    onDelete = { viewModel.removeNode(node.id) },
+                    onConnectorClick = { connector ->
+                        selectedConnector?.let {
+                            viewModel.addConnection(it, connector)
+                            selectedConnector = null
+                        } ?: run {
+                            selectedConnector = connector
+                        }
+                    },
+                    onDeviceSelected = { device ->
+                        viewModel.updateNodeTarget(node.id, device)
+                    }
+                )
+            }
+
+            Column(modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .background(Color.LightGray, RoundedCornerShape(8.dp))
+                        .padding(8.dp)
+                ) {
+                    items(state.logs) { log ->
+                        Text(text = log)
+                    }
                 }
             }
-        }
 
-        Column(modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
-            FloatingActionButton(
-                onClick = { showAddNodeMenu = true },
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = "Add Node")
-            }
-            DropdownMenu(
-                expanded = showAddNodeMenu,
-                onDismissRequest = { showAddNodeMenu = false }
-            ) {
-                DropdownMenuItem(text = { Text("Scan BLE") }, onClick = {
-                    viewModel.addNode(ScanBleNode(id = UUID.randomUUID().toString()))
-                    showAddNodeMenu = false
-                })
-                DropdownMenuItem(text = { Text("Bluesnarf") }, onClick = {
-                    viewModel.addNode(BluesnarfNode(id = UUID.randomUUID().toString()))
-                    showAddNodeMenu = false
-                })
-                DropdownMenuItem(text = { Text("Keystroke Injection") }, onClick = {
-                    viewModel.addNode(KeystrokeInjectionNode(id = UUID.randomUUID().toString()))
-                    showAddNodeMenu = false
-                })
-                DropdownMenuItem(text = { Text("If/Else") }, onClick = {
-                    viewModel.addNode(IfElseNode(id = UUID.randomUUID().toString()))
-                    showAddNodeMenu = false
-                })
-                DropdownMenuItem(text = { Text("Wait") }, onClick = {
-                    viewModel.addNode(WaitNode(id = UUID.randomUUID().toString()))
-                    showAddNodeMenu = false
-                })
-                DropdownMenuItem(text = { Text("Loop") }, onClick = {
-                    viewModel.addNode(LoopNode(id = UUID.randomUUID().toString()))
-                    showAddNodeMenu = false
-                })
-            }
-            Spacer(modifier = Modifier.size(16.dp))
-            var showLoadTemplateMenu by remember { mutableStateOf(false) }
-            Button(onClick = { showLoadTemplateMenu = true }) {
-                Text("Load Template")
-            }
-            DropdownMenu(
-                expanded = showLoadTemplateMenu,
-                onDismissRequest = { showLoadTemplateMenu = false }
-            ) {
-                DropdownMenuItem(text = { Text("Simple Scan") }, onClick = {
-                    viewModel.loadTemplate("Simple Scan")
-                    showLoadTemplateMenu = false
-                })
-                DropdownMenuItem(text = { Text("Snarf and Inject") }, onClick = {
-                    viewModel.loadTemplate("Snarf and Inject")
-                    showLoadTemplateMenu = false
-                })
-            }
-            Spacer(modifier = Modifier.size(16.dp))
-            Button(onClick = { viewModel.executeChain() }) {
-                Text("Run")
+            Column(modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
+                FloatingActionButton(
+                    onClick = { showAddNodeMenu = true },
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Add Node")
+                }
+                DropdownMenu(
+                    expanded = showAddNodeMenu,
+                    onDismissRequest = { showAddNodeMenu = false }
+                ) {
+                    DropdownMenuItem(text = { Text("Scan BLE") }, onClick = {
+                        viewModel.addNode(ScanBleNode(id = UUID.randomUUID().toString()))
+                        showAddNodeMenu = false
+                    })
+                    DropdownMenuItem(text = { Text("Bluesnarf") }, onClick = {
+                        viewModel.addNode(BluesnarfNode(id = UUID.randomUUID().toString()))
+                        showAddNodeMenu = false
+                    })
+                    DropdownMenuItem(text = { Text("Keystroke Injection") }, onClick = {
+                        viewModel.addNode(KeystrokeInjectionNode(id = UUID.randomUUID().toString()))
+                        showAddNodeMenu = false
+                    })
+                    DropdownMenuItem(text = { Text("If/Else") }, onClick = {
+                        viewModel.addNode(IfElseNode(id = UUID.randomUUID().toString()))
+                        showAddNodeMenu = false
+                    })
+                    DropdownMenuItem(text = { Text("Wait") }, onClick = {
+                        viewModel.addNode(WaitNode(id = UUID.randomUUID().toString()))
+                        showAddNodeMenu = false
+                    })
+                    DropdownMenuItem(text = { Text("Loop") }, onClick = {
+                        viewModel.addNode(LoopNode(id = UUID.randomUUID().toString()))
+                        showAddNodeMenu = false
+                    })
+                }
+                Spacer(modifier = Modifier.size(16.dp))
+                var showLoadTemplateMenu by remember { mutableStateOf(false) }
+                Button(onClick = { showLoadTemplateMenu = true }) {
+                    Text("Load Template")
+                }
+                DropdownMenu(
+                    expanded = showLoadTemplateMenu,
+                    onDismissRequest = { showLoadTemplateMenu = false }
+                ) {
+                    DropdownMenuItem(text = { Text("Simple Scan") }, onClick = {
+                        viewModel.loadTemplate("Simple Scan")
+                        showLoadTemplateMenu = false
+                    })
+                    DropdownMenuItem(text = { Text("Snarf and Inject") }, onClick = {
+                        viewModel.loadTemplate("Snarf and Inject")
+                        showLoadTemplateMenu = false
+                    })
+                }
+                Spacer(modifier = Modifier.size(16.dp))
+                Button(onClick = { viewModel.executeChain() }) {
+                    Text("Run")
+                }
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DraggableNode(
     node: AttackNode,
+    devices: List<TargetDevice>,
     onDrag: (Offset) -> Unit,
     onDelete: () -> Unit,
-    onConnectorClick: (NodeConnector) -> Unit
+    onConnectorClick: (NodeConnector) -> Unit,
+    onDeviceSelected: (TargetDevice) -> Unit
 ) {
+    var expanded by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .offset { IntOffset(node.position.x.roundToInt(), node.position.y.roundToInt()) }
@@ -190,6 +212,36 @@ fun DraggableNode(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(text = node.title)
             Spacer(modifier = Modifier.size(8.dp))
+            if(node.inputs.any { it.id == "target_mac" }) {
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    TextField(
+                        value = node.targetDevice?.name ?: "Select a target",
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        devices.forEach { device ->
+                            val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
+                            val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
+                            DropdownMenuItem(
+                                text = { Text(device.name ?: "Unknown", color = textColor) },
+                                onClick = {
+                                    onDeviceSelected(device)
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
             Row {
                 // Input Connectors
                 Column(horizontalAlignment = Alignment.Start) {
