@@ -19,7 +19,8 @@ class DeviceManagementViewModel(
     application: Application,
     private val deviceRepository: DeviceRepository,
     private val vulnerabilityCorrelator: com.hereliesaz.blusnu.data.VulnerabilityCorrelator,
-    private val macLookupClient: com.hereliesaz.blusnu.data.MacLookupClient
+    private val macLookupClient: com.hereliesaz.blusnu.data.MacLookupClient,
+    private val bluetoothLog: com.hereliesaz.blusnu.data.BluetoothLog
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(DeviceManagementScreenState())
@@ -36,7 +37,8 @@ class DeviceManagementViewModel(
                 context = application,
                 deviceRepository = deviceRepository,
                 bluetoothAdapter = it,
-                coroutineScope = viewModelScope
+                coroutineScope = viewModelScope,
+                bluetoothLog = bluetoothLog
             )
         }
     }

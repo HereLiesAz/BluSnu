@@ -49,6 +49,9 @@ class GeolocationViewModel(
         locationManager.locationFlow()
             .onEach { location ->
                 _uiState.value = _uiState.value.copy(userLocation = Location(location.latitude, location.longitude))
+                _uiState.value.devices.forEach { device ->
+                    onDeviceRssiUpdated(device, device.rssi)
+                }
             }
             .launchIn(viewModelScope)
     }
@@ -68,6 +71,14 @@ class GeolocationViewModel(
             val p1 = history[history.size - 1]
             val p2 = history[history.size - 2]
             val p3 = history[history.size - 3]
+
+            // Check if the points are collinear
+            val isCollinear = (p2.location.longitude - p1.location.longitude) * (p3.location.latitude - p1.location.latitude) ==
+                    (p3.location.longitude - p1.location.longitude) * (p2.location.latitude - p1.location.latitude)
+
+            if (isCollinear) {
+                return
+            }
 
             val d1 = geolocationModule.calculateDistance(p1.rssi.toDouble())
             val d2 = geolocationModule.calculateDistance(p2.rssi.toDouble())
