@@ -23,7 +23,8 @@ class BluetoothScanner(
     private val context: Context,
     private val deviceRepository: DeviceRepository,
     private val bluetoothAdapter: BluetoothAdapter,
-    private val coroutineScope: CoroutineScope
+    private val coroutineScope: CoroutineScope,
+    private val bluetoothLog: BluetoothLog
 ) {
 
     private var isClassicReceiverRegistered = false
@@ -53,6 +54,7 @@ class BluetoothScanner(
                         )
                         coroutineScope.launch {
                             deviceRepository.insert(targetDevice)
+                            bluetoothLog.log("Found classic device: ${targetDevice.name} (${targetDevice.macAddress})")
                         }
                     }
                 }

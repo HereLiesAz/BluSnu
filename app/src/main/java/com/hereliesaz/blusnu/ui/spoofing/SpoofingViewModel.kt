@@ -16,13 +16,16 @@ data class SpoofingState(
     val logMessages: List<String> = emptyList(),
     val isError: Boolean = false,
     val devices: List<TargetDevice> = emptyList(),
-    val selectedDevice: TargetDevice? = null
+    val selectedDevice: TargetDevice? = null,
+    val mitmDevices: List<TargetDevice> = emptyList(),
+    val mitmLogs: Map<String, List<String>> = emptyMap()
 )
 
 class SpoofingViewModel(
     application: Application,
     private val spoofingModule: SpoofingModule,
-    deviceRepository: DeviceRepository
+    deviceRepository: DeviceRepository,
+    private val hardwareManager: com.hereliesaz.blusnu.data.HardwareManager
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(SpoofingState())
@@ -65,5 +68,13 @@ class SpoofingViewModel(
 
     private fun log(message: String) {
         _state.update { it.copy(logMessages = it.logMessages + message) }
+    }
+
+    fun onStartMitmAttack() {
+        viewModelScope.launch {
+            log("Starting MITM attack...")
+            val mitmAttack = com.hereliesaz.blusnu.data.MitmAttack(_state, hardwareManager, viewModelScope)
+            mitmAttack.start()
+        }
     }
 }

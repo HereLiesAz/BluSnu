@@ -42,7 +42,8 @@ fun SpoofingScreen(
     state: SpoofingState = SpoofingState(),
     onMacAddressChanged: (String) -> Unit = {},
     onApplyClicked: () -> Unit = {},
-    onDeviceSelected: (com.hereliesaz.blusnu.data.TargetDevice) -> Unit = {}
+    onDeviceSelected: (com.hereliesaz.blusnu.data.TargetDevice) -> Unit = {},
+    onStartMitmAttack: () -> Unit = {}
 ) {
     var macAddress by remember { mutableStateOf("") }
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
@@ -133,6 +134,42 @@ fun SpoofingScreen(
                 ) {
                     items(state.logMessages.reversed()) { message ->
                         Text(message, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = { onStartMitmAttack() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Start MITM Attack")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                "MITM Log",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                LazyColumn(
+                    modifier = Modifier.padding(16.dp),
+                ) {
+                    items(state.mitmDevices) { device ->
+                        Text(device.name ?: device.macAddress, fontWeight = FontWeight.Bold)
+                        state.mitmLogs[device.macAddress]?.forEach { log ->
+                            Text(log, style = MaterialTheme.typography.bodySmall)
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
             }
