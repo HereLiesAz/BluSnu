@@ -17,13 +17,14 @@ import android.bluetooth.BluetoothProfile
 import android.os.Parcelable
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class BluetoothScanner(
     private val context: Context,
     private val deviceRepository: DeviceRepository,
     private val bluetoothAdapter: BluetoothAdapter,
-    private val coroutineScope: CoroutineScope
+    private val bluetoothLog: BluetoothLog
 ) {
 
     private var isClassicReceiverRegistered = false
@@ -51,8 +52,9 @@ class BluetoothScanner(
                             protocol = Protocol.CLASSIC,
                             lastSeen = System.currentTimeMillis()
                         )
-                        coroutineScope.launch {
-                            deviceRepository.insert(targetDevice)
+                        insertDevice(targetDevice)
+                        CoroutineScope(Dispatchers.IO).launch {
+                            bluetoothLog.log("Found classic device: ${targetDevice.name} (${targetDevice.macAddress})")
                         }
                     }
                 }
@@ -80,9 +82,7 @@ class BluetoothScanner(
                             services = uuidExtra?.map { it.toString() } ?: emptyList(),
                             lastSeen = System.currentTimeMillis()
                         )
-                        coroutineScope.launch {
-                            deviceRepository.insert(targetDevice)
-                        }
+                        insertDevice(targetDevice)
                     }
                 }
             }
@@ -100,9 +100,7 @@ class BluetoothScanner(
                 protocol = Protocol.BLE,
                 lastSeen = System.currentTimeMillis()
             )
-            coroutineScope.launch {
-                deviceRepository.insert(targetDevice)
-            }
+            insertDevice(targetDevice)
         }
     }
 
@@ -127,11 +125,15 @@ class BluetoothScanner(
                     services = services,
                     lastSeen = System.currentTimeMillis()
                 )
-                coroutineScope.launch {
-                    deviceRepository.insert(targetDevice)
-                }
+                insertDevice(targetDevice)
             }
             gatt.close()
+        }
+    }
+
+    fun insertDevice(device: TargetDevice) {
+        CoroutineScope(Dispatchers.IO).launch {
+            deviceRepository.insert(device)
         }
     }
 

@@ -118,3 +118,7 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Add a sentence to the ethical use prompt asking the user to share anonymized data with the developer.
     -   [x] Add "Agree" and "Cancel" buttons to the new prompt.
     -   [x] If the user agrees, implement functionality to back up their local database to a secure cloud database.
+
+## Future Research
+- https://github.com/francozappa/blur
+- https://github.com/francozappa/bias
