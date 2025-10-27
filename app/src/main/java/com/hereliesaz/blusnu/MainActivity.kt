@@ -5,13 +5,14 @@ import android.app.Application
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -20,12 +21,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -39,14 +39,17 @@ import com.hereliesaz.blusnu.data.AppDatabase
 import com.hereliesaz.blusnu.data.AttackChainTemplateRepository
 import com.hereliesaz.blusnu.data.BtlejackingModule
 import com.hereliesaz.blusnu.data.BtlejuiceModule
+import com.hereliesaz.blusnu.data.CloudBackup
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.HardwareManager
+import com.hereliesaz.blusnu.data.MacLookupClient
 import com.hereliesaz.blusnu.data.SavedSessionRepository
 import com.hereliesaz.blusnu.data.TargetDevice
-import com.hereliesaz.blusnu.data.MacLookupClient
 import com.hereliesaz.blusnu.data.VulnerabilityCorrelator
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingScreen
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingViewModel
+import com.hereliesaz.blusnu.ui.bluetoothlog.BluetoothLogScreen
+import com.hereliesaz.blusnu.ui.bluetoothlog.BluetoothLogViewModel
 import com.hereliesaz.blusnu.ui.bluebugging.BluebuggingScreen
 import com.hereliesaz.blusnu.ui.bluebugging.BluebuggingViewModel
 import com.hereliesaz.blusnu.ui.bluesmack.BlueSmackScreen
@@ -72,14 +75,10 @@ import com.hereliesaz.blusnu.ui.reporting.ReportingScreen
 import com.hereliesaz.blusnu.ui.reporting.ReportingViewModel
 import com.hereliesaz.blusnu.ui.settings.SettingsScreen
 import com.hereliesaz.blusnu.ui.settings.SettingsViewModel
-import com.hereliesaz.blusnu.ui.bluetoothlog.BluetoothLogScreen
-import com.hereliesaz.blusnu.ui.bluetoothlog.BluetoothLogViewModel
 import com.hereliesaz.blusnu.ui.spoofing.SpoofingScreen
 import com.hereliesaz.blusnu.ui.spoofing.SpoofingViewModel
-import androidx.lifecycle.lifecycleScope
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import com.hereliesaz.blusnu.data.CloudBackup
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -102,7 +101,7 @@ class MainActivity : ComponentActivity() {
     private val vulnerabilityCorrelator by lazy { VulnerabilityCorrelator(applicationContext) }
     private val httpClient by lazy {
         io.ktor.client.HttpClient(io.ktor.client.engine.android.Android) {
-            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+            install(ContentNegotiation) {
                 json(kotlinx.serialization.json.Json {
                     ignoreUnknownKeys = true
                 })
@@ -169,7 +168,7 @@ class MainActivity : ComponentActivity() {
                         SpoofingViewModel(application, spoofingModule, deviceRepository, hardwareManager) as T
                     }
                     modelClass.isAssignableFrom(BluetoothLogViewModel::class.java) -> {
-                        BluetoothLogViewModel(application, bluetoothLog) as T
+                        BluetoothLogViewModel(application, bluetoothLog, deviceRepository) as T
                     }
                     else -> throw IllegalArgumentException("Unknown ViewModel class")
                 }
@@ -210,11 +209,15 @@ class MainActivity : ComponentActivity() {
                     }
                 } else {
                     val navController = rememberNavController()
-                    Surface(modifier = Modifier.fillMaxSize()) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
                         Row(Modifier.fillMaxSize()) {
                             AzNavRail {
                                 azSettings(
-                                    packRailButtons = true
+                                    packRailButtons = true,
+                                    displayAppNameInHeader = false
                                 )
                                 azRailItem(id = "dashboard", text = "Dashboard", onClick = { navController.navigate("dashboard") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "targets", text = "Targets", onClick = { navController.navigate("targets") }, shape = AzButtonShape.RECTANGLE)
@@ -234,11 +237,9 @@ class MainActivity : ComponentActivity() {
                             }
 
                             Box(modifier = Modifier.weight(1f)) {
-                                val screenHeight = LocalConfiguration.current.screenHeightDp.dp
                                 NavHost(
                                     navController = navController,
-                                    startDestination = "dashboard",
-                                    modifier = Modifier.padding(top = screenHeight * 0.2f)
+                                    startDestination = "dashboard"
                                 ) {
                                     composable("dashboard") {
                                         val viewModel: DashboardViewModel = viewModel(factory = viewModelFactory)
@@ -256,7 +257,7 @@ class MainActivity : ComponentActivity() {
                                         val viewModel: DeviceManagementViewModel = viewModel(factory = viewModelFactory)
                                         DeviceManagementScreen(viewModel = viewModel) {
                                             val targetDeviceJson = Gson().toJson(it)
-                                            navController.navigate("btlejuice/$targetDeviceJson")
+                                            navController.navigate("btlejuice?targetDevice=$targetDeviceJson")
                                         }
                                     }
                                     composable("settings") { SettingsScreen() }
@@ -278,7 +279,6 @@ class MainActivity : ComponentActivity() {
                                             navArgument("targetDevice") {
                                                 type = NavType.StringType
                                                 nullable = true
-                                                defaultValue = null
                                             }
                                         )
                                     ) { backStackEntry ->
@@ -309,11 +309,13 @@ class MainActivity : ComponentActivity() {
                                     composable("keystroke_injection") {
                                         val viewModel: KeystrokeInjectionViewModel = viewModel(factory = viewModelFactory)
                                         val state by viewModel.state.collectAsState()
-                                        com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen(
+                                        KeystrokeInjectionScreen(
                                             state = state,
                                             onAttemptAttack = viewModel::onAttemptAttack,
                                             onSendKeystrokes = viewModel::onSendKeystrokes,
-                                            onDeviceSelected = viewModel::onDeviceSelected
+                                            onDeviceSelected = { 
+                                                Toast.makeText(applicationContext, "Device selected: ${it.name}", Toast.LENGTH_SHORT).show()
+                                            }
                                         )
                                     }
                                     composable("attack_chaining") {
@@ -339,14 +341,16 @@ class MainActivity : ComponentActivity() {
                                             state = state,
                                             onMacAddressChanged = viewModel::onMacAddressChanged,
                                             onApplyClicked = viewModel::onApplyClicked,
-                                        onDeviceSelected = viewModel::onDeviceSelected,
-                                        onStartMitmAttack = viewModel::onStartMitmAttack
+                                            onDeviceSelected = viewModel::onDeviceSelected,
+                                            onStartMitmAttack = viewModel::onStartMitmAttack
                                         )
                                     }
-                                composable("bluetooth_log") {
-                                    val viewModel: BluetoothLogViewModel = viewModel(factory = viewModelFactory)
-                                    BluetoothLogScreen(viewModel = viewModel)
-                                }
+                                    composable("bluetooth_log") {
+                                        val viewModel: BluetoothLogViewModel = viewModel(factory = viewModelFactory)
+                                        BluetoothLogScreen(
+                                            viewModel = viewModel
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -375,7 +379,7 @@ class MainActivity : ComponentActivity() {
     private fun simulateDatabaseBackup() {
         // In a real app, this would connect to a cloud service and upload the database.
         // For now, we'll just log a message.
-        CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+        CoroutineScope(Dispatchers.IO).launch {
             CloudBackup().backupDatabase()
         }
     }
