@@ -27,7 +27,6 @@ class BluetoothLogViewModel(
     val state: StateFlow<BluetoothLogState> = _state.asStateFlow()
 
     init {
-        bluetoothLog.start()
         viewModelScope.launch {
             bluetoothLog.logs.collect { log ->
                 _state.update { it.copy(

@@ -37,15 +37,14 @@ class DeviceManagementViewModel(
                 context = application,
                 deviceRepository = deviceRepository,
                 bluetoothAdapter = it,
-                coroutineScope = viewModelScope,
                 bluetoothLog = bluetoothLog
             )
         }
     }
 
     init {
-        deviceRepository.allDevices
-            .onEach { devices ->
+        viewModelScope.launch {
+            deviceRepository.allDevices.collect { devices ->
                 val devicesInCurrentScan = devices.filter { it.lastSeen >= _state.value.scanStartTime }
                 val newDevicesInCurrentScan = devicesInCurrentScan.filter { device ->
                     devices.none { it.macAddress == device.macAddress && it.lastSeen < _state.value.scanStartTime }
@@ -57,12 +56,14 @@ class DeviceManagementViewModel(
                     totalDevicesInDb = devices.size
                 )
             }
-            .launchIn(viewModelScope)
+        }
     }
 
     fun startScan() {
-        bluetoothScanner?.startBleScan()
-        bluetoothScanner?.startClassicDiscovery()
+        viewModelScope.launch {
+            bluetoothScanner?.startBleScan()
+            bluetoothScanner?.startClassicDiscovery()
+        }
         _state.value = _state.value.copy(isScanning = true, scanStartTime = System.currentTimeMillis())
     }
 

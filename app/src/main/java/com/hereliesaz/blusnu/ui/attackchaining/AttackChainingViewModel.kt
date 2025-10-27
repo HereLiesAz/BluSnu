@@ -35,6 +35,9 @@ class AttackChainingViewModel(
 
     init {
         loadAttackChain("default")
+        if (_uiState.value.nodes.isEmpty()) {
+            addNode(com.hereliesaz.blusnu.ui.attackchaining.nodes.StartNode(id = "start"))
+        }
         viewModelScope.launch {
             executor.output.collect { log ->
                 _uiState.update { it.copy(logs = it.logs + log) }

@@ -109,11 +109,9 @@ class MainActivity : ComponentActivity() {
         }
     }
     private val macLookupClient by lazy { MacLookupClient(httpClient) }
-    private val bluetoothLog: com.hereliesaz.blusnu.data.BluetoothLog by lazy {
-        com.hereliesaz.blusnu.data.BluetoothLog(bluetoothScanner)
-    }
+    private val bluetoothLog by lazy { com.hereliesaz.blusnu.data.BluetoothLog() }
     private val bluetoothScanner: com.hereliesaz.blusnu.data.BluetoothScanner by lazy {
-        com.hereliesaz.blusnu.data.BluetoothScanner(applicationContext, deviceRepository, bluetoothAdapter, lifecycleScope, bluetoothLog)
+        com.hereliesaz.blusnu.data.BluetoothScanner(applicationContext, deviceRepository, bluetoothAdapter, bluetoothLog)
     }
     private val bluetoothAdapter by lazy { (getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter }
 
@@ -166,9 +164,6 @@ class MainActivity : ComponentActivity() {
                     modelClass.isAssignableFrom(SpoofingViewModel::class.java) -> {
                         val spoofingModule = com.hereliesaz.blusnu.data.SpoofingModule()
                         SpoofingViewModel(application, spoofingModule, deviceRepository, hardwareManager) as T
-                    }
-                    modelClass.isAssignableFrom(BluetoothLogViewModel::class.java) -> {
-                        BluetoothLogViewModel(application, bluetoothLog, deviceRepository) as T
                     }
                     else -> throw IllegalArgumentException("Unknown ViewModel class")
                 }
