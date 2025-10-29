@@ -16,3 +16,4 @@ Welcome to the official documentation for Blu Snu, an integrated offensive Bluet
 *   [Task Flow](task_flow.md)
 *   [Testing](testing.md)
 *   [Development Workflow](workflow.md)
+*   [Advanced Kernel-Level Attacks](kernel_level_attacks.md)

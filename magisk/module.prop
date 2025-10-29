@@ -1,0 +1,6 @@
+id=bluez-tools
+name=BlueZ Tools for Blu Snu
+version=v1.0
+versionCode=1
+author=Jules
+description=Installs BlueZ command-line tools for use with the Blu Snu application.
