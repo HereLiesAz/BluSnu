@@ -19,10 +19,10 @@ fun MagiskScreen() {
         Text("To use the Raw Commands screen, you need to install the BlueZ tools on your device. This can be done with a Magisk module.")
         Text("1. Obtain precompiled binaries for the BlueZ tools (hcitool, btmgmt, etc.) for your device's architecture.")
         Text("2. Place the binaries in the `magisk/system/bin` directory in the root of this project.")
-        Text("3. Zip the contents of the `magisk` directory.")
+        Text("3. Zip the contents of the `magisk` directory to create the module file.")
         Text("4. Open the Magisk Manager app.")
         Text("5. Go to the Modules section.")
-        Text("6. Tap the '+' button and select the created zip file.")
+        Text("6. Tap 'Install from storage' and select the zip file you created.")
         Text("7. Reboot your device.")
     }
 }
