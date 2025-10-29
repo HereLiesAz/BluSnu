@@ -72,6 +72,10 @@ import com.hereliesaz.blusnu.ui.geolocation.GeolocationViewModel
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionViewModel
 import com.hereliesaz.blusnu.ui.reporting.ReportingScreen
+import com.hereliesaz.blusnu.ui.rawcommands.RawCommandsScreen
+import com.hereliesaz.blusnu.ui.magisk.MagiskScreen
+import com.hereliesaz.blusnu.ui.magisk.MagiskViewModel
+import com.hereliesaz.blusnu.ui.rawcommands.RawCommandsViewModel
 import com.hereliesaz.blusnu.ui.reporting.ReportingViewModel
 import com.hereliesaz.blusnu.ui.settings.SettingsScreen
 import com.hereliesaz.blusnu.ui.settings.SettingsViewModel
@@ -165,6 +169,12 @@ class MainActivity : ComponentActivity() {
                         val spoofingModule = com.hereliesaz.blusnu.data.SpoofingModule()
                         SpoofingViewModel(application, spoofingModule, deviceRepository, hardwareManager) as T
                     }
+                    modelClass.isAssignableFrom(RawCommandsViewModel::class.java) -> {
+                        RawCommandsViewModel() as T
+                    }
+                    modelClass.isAssignableFrom(MagiskViewModel::class.java) -> {
+                        MagiskViewModel() as T
+                    }
                     else -> throw IllegalArgumentException("Unknown ViewModel class")
                 }
             }
@@ -226,6 +236,8 @@ class MainActivity : ComponentActivity() {
                                 azRailItem(id = "btlejuice", text = "Juice", onClick = { navController.navigate("btlejuice") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "geolocation", text = "Location", onClick = { navController.navigate("geolocation") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "attack_chaining", text = "Chaining", onClick = { navController.navigate("attack_chaining") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "raw_commands", text = "Raw Commands", onClick = { navController.navigate("raw_commands") }, shape = AzButtonShape.RECTANGLE)
+                                azRailItem(id = "magisk", text = "Magisk", onClick = { navController.navigate("magisk") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "reporting", text = "Reporting", onClick = { navController.navigate("reporting") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "settings", text = "Settings", onClick = { navController.navigate("settings") }, shape = AzButtonShape.RECTANGLE)
                                 azRailItem(id = "bluetooth_log", text = "Bluetooth Log", onClick = { navController.navigate("bluetooth_log") }, shape = AzButtonShape.RECTANGLE)
@@ -345,6 +357,14 @@ class MainActivity : ComponentActivity() {
                                         BluetoothLogScreen(
                                             viewModel = viewModel
                                         )
+                                    }
+                                    composable("raw_commands") {
+                                        val viewModel: RawCommandsViewModel = viewModel(factory = viewModelFactory)
+                                        RawCommandsScreen(viewModel)
+                                    }
+                                    composable("magisk") {
+                                        val viewModel: MagiskViewModel = viewModel(factory = viewModelFactory)
+                                        MagiskScreen()
                                     }
                                 }
                             }
