@@ -611,3 +611,4 @@ replay_pid*
 .gradle/*
 *.lock
 .gradle/
+.ideaz/
