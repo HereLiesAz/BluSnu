@@ -21,7 +21,7 @@ private val DarkColorScheme = darkColorScheme(
     secondary = BluSnuBlue,
     tertiary = BluSnuBlue,
     background = Color.Black,
-    surface = BluSnuBlue,
+    surface = Color.Black,
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
@@ -34,7 +34,7 @@ private val LightColorScheme = lightColorScheme(
     secondary = BluSnuBlue,
     tertiary = BluSnuBlue,
     background = Color.Black,
-    surface = BluSnuBlue,
+    surface = Color.Black,
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
@@ -62,7 +62,7 @@ fun BluSnuTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
         }
     }
 
