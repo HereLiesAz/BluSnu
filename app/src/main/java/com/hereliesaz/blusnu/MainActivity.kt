@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.edit
@@ -247,7 +248,8 @@ class MainActivity : AppCompatActivity() {
                                 AzNavRail(
                                     navController = navController,
                                     currentDestination = currentDestination,
-                                    isLandscape = isLandscape
+                                    isLandscape = isLandscape,
+                                    modifier = Modifier.zIndex(10f)
                                 ) {
                                     azSettings(
                                         packRailButtons = true,
@@ -256,7 +258,7 @@ class MainActivity : AppCompatActivity() {
                                     )
 
                                     // Monitor
-                                    azRailHostItem(id = "monitor", text = "Monitor", route = "monitor")
+                                    azRailHostItem(id = "monitor", text = "Monitor", onClick = {})
                                     azRailSubItem(id = "dashboard", hostId = "monitor", text = "Dashboard", route = "dashboard")
                                     azRailSubItem(id = "targets", hostId = "monitor", text = "Targets", route = "targets")
                                     azRailSubItem(id = "geolocation", hostId = "monitor", text = "Location", route = "geolocation")
@@ -264,26 +266,26 @@ class MainActivity : AppCompatActivity() {
                                     azRailSubItem(id = "bluetooth_log", hostId = "monitor", text = "Log", route = "bluetooth_log")
 
                                     // Classic Attacks
-                                    azRailHostItem(id = "classic_attacks", text = "Classic", route = "classic_attacks")
+                                    azRailHostItem(id = "classic_attacks", text = "Classic", onClick = {})
                                     azRailSubItem(id = "bluebugging", hostId = "classic_attacks", text = "Bugging", route = "bluebugging")
                                     azRailSubItem(id = "bluesnarfing", hostId = "classic_attacks", text = "Snarfing", route = "bluesnarfing")
                                     azRailSubItem(id = "bluesmack", hostId = "classic_attacks", text = "Smack", route = "bluesmack")
 
                                     // BLE Attacks
-                                    azRailHostItem(id = "ble_attacks", text = "BLE", route = "ble_attacks")
+                                    azRailHostItem(id = "ble_attacks", text = "BLE", onClick = {})
                                     azRailSubItem(id = "gattfuzzing", hostId = "ble_attacks", text = "Fuzzing", route = "gattfuzzing")
                                     azRailSubItem(id = "btlejacking", hostId = "ble_attacks", text = "Jacking", route = "btlejacking")
                                     azRailSubItem(id = "btlejuice", hostId = "ble_attacks", text = "Juice", route = "btlejuice")
 
                                     // Advanced
-                                    azRailHostItem(id = "advanced", text = "Advanced", route = "advanced")
+                                    azRailHostItem(id = "advanced", text = "Advanced", onClick = {})
                                     azRailSubItem(id = "spoofing", hostId = "advanced", text = "Spoofing", route = "spoofing")
                                     azRailSubItem(id = "keystroke_injection", hostId = "advanced", text = "Injection", route = "keystroke_injection")
                                     azRailSubItem(id = "attack_chaining", hostId = "advanced", text = "Chaining", route = "attack_chaining")
                                     azRailSubItem(id = "raw_commands", hostId = "advanced", text = "Raw Cmds", route = "raw_commands")
 
                                     // System
-                                    azRailHostItem(id = "system", text = "System", route = "system")
+                                    azRailHostItem(id = "system", text = "System", onClick = {})
                                     azRailSubItem(id = "magisk", hostId = "system", text = "Magisk", route = "magisk")
                                     azRailSubItem(id = "settings", hostId = "system", text = "Settings", route = "settings")
                                 }
@@ -297,13 +299,6 @@ class MainActivity : AppCompatActivity() {
                                         navController = navController,
                                         startDestination = "dashboard"
                                     ) {
-                                        // Category Hosts Placeholders
-                                        composable("monitor") { Text("Monitor") }
-                                        composable("classic_attacks") { Text("Classic Attacks") }
-                                        composable("ble_attacks") { Text("BLE Attacks") }
-                                        composable("advanced") { Text("Advanced Tools") }
-                                        composable("system") { Text("System") }
-
                                         composable("dashboard") {
                                             val viewModel: DashboardViewModel = viewModel(factory = viewModelFactory)
                                             val state by viewModel.state.collectAsState()
