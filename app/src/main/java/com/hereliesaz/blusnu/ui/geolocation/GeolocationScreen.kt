@@ -50,6 +50,11 @@ fun GeolocationScreen(viewModel: GeolocationViewModel, deviceRepository: DeviceR
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.End
         ) {
+            Text(
+                text = "Track device locations on a map.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }

@@ -6,7 +6,8 @@ import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -96,7 +97,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
     private val _hasPermissions = MutableStateFlow(false)
     val hasPermissions: StateFlow<Boolean> = _hasPermissions
@@ -192,7 +193,9 @@ class MainActivity : ComponentActivity() {
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
+        supportActionBar?.hide()
 
         vulnerabilityCorrelator.loadVulnerabilities()
 
@@ -288,7 +291,7 @@ class MainActivity : ComponentActivity() {
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .padding(top = tenPercentHeight)
+                                        .padding(top = tenPercentHeight + tenPercentHeight) // 20% total padding for content
                                 ) {
                                     NavHost(
                                         navController = navController,
@@ -310,12 +313,21 @@ class MainActivity : ComponentActivity() {
                                                 devicesWithLocation = state.devicesWithLocation,
                                                 savedSessions = state.savedSessions,
                                                 attackChainTemplates = state.attackChainTemplates,
-                                                onStartScanClicked = { navController.navigate("targets") }
+                                                onStartScanClicked = { navController.navigate("targets?startScan=true") }
                                             )
                                         }
-                                        composable("targets") {
+                                        composable(
+                                            "targets?startScan={startScan}",
+                                            arguments = listOf(
+                                                navArgument("startScan") {
+                                                    type = NavType.BoolType
+                                                    defaultValue = false
+                                                }
+                                            )
+                                        ) { backStackEntry ->
+                                            val startScan = backStackEntry.arguments?.getBoolean("startScan") ?: false
                                             val viewModel: DeviceManagementViewModel = viewModel(factory = viewModelFactory)
-                                            DeviceManagementScreen(viewModel = viewModel) {
+                                            DeviceManagementScreen(viewModel = viewModel, startScan = startScan) {
                                                 val targetDeviceJson = Gson().toJson(it)
                                                 navController.navigate("btlejuice?targetDevice=$targetDeviceJson")
                                             }

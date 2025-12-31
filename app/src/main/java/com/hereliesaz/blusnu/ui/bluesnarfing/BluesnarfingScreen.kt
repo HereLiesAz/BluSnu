@@ -35,7 +35,6 @@ fun BluesnarfingScreen(viewModel: BluesnarfingViewModel, hasPermissions: Boolean
     val devices by viewModel.devices.collectAsState()
     val status by viewModel.status.collectAsState()
     val result by viewModel.result.collectAsState()
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     var expanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(hasPermissions) {
@@ -43,12 +42,15 @@ fun BluesnarfingScreen(viewModel: BluesnarfingViewModel, hasPermissions: Boolean
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = screenHeight * 0.2f),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.TopEnd
     ) {
         Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = "Unauthorized access to device information.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(16.dp)
+            )
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }

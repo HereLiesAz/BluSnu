@@ -15,8 +15,12 @@ fun RawCommandsScreen(viewModel: RawCommandsViewModel) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        Text(
+            text = "Execute raw BlueZ commands with root privileges.",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
         Text("Raw BlueZ Commands")
-        Text("Execute raw BlueZ commands with root privileges.")
 
         Spacer(modifier = Modifier.height(16.dp))
 

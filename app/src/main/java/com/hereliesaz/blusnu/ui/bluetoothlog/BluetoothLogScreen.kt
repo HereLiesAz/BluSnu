@@ -29,6 +29,11 @@ fun BluetoothLogScreen(viewModel: BluetoothLogViewModel) {
     val state by viewModel.state.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Text(
+            text = "View and filter real-time Bluetooth logs.",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
         Text("Bluetooth Log", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
