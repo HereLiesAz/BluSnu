@@ -166,6 +166,9 @@ class MainActivity : AppCompatActivity() {
                     modelClass.isAssignableFrom(ReportingViewModel::class.java) -> {
                         ReportingViewModel(application) as T
                     }
+                    modelClass.isAssignableFrom(BluetoothLogViewModel::class.java) -> {
+                        BluetoothLogViewModel(application, bluetoothLog, deviceRepository) as T
+                    }
                     modelClass.isAssignableFrom(SettingsViewModel::class.java) -> {
                         SettingsViewModel(application) as T
                     }
