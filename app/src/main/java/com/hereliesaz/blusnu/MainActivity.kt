@@ -10,10 +10,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -21,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
@@ -30,6 +34,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.google.gson.Gson
@@ -214,160 +219,200 @@ class MainActivity : ComponentActivity() {
                     }
                 } else {
                     val navController = rememberNavController()
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentDestination = navBackStackEntry?.destination?.route
+                    val configuration = LocalConfiguration.current
+                    val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
+
                     Surface(
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) {
-                        Row(Modifier.fillMaxSize()) {
-                            AzNavRail {
-                                azSettings(
-                                    packRailButtons = true,
-                                    displayAppNameInHeader = false
-                                )
-                                azRailItem(id = "dashboard", text = "Dashboard", onClick = { navController.navigate("dashboard") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "targets", text = "Targets", onClick = { navController.navigate("targets") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "bluebugging", text = "Bugging", onClick = { navController.navigate("bluebugging") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "bluesnarfing", text = "Snarfing", onClick = { navController.navigate("bluesnarfing") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "bluesmack", text = "Smack", onClick = { navController.navigate("bluesmack") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "gattfuzzing", text = "Fuzzing", onClick = { navController.navigate("gattfuzzing") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "spoofing", text = "Spoofing", onClick = { navController.navigate("spoofing") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "keystroke_injection", text = "Injection", onClick = { navController.navigate("keystroke_injection") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "btlejacking", text = "Jacking", onClick = { navController.navigate("btlejacking") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "btlejuice", text = "Juice", onClick = { navController.navigate("btlejuice") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "geolocation", text = "Location", onClick = { navController.navigate("geolocation") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "attack_chaining", text = "Chaining", onClick = { navController.navigate("attack_chaining") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "raw_commands", text = "Raw Commands", onClick = { navController.navigate("raw_commands") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "magisk", text = "Magisk", onClick = { navController.navigate("magisk") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "reporting", text = "Reporting", onClick = { navController.navigate("reporting") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "settings", text = "Settings", onClick = { navController.navigate("settings") }, shape = AzButtonShape.RECTANGLE)
-                                azRailItem(id = "bluetooth_log", text = "Bluetooth Log", onClick = { navController.navigate("bluetooth_log") }, shape = AzButtonShape.RECTANGLE)
-                            }
+                        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                             val topMargin = maxHeight * 0.1f
 
-                            Box(modifier = Modifier.weight(1f)) {
-                                NavHost(
+                             Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(top = topMargin)
+                             ) {
+                                AzNavRail(
                                     navController = navController,
-                                    startDestination = "dashboard"
+                                    currentDestination = currentDestination,
+                                    isLandscape = isLandscape
                                 ) {
-                                    composable("dashboard") {
-                                        val viewModel: DashboardViewModel = viewModel(factory = viewModelFactory)
-                                        val state by viewModel.state.collectAsState()
-                                        DashboardScreen(
-                                            bleDeviceCount = state.bleDeviceCount,
-                                            classicDeviceCount = state.classicDeviceCount,
-                                            devicesWithLocation = state.devicesWithLocation,
-                                            savedSessions = state.savedSessions,
-                                            attackChainTemplates = state.attackChainTemplates,
-                                            onStartScanClicked = { navController.navigate("targets") }
-                                        )
-                                    }
-                                    composable("targets") {
-                                        val viewModel: DeviceManagementViewModel = viewModel(factory = viewModelFactory)
-                                        DeviceManagementScreen(viewModel = viewModel) {
-                                            val targetDeviceJson = Gson().toJson(it)
-                                            navController.navigate("btlejuice?targetDevice=$targetDeviceJson")
+                                    azSettings(
+                                        packRailButtons = true,
+                                        displayAppNameInHeader = false,
+                                        defaultShape = AzButtonShape.RECTANGLE
+                                    )
+
+                                    // Monitor
+                                    azRailHostItem(id = "monitor", text = "Monitor", route = "monitor", screenTitle = AzNavRail.noTitle)
+                                    azRailSubItem(id = "dashboard", hostId = "monitor", text = "Dashboard", route = "dashboard", screenTitle = AzNavRail.noTitle)
+                                    azRailSubItem(id = "targets", hostId = "monitor", text = "Targets", route = "targets", screenTitle = AzNavRail.noTitle)
+                                    azRailSubItem(id = "geolocation", hostId = "monitor", text = "Location", route = "geolocation", screenTitle = AzNavRail.noTitle)
+                                    azRailSubItem(id = "reporting", hostId = "monitor", text = "Reporting", route = "reporting", screenTitle = AzNavRail.noTitle)
+                                    azRailSubItem(id = "bluetooth_log", hostId = "monitor", text = "Log", route = "bluetooth_log", screenTitle = AzNavRail.noTitle)
+
+                                    // Classic Attacks
+                                    azRailHostItem(id = "classic_attacks", text = "Classic", route = "classic_attacks", screenTitle = AzNavRail.noTitle)
+                                    azRailSubItem(id = "bluebugging", hostId = "classic_attacks", text = "Bugging", route = "bluebugging", screenTitle = AzNavRail.noTitle)
+                                    azRailSubItem(id = "bluesnarfing", hostId = "classic_attacks", text = "Snarfing", route = "bluesnarfing", screenTitle = AzNavRail.noTitle)
+                                    azRailSubItem(id = "bluesmack", hostId = "classic_attacks", text = "Smack", route = "bluesmack", screenTitle = AzNavRail.noTitle)
+
+                                    // BLE Attacks
+                                    azRailHostItem(id = "ble_attacks", text = "BLE", route = "ble_attacks", screenTitle = AzNavRail.noTitle)
+                                    azRailSubItem(id = "gattfuzzing", hostId = "ble_attacks", text = "Fuzzing", route = "gattfuzzing", screenTitle = AzNavRail.noTitle)
+                                    azRailSubItem(id = "btlejacking", hostId = "ble_attacks", text = "Jacking", route = "btlejacking", screenTitle = AzNavRail.noTitle)
+                                    azRailSubItem(id = "btlejuice", hostId = "ble_attacks", text = "Juice", route = "btlejuice", screenTitle = AzNavRail.noTitle)
+
+                                    // Advanced
+                                    azRailHostItem(id = "advanced", text = "Advanced", route = "advanced", screenTitle = AzNavRail.noTitle)
+                                    azRailSubItem(id = "spoofing", hostId = "advanced", text = "Spoofing", route = "spoofing", screenTitle = AzNavRail.noTitle)
+                                    azRailSubItem(id = "keystroke_injection", hostId = "advanced", text = "Injection", route = "keystroke_injection", screenTitle = AzNavRail.noTitle)
+                                    azRailSubItem(id = "attack_chaining", hostId = "advanced", text = "Chaining", route = "attack_chaining", screenTitle = AzNavRail.noTitle)
+                                    azRailSubItem(id = "raw_commands", hostId = "advanced", text = "Raw Cmds", route = "raw_commands", screenTitle = AzNavRail.noTitle)
+
+                                    // System
+                                    azRailHostItem(id = "system", text = "System", route = "system", screenTitle = AzNavRail.noTitle)
+                                    azRailSubItem(id = "magisk", hostId = "system", text = "Magisk", route = "magisk", screenTitle = AzNavRail.noTitle)
+                                    azRailSubItem(id = "settings", hostId = "system", text = "Settings", route = "settings", screenTitle = AzNavRail.noTitle)
+                                }
+
+                                Box(modifier = Modifier.weight(1f)) {
+                                    NavHost(
+                                        navController = navController,
+                                        startDestination = "dashboard"
+                                    ) {
+                                        // Category Hosts Placeholders
+                                        composable("monitor") { Text("Monitor") }
+                                        composable("classic_attacks") { Text("Classic Attacks") }
+                                        composable("ble_attacks") { Text("BLE Attacks") }
+                                        composable("advanced") { Text("Advanced Tools") }
+                                        composable("system") { Text("System") }
+
+                                        composable("dashboard") {
+                                            val viewModel: DashboardViewModel = viewModel(factory = viewModelFactory)
+                                            val state by viewModel.state.collectAsState()
+                                            DashboardScreen(
+                                                bleDeviceCount = state.bleDeviceCount,
+                                                classicDeviceCount = state.classicDeviceCount,
+                                                devicesWithLocation = state.devicesWithLocation,
+                                                savedSessions = state.savedSessions,
+                                                attackChainTemplates = state.attackChainTemplates,
+                                                onStartScanClicked = { navController.navigate("targets") }
+                                            )
+                                        }
+                                        composable("targets") {
+                                            val viewModel: DeviceManagementViewModel = viewModel(factory = viewModelFactory)
+                                            DeviceManagementScreen(viewModel = viewModel) {
+                                                val targetDeviceJson = Gson().toJson(it)
+                                                navController.navigate("btlejuice?targetDevice=$targetDeviceJson")
+                                            }
+                                        }
+                                        composable("settings") { SettingsScreen() }
+                                        composable("bluebugging") {
+                                            val viewModel: BluebuggingViewModel = viewModel(factory = viewModelFactory)
+                                            BluebuggingScreen(viewModel = viewModel)
+                                        }
+                                        composable("bluesnarfing") {
+                                            val viewModel: BluesnarfingViewModel = viewModel(factory = viewModelFactory)
+                                            com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen(viewModel = viewModel, hasPermissions = hasPermissions)
+                                        }
+                                        composable("btlejacking") {
+                                            val viewModel: BtlejackingViewModel = viewModel(factory = viewModelFactory)
+                                            BtlejackingScreen(viewModel = viewModel, hasPermissions = hasPermissions)
+                                        }
+                                        composable(
+                                            "btlejuice?targetDevice={targetDevice}",
+                                            arguments = listOf(
+                                                navArgument("targetDevice") {
+                                                    type = NavType.StringType
+                                                    nullable = true
+                                                }
+                                            )
+                                        ) { backStackEntry ->
+                                            val targetDeviceJson = backStackEntry.arguments?.getString("targetDevice")
+                                            val targetDevice = targetDeviceJson?.let { Gson().fromJson(it, TargetDevice::class.java) }
+                                            val viewModel: BtlejuiceViewModel = viewModel(factory = viewModelFactory)
+                                            val hardwareState by viewModel.hardwareState.collectAsState()
+                                            val btlejuiceState by viewModel.btlejuiceState.collectAsState()
+                                            val logs by viewModel.logs.collectAsState()
+                                            val discoveredDevices by viewModel.discoveredDevices.collectAsState()
+                                            val gattTraffic by viewModel.gattTraffic.collectAsState()
+                                            BtlejuiceScreen(
+                                                hardwareState = hardwareState,
+                                                btlejuiceState = btlejuiceState,
+                                                logs = logs,
+                                                discoveredDevices = discoveredDevices,
+                                                onConnectHardware = viewModel::onConnectHardware,
+                                                onConnectDual = viewModel::onConnectDual,
+                                                onStartProxy = { targetDevice?.let { viewModel.onStartProxy(it) } },
+                                                onStopProxy = viewModel::onStopProxy,
+                                                gattTraffic = gattTraffic
+                                            )
+                                        }
+                                        composable("geolocation") {
+                                            val viewModel: GeolocationViewModel = viewModel(factory = viewModelFactory)
+                                            GeolocationScreen(viewModel = viewModel, deviceRepository = deviceRepository)
+                                        }
+                                        composable("keystroke_injection") {
+                                            val viewModel: KeystrokeInjectionViewModel = viewModel(factory = viewModelFactory)
+                                            val state by viewModel.state.collectAsState()
+                                            KeystrokeInjectionScreen(
+                                                state = state,
+                                                onAttemptAttack = viewModel::onAttemptAttack,
+                                                onSendKeystrokes = viewModel::onSendKeystrokes,
+                                                onDeviceSelected = {
+                                                    Toast.makeText(applicationContext, "Device selected: ${it.name}", Toast.LENGTH_SHORT).show()
+                                                }
+                                            )
+                                        }
+                                        composable("attack_chaining") {
+                                            val viewModel: AttackChainingViewModel = viewModel(factory = viewModelFactory)
+                                            AttackChainingScreen(viewModel = viewModel)
+                                        }
+                                        composable("gattfuzzing") {
+                                            val viewModel: GattFuzzingViewModel = viewModel(factory = viewModelFactory)
+                                            GattFuzzingScreen(viewModel = viewModel)
+                                        }
+                                        composable("bluesmack") {
+                                            val viewModel: BlueSmackViewModel = viewModel(factory = viewModelFactory)
+                                            BlueSmackScreen(viewModel = viewModel)
+                                        }
+                                        composable("reporting") {
+                                            val viewModel: ReportingViewModel = viewModel(factory = viewModelFactory)
+                                            ReportingScreen(viewModel = viewModel)
+                                        }
+                                        composable("spoofing") {
+                                            val viewModel: SpoofingViewModel = viewModel(factory = viewModelFactory)
+                                            val state by viewModel.state.collectAsState()
+                                            SpoofingScreen(
+                                                state = state,
+                                                onMacAddressChanged = viewModel::onMacAddressChanged,
+                                                onApplyClicked = viewModel::onApplyClicked,
+                                                onDeviceSelected = viewModel::onDeviceSelected,
+                                                onStartMitmAttack = viewModel::onStartMitmAttack
+                                            )
+                                        }
+                                        composable("bluetooth_log") {
+                                            val viewModel: BluetoothLogViewModel = viewModel(factory = viewModelFactory)
+                                            BluetoothLogScreen(
+                                                viewModel = viewModel
+                                            )
+                                        }
+                                        composable("raw_commands") {
+                                            val viewModel: RawCommandsViewModel = viewModel(factory = viewModelFactory)
+                                            RawCommandsScreen(viewModel)
+                                        }
+                                        composable("magisk") {
+                                            val viewModel: MagiskViewModel = viewModel(factory = viewModelFactory)
+                                            MagiskScreen()
                                         }
                                     }
-                                    composable("settings") { SettingsScreen() }
-                                    composable("bluebugging") {
-                                        val viewModel: BluebuggingViewModel = viewModel(factory = viewModelFactory)
-                                        BluebuggingScreen(viewModel = viewModel)
-                                    }
-                                    composable("bluesnarfing") {
-                                        val viewModel: BluesnarfingViewModel = viewModel(factory = viewModelFactory)
-                                        com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen(viewModel = viewModel, hasPermissions = hasPermissions)
-                                    }
-                                    composable("btlejacking") {
-                                        val viewModel: BtlejackingViewModel = viewModel(factory = viewModelFactory)
-                                        BtlejackingScreen(viewModel = viewModel, hasPermissions = hasPermissions)
-                                    }
-                                    composable(
-                                        "btlejuice?targetDevice={targetDevice}",
-                                        arguments = listOf(
-                                            navArgument("targetDevice") {
-                                                type = NavType.StringType
-                                                nullable = true
-                                            }
-                                        )
-                                    ) { backStackEntry ->
-                                        val targetDeviceJson = backStackEntry.arguments?.getString("targetDevice")
-                                        val targetDevice = targetDeviceJson?.let { Gson().fromJson(it, TargetDevice::class.java) }
-                                        val viewModel: BtlejuiceViewModel = viewModel(factory = viewModelFactory)
-                                        val hardwareState by viewModel.hardwareState.collectAsState()
-                                        val btlejuiceState by viewModel.btlejuiceState.collectAsState()
-                                        val logs by viewModel.logs.collectAsState()
-                                        val discoveredDevices by viewModel.discoveredDevices.collectAsState()
-                                        val gattTraffic by viewModel.gattTraffic.collectAsState()
-                                        BtlejuiceScreen(
-                                            hardwareState = hardwareState,
-                                            btlejuiceState = btlejuiceState,
-                                            logs = logs,
-                                            discoveredDevices = discoveredDevices,
-                                            onConnectHardware = viewModel::onConnectHardware,
-                                            onConnectDual = viewModel::onConnectDual,
-                                            onStartProxy = { targetDevice?.let { viewModel.onStartProxy(it) } },
-                                            onStopProxy = viewModel::onStopProxy,
-                                            gattTraffic = gattTraffic
-                                        )
-                                    }
-                                    composable("geolocation") {
-                                        val viewModel: GeolocationViewModel = viewModel(factory = viewModelFactory)
-                                        GeolocationScreen(viewModel = viewModel, deviceRepository = deviceRepository)
-                                    }
-                                    composable("keystroke_injection") {
-                                        val viewModel: KeystrokeInjectionViewModel = viewModel(factory = viewModelFactory)
-                                        val state by viewModel.state.collectAsState()
-                                        KeystrokeInjectionScreen(
-                                            state = state,
-                                            onAttemptAttack = viewModel::onAttemptAttack,
-                                            onSendKeystrokes = viewModel::onSendKeystrokes,
-                                            onDeviceSelected = { 
-                                                Toast.makeText(applicationContext, "Device selected: ${it.name}", Toast.LENGTH_SHORT).show()
-                                            }
-                                        )
-                                    }
-                                    composable("attack_chaining") {
-                                        val viewModel: AttackChainingViewModel = viewModel(factory = viewModelFactory)
-                                        AttackChainingScreen(viewModel = viewModel)
-                                    }
-                                    composable("gattfuzzing") {
-                                        val viewModel: GattFuzzingViewModel = viewModel(factory = viewModelFactory)
-                                        GattFuzzingScreen(viewModel = viewModel)
-                                    }
-                                    composable("bluesmack") {
-                                        val viewModel: BlueSmackViewModel = viewModel(factory = viewModelFactory)
-                                        BlueSmackScreen(viewModel = viewModel)
-                                    }
-                                    composable("reporting") {
-                                        val viewModel: ReportingViewModel = viewModel(factory = viewModelFactory)
-                                        ReportingScreen(viewModel = viewModel)
-                                    }
-                                    composable("spoofing") {
-                                        val viewModel: SpoofingViewModel = viewModel(factory = viewModelFactory)
-                                        val state by viewModel.state.collectAsState()
-                                        SpoofingScreen(
-                                            state = state,
-                                            onMacAddressChanged = viewModel::onMacAddressChanged,
-                                            onApplyClicked = viewModel::onApplyClicked,
-                                            onDeviceSelected = viewModel::onDeviceSelected,
-                                            onStartMitmAttack = viewModel::onStartMitmAttack
-                                        )
-                                    }
-                                    composable("bluetooth_log") {
-                                        val viewModel: BluetoothLogViewModel = viewModel(factory = viewModelFactory)
-                                        BluetoothLogScreen(
-                                            viewModel = viewModel
-                                        )
-                                    }
-                                    composable("raw_commands") {
-                                        val viewModel: RawCommandsViewModel = viewModel(factory = viewModelFactory)
-                                        RawCommandsScreen(viewModel)
-                                    }
-                                    composable("magisk") {
-                                        val viewModel: MagiskViewModel = viewModel(factory = viewModelFactory)
-                                        MagiskScreen()
-                                    }
                                 }
-                            }
+                             }
                         }
                     }
                 }
