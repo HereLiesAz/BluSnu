@@ -12,21 +12,35 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.hereliesaz.blusnu.data.LogLevel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BluetoothLogScreen(viewModel: BluetoothLogViewModel) {
     val state by viewModel.state.collectAsState()
+    var expanded by remember { mutableStateOf(false) }
+    val dateFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text(
@@ -43,19 +57,60 @@ fun BluetoothLogScreen(viewModel: BluetoothLogViewModel) {
                 label = { Text("Filter") },
                 modifier = Modifier.weight(1f)
             )
-            Checkbox(
-                checked = state.isFiltered,
-                onCheckedChange = { viewModel.onFilterEnabled(it) }
-            )
+
+            Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded },
+                modifier = Modifier.weight(0.6f)
+            ) {
+                TextField(
+                    value = state.minLogLevel.name,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Verbosity") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.menuAnchor()
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    LogLevel.values().forEach { level ->
+                        DropdownMenuItem(
+                            text = { Text(level.name) },
+                            onClick = {
+                                viewModel.onLogLevelChanged(level)
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
         }
         Spacer(modifier = Modifier.height(16.dp))
         Card(
             modifier = Modifier.fillMaxWidth().weight(1f),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            LazyColumn(modifier = Modifier.padding(16.dp)) {
-                items(state.logs) { log ->
-                    Text(log, style = MaterialTheme.typography.bodySmall)
+            LazyColumn(
+                modifier = Modifier.padding(16.dp),
+                reverseLayout = true
+            ) {
+                items(state.logs.reversed()) { logEntry ->
+                    val color = when (logEntry.level) {
+                        LogLevel.ERROR -> MaterialTheme.colorScheme.error
+                        LogLevel.WARN -> Color(0xFFFFA500) // Orange
+                        LogLevel.DEBUG -> Color.Gray
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+                    val time = dateFormat.format(Date(logEntry.timestamp))
+                    Text(
+                        text = "[$time] [${logEntry.level}] ${logEntry.message}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = color
+                    )
                 }
             }
         }
