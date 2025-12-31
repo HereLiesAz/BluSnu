@@ -431,13 +431,12 @@ class MainActivity : AppCompatActivity() {
                                         }
                                     }
                                 }
-                             }
+                            }
                         }
                     }
                 }
             }
         }
-    }
 
     private fun requestRequiredPermissions() {
         val requiredPermissions = mutableListOf(
