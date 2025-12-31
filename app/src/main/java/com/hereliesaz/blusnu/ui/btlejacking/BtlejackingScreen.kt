@@ -44,13 +44,10 @@ import com.hereliesaz.blusnu.data.TargetDevice
 fun BtlejackingScreen(viewModel: BtlejackingViewModel, hasPermissions: Boolean) {
     val state by viewModel.state.collectAsState()
     var selectedTarget by remember { mutableStateOf<TargetDevice?>(null) }
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     var expanded by remember { mutableStateOf(false) }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = screenHeight * 0.2f),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.TopEnd
     ) {
         Column(
@@ -59,6 +56,11 @@ fun BtlejackingScreen(viewModel: BtlejackingViewModel, hasPermissions: Boolean) 
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            Text(
+                text = "Hijack ongoing BLE connections using Btlejack.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
             // Hardware Status and Controls
             Text("Hardware Status: ${state.hardwareState}")
         when (state.hardwareState) {

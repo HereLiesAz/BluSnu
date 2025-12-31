@@ -15,6 +15,11 @@ fun MagiskScreen() {
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        Text(
+            text = "Instructions for installing BlueZ tools via Magisk.",
+            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
         Text("Install BlueZ Tools with Magisk")
         Text("To use the Raw Commands screen, you need to install the BlueZ tools on your device. This can be done with a Magisk module.")
         Text("1. Obtain precompiled binaries for the BlueZ tools (hcitool, btmgmt, etc.) for your device's architecture.")

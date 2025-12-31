@@ -46,13 +46,10 @@ fun SpoofingScreen(
     onStartMitmAttack: () -> Unit = {}
 ) {
     var macAddress by remember { mutableStateOf("") }
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     var expanded by remember { mutableStateOf(false) }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = screenHeight * 0.2f),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.TopEnd
     ) {
         Column(
@@ -61,6 +58,11 @@ fun SpoofingScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.End
         ) {
+            Text(
+                text = "Spoof device identity (MAC address).",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }

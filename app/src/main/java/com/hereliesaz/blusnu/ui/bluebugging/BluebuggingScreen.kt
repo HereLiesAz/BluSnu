@@ -34,16 +34,18 @@ fun BluebuggingScreen(viewModel: BluebuggingViewModel) {
     val devices by viewModel.devices.collectAsState()
     val status by viewModel.status.collectAsState()
     val result by viewModel.result.collectAsState()
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     var expanded by remember { mutableStateOf(false) }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = screenHeight * 0.2f),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.TopEnd
     ) {
         Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = "Exploit vulnerabilities to control device via Bluetooth.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(16.dp)
+            )
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }
