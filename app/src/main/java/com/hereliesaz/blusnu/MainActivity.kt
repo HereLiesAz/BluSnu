@@ -229,12 +229,12 @@ class MainActivity : ComponentActivity() {
                         color = MaterialTheme.colorScheme.background
                     ) {
                         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                             val topMargin = maxHeight * 0.1f
+                             val tenPercentHeight = maxHeight * 0.1f
 
                              Row(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .padding(top = topMargin)
+                                    .padding(top = tenPercentHeight)
                              ) {
                                 AzNavRail(
                                     navController = navController,
@@ -248,39 +248,43 @@ class MainActivity : ComponentActivity() {
                                     )
 
                                     // Monitor
-                                    azRailHostItem(id = "monitor", text = "Monitor", route = "monitor", screenTitle = AzNavRail.noTitle)
-                                    azRailSubItem(id = "dashboard", hostId = "monitor", text = "Dashboard", route = "dashboard", screenTitle = AzNavRail.noTitle)
-                                    azRailSubItem(id = "targets", hostId = "monitor", text = "Targets", route = "targets", screenTitle = AzNavRail.noTitle)
-                                    azRailSubItem(id = "geolocation", hostId = "monitor", text = "Location", route = "geolocation", screenTitle = AzNavRail.noTitle)
-                                    azRailSubItem(id = "reporting", hostId = "monitor", text = "Reporting", route = "reporting", screenTitle = AzNavRail.noTitle)
-                                    azRailSubItem(id = "bluetooth_log", hostId = "monitor", text = "Log", route = "bluetooth_log", screenTitle = AzNavRail.noTitle)
+                                    azRailHostItem(id = "monitor", text = "Monitor", route = "monitor")
+                                    azRailSubItem(id = "dashboard", hostId = "monitor", text = "Dashboard", route = "dashboard")
+                                    azRailSubItem(id = "targets", hostId = "monitor", text = "Targets", route = "targets")
+                                    azRailSubItem(id = "geolocation", hostId = "monitor", text = "Location", route = "geolocation")
+                                    azRailSubItem(id = "reporting", hostId = "monitor", text = "Reporting", route = "reporting")
+                                    azRailSubItem(id = "bluetooth_log", hostId = "monitor", text = "Log", route = "bluetooth_log")
 
                                     // Classic Attacks
-                                    azRailHostItem(id = "classic_attacks", text = "Classic", route = "classic_attacks", screenTitle = AzNavRail.noTitle)
-                                    azRailSubItem(id = "bluebugging", hostId = "classic_attacks", text = "Bugging", route = "bluebugging", screenTitle = AzNavRail.noTitle)
-                                    azRailSubItem(id = "bluesnarfing", hostId = "classic_attacks", text = "Snarfing", route = "bluesnarfing", screenTitle = AzNavRail.noTitle)
-                                    azRailSubItem(id = "bluesmack", hostId = "classic_attacks", text = "Smack", route = "bluesmack", screenTitle = AzNavRail.noTitle)
+                                    azRailHostItem(id = "classic_attacks", text = "Classic", route = "classic_attacks")
+                                    azRailSubItem(id = "bluebugging", hostId = "classic_attacks", text = "Bugging", route = "bluebugging")
+                                    azRailSubItem(id = "bluesnarfing", hostId = "classic_attacks", text = "Snarfing", route = "bluesnarfing")
+                                    azRailSubItem(id = "bluesmack", hostId = "classic_attacks", text = "Smack", route = "bluesmack")
 
                                     // BLE Attacks
-                                    azRailHostItem(id = "ble_attacks", text = "BLE", route = "ble_attacks", screenTitle = AzNavRail.noTitle)
-                                    azRailSubItem(id = "gattfuzzing", hostId = "ble_attacks", text = "Fuzzing", route = "gattfuzzing", screenTitle = AzNavRail.noTitle)
-                                    azRailSubItem(id = "btlejacking", hostId = "ble_attacks", text = "Jacking", route = "btlejacking", screenTitle = AzNavRail.noTitle)
-                                    azRailSubItem(id = "btlejuice", hostId = "ble_attacks", text = "Juice", route = "btlejuice", screenTitle = AzNavRail.noTitle)
+                                    azRailHostItem(id = "ble_attacks", text = "BLE", route = "ble_attacks")
+                                    azRailSubItem(id = "gattfuzzing", hostId = "ble_attacks", text = "Fuzzing", route = "gattfuzzing")
+                                    azRailSubItem(id = "btlejacking", hostId = "ble_attacks", text = "Jacking", route = "btlejacking")
+                                    azRailSubItem(id = "btlejuice", hostId = "ble_attacks", text = "Juice", route = "btlejuice")
 
                                     // Advanced
-                                    azRailHostItem(id = "advanced", text = "Advanced", route = "advanced", screenTitle = AzNavRail.noTitle)
-                                    azRailSubItem(id = "spoofing", hostId = "advanced", text = "Spoofing", route = "spoofing", screenTitle = AzNavRail.noTitle)
-                                    azRailSubItem(id = "keystroke_injection", hostId = "advanced", text = "Injection", route = "keystroke_injection", screenTitle = AzNavRail.noTitle)
-                                    azRailSubItem(id = "attack_chaining", hostId = "advanced", text = "Chaining", route = "attack_chaining", screenTitle = AzNavRail.noTitle)
-                                    azRailSubItem(id = "raw_commands", hostId = "advanced", text = "Raw Cmds", route = "raw_commands", screenTitle = AzNavRail.noTitle)
+                                    azRailHostItem(id = "advanced", text = "Advanced", route = "advanced")
+                                    azRailSubItem(id = "spoofing", hostId = "advanced", text = "Spoofing", route = "spoofing")
+                                    azRailSubItem(id = "keystroke_injection", hostId = "advanced", text = "Injection", route = "keystroke_injection")
+                                    azRailSubItem(id = "attack_chaining", hostId = "advanced", text = "Chaining", route = "attack_chaining")
+                                    azRailSubItem(id = "raw_commands", hostId = "advanced", text = "Raw Cmds", route = "raw_commands")
 
                                     // System
-                                    azRailHostItem(id = "system", text = "System", route = "system", screenTitle = AzNavRail.noTitle)
-                                    azRailSubItem(id = "magisk", hostId = "system", text = "Magisk", route = "magisk", screenTitle = AzNavRail.noTitle)
-                                    azRailSubItem(id = "settings", hostId = "system", text = "Settings", route = "settings", screenTitle = AzNavRail.noTitle)
+                                    azRailHostItem(id = "system", text = "System", route = "system")
+                                    azRailSubItem(id = "magisk", hostId = "system", text = "Magisk", route = "magisk")
+                                    azRailSubItem(id = "settings", hostId = "system", text = "Settings", route = "settings")
                                 }
 
-                                Box(modifier = Modifier.weight(1f)) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(top = tenPercentHeight)
+                                ) {
                                     NavHost(
                                         navController = navController,
                                         startDestination = "dashboard"
