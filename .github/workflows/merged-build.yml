@@ -27,6 +27,32 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Calculate Version
+        id: calc_version
+        run: |
+          export BUILD_NUMBER=$(git rev-list --count HEAD)
+
+          # Extract version info from properties file
+          MAJOR=$(grep 'major=' version.properties | cut -d'=' -f2)
+          MINOR=$(grep 'minor=' version.properties | cut -d'=' -f2)
+
+          # Calculate Patch version programmatically based on commits since Minor update
+          MINOR_COMMIT=$(git blame -L '/minor=/',+1 version.properties | awk '{print $1}' | tr -d '^')
+          if [ -n "$MINOR_COMMIT" ]; then
+            PATCH=$(git rev-list --count $MINOR_COMMIT..HEAD)
+          else
+            PATCH=$(grep 'patch=' version.properties | cut -d'=' -f2)
+          fi
+
+          VERSION_NAME="$MAJOR.$MINOR.$PATCH.$BUILD_NUMBER"
+
+          echo "Calculated Version: $VERSION_NAME (Code: $BUILD_NUMBER)"
+
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+          echo "MAJOR=$MAJOR" >> $GITHUB_ENV
+          echo "MINOR=$MINOR" >> $GITHUB_ENV
+
       - name: Inject Google Services
         env:
           GOOGLE_SERVICES_API_KEY: ${{ secrets.GOOGLE_SERVICES_API_KEY }}
@@ -58,10 +84,9 @@ jobs:
         id: gradle-build
         run: |
           set +e
-          export BUILD_NUMBER=$(git rev-list --count HEAD)
           
           # Build the APK
-          ./gradlew assembleDebug -PversionBuild=$BUILD_NUMBER --build-cache > build.log 2>&1
+          ./gradlew assembleDebug -PversionCode=$BUILD_NUMBER -PversionName=$VERSION_NAME --build-cache > build.log 2>&1
           
           EXIT_CODE=$?
           echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
@@ -110,22 +135,6 @@ jobs:
         if: success() && github.event_name == 'push'
         id: release_vars
         run: |
-          export BUILD_NUMBER=$(git rev-list --count HEAD)
-          
-          # Extract version info from properties file
-          MAJOR=$(grep 'major=' version.properties | cut -d'=' -f2)
-          MINOR=$(grep 'minor=' version.properties | cut -d'=' -f2)
-
-          # Calculate Patch version programmatically based on commits since Minor update
-          MINOR_COMMIT=$(git blame -L '/minor=/',+1 version.properties | awk '{print $1}' | tr -d '^')
-          if [ -n "$MINOR_COMMIT" ]; then
-            PATCH=$(git rev-list --count $MINOR_COMMIT..HEAD)
-          else
-            PATCH=$(grep 'patch=' version.properties | cut -d'=' -f2)
-          fi
-
-          VERSION_NAME="$MAJOR.$MINOR.$PATCH.$BUILD_NUMBER"
-          
           TAG_NAME="latest-debug-v${MAJOR}.${MINOR}"
           
           # Dynamic App Name from settings.gradle
