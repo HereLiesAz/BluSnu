@@ -214,7 +214,7 @@ class MainActivity : AppCompatActivity() {
                 if (showDisclaimer) {
                     DisclaimerDialog { agreed ->
                         if (agreed) {
-                            simulateDatabaseBackup()
+                            performDatabaseBackup()
                         }
                         getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).edit {
                             putBoolean(
@@ -296,7 +296,7 @@ class MainActivity : AppCompatActivity() {
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .padding(top = tenPercentHeight + tenPercentHeight) // 20% total padding for content
+                                        .padding(top = tenPercentHeight) // 20% total padding for content (10% from Row + 10% here)
                                 ) {
                                     NavHost(
                                         navController = navController,
@@ -454,11 +454,19 @@ class MainActivity : AppCompatActivity() {
         requestPermissionsLauncher.launch(requiredPermissions.toTypedArray())
     }
 
-    private fun simulateDatabaseBackup() {
-        // In a real app, this would connect to a cloud service and upload the database.
-        // For now, we'll just log a message.
+    private fun performDatabaseBackup() {
+        val prefs = getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE)
+        val backupUrl = prefs.getString("backup_url", "https://example.com/backup") ?: return
+
         CoroutineScope(Dispatchers.IO).launch {
-            CloudBackup().backupDatabase()
+            val cloudBackup = CloudBackup(applicationContext, httpClient)
+            val success = cloudBackup.backupDatabase(backupUrl)
+            if (success) {
+                // Ideally show a notification or toast on Main thread
+                println("Backup successful")
+            } else {
+                println("Backup failed")
+            }
         }
     }
 }
