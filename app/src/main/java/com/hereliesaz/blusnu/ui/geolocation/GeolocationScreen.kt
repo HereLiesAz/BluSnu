@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
@@ -47,9 +48,15 @@ fun GeolocationScreen(viewModel: GeolocationViewModel, deviceRepository: DeviceR
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .zIndex(1f),
             horizontalAlignment = Alignment.End
         ) {
+            Text(
+                text = "Track device locations on a map.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }

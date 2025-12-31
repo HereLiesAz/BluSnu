@@ -30,15 +30,17 @@ fun BtlejuiceScreen(
     gattTraffic: GattTraffic
 ) {
     var selectedDevice by remember { mutableStateOf<TargetDevice?>(null) }
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = screenHeight * 0.2f),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.TopEnd
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Man-in-the-Middle attack framework for BLE.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
             HardwareStatus(hardwareState, onConnectHardware, onConnectDual)
             Spacer(modifier = Modifier.height(16.dp))
 

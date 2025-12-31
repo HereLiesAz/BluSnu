@@ -6,7 +6,8 @@ import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.edit
@@ -96,7 +98,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
     private val _hasPermissions = MutableStateFlow(false)
     val hasPermissions: StateFlow<Boolean> = _hasPermissions
@@ -164,6 +166,9 @@ class MainActivity : ComponentActivity() {
                     modelClass.isAssignableFrom(ReportingViewModel::class.java) -> {
                         ReportingViewModel(application) as T
                     }
+                    modelClass.isAssignableFrom(BluetoothLogViewModel::class.java) -> {
+                        BluetoothLogViewModel(application, bluetoothLog, deviceRepository) as T
+                    }
                     modelClass.isAssignableFrom(SettingsViewModel::class.java) -> {
                         SettingsViewModel(application) as T
                     }
@@ -192,7 +197,9 @@ class MainActivity : ComponentActivity() {
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
+        supportActionBar?.hide()
 
         vulnerabilityCorrelator.loadVulnerabilities()
 
@@ -207,7 +214,7 @@ class MainActivity : ComponentActivity() {
                 if (showDisclaimer) {
                     DisclaimerDialog { agreed ->
                         if (agreed) {
-                            simulateDatabaseBackup()
+                            performDatabaseBackup()
                         }
                         getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).edit {
                             putBoolean(
@@ -244,7 +251,8 @@ class MainActivity : ComponentActivity() {
                                 AzNavRail(
                                     navController = navController,
                                     currentDestination = currentDestination,
-                                    isLandscape = isLandscape
+                                    isLandscape = isLandscape,
+                                    modifier = Modifier.zIndex(10f)
                                 ) {
                                     azSettings(
                                         packRailButtons = true,
@@ -253,7 +261,7 @@ class MainActivity : ComponentActivity() {
                                     )
 
                                     // Monitor
-                                    azRailHostItem(id = "monitor", text = "Monitor", route = "monitor")
+                                    azRailHostItem(id = "monitor", text = "Monitor", onClick = {})
                                     azRailSubItem(id = "dashboard", hostId = "monitor", text = "Dashboard", route = "dashboard")
                                     azRailSubItem(id = "targets", hostId = "monitor", text = "Targets", route = "targets")
                                     azRailSubItem(id = "geolocation", hostId = "monitor", text = "Location", route = "geolocation")
@@ -261,26 +269,26 @@ class MainActivity : ComponentActivity() {
                                     azRailSubItem(id = "bluetooth_log", hostId = "monitor", text = "Log", route = "bluetooth_log")
 
                                     // Classic Attacks
-                                    azRailHostItem(id = "classic_attacks", text = "Classic", route = "classic_attacks")
+                                    azRailHostItem(id = "classic_attacks", text = "Classic", onClick = {})
                                     azRailSubItem(id = "bluebugging", hostId = "classic_attacks", text = "Bugging", route = "bluebugging")
                                     azRailSubItem(id = "bluesnarfing", hostId = "classic_attacks", text = "Snarfing", route = "bluesnarfing")
                                     azRailSubItem(id = "bluesmack", hostId = "classic_attacks", text = "Smack", route = "bluesmack")
 
                                     // BLE Attacks
-                                    azRailHostItem(id = "ble_attacks", text = "BLE", route = "ble_attacks")
+                                    azRailHostItem(id = "ble_attacks", text = "BLE", onClick = {})
                                     azRailSubItem(id = "gattfuzzing", hostId = "ble_attacks", text = "Fuzzing", route = "gattfuzzing")
                                     azRailSubItem(id = "btlejacking", hostId = "ble_attacks", text = "Jacking", route = "btlejacking")
                                     azRailSubItem(id = "btlejuice", hostId = "ble_attacks", text = "Juice", route = "btlejuice")
 
                                     // Advanced
-                                    azRailHostItem(id = "advanced", text = "Advanced", route = "advanced")
+                                    azRailHostItem(id = "advanced", text = "Advanced", onClick = {})
                                     azRailSubItem(id = "spoofing", hostId = "advanced", text = "Spoofing", route = "spoofing")
                                     azRailSubItem(id = "keystroke_injection", hostId = "advanced", text = "Injection", route = "keystroke_injection")
                                     azRailSubItem(id = "attack_chaining", hostId = "advanced", text = "Chaining", route = "attack_chaining")
                                     azRailSubItem(id = "raw_commands", hostId = "advanced", text = "Raw Cmds", route = "raw_commands")
 
                                     // System
-                                    azRailHostItem(id = "system", text = "System", route = "system")
+                                    azRailHostItem(id = "system", text = "System", onClick = {})
                                     azRailSubItem(id = "magisk", hostId = "system", text = "Magisk", route = "magisk")
                                     azRailSubItem(id = "settings", hostId = "system", text = "Settings", route = "settings")
                                 }
@@ -288,19 +296,12 @@ class MainActivity : ComponentActivity() {
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .padding(top = tenPercentHeight)
+                                        .padding(top = tenPercentHeight) // 20% total padding for content (10% from Row + 10% here)
                                 ) {
                                     NavHost(
                                         navController = navController,
                                         startDestination = "dashboard"
                                     ) {
-                                        // Category Hosts Placeholders
-                                        composable("monitor") { Text("Monitor") }
-                                        composable("classic_attacks") { Text("Classic Attacks") }
-                                        composable("ble_attacks") { Text("BLE Attacks") }
-                                        composable("advanced") { Text("Advanced Tools") }
-                                        composable("system") { Text("System") }
-
                                         composable("dashboard") {
                                             val viewModel: DashboardViewModel = viewModel(factory = viewModelFactory)
                                             val state by viewModel.state.collectAsState()
@@ -310,12 +311,21 @@ class MainActivity : ComponentActivity() {
                                                 devicesWithLocation = state.devicesWithLocation,
                                                 savedSessions = state.savedSessions,
                                                 attackChainTemplates = state.attackChainTemplates,
-                                                onStartScanClicked = { navController.navigate("targets") }
+                                                onStartScanClicked = { navController.navigate("targets?startScan=true") }
                                             )
                                         }
-                                        composable("targets") {
+                                        composable(
+                                            "targets?startScan={startScan}",
+                                            arguments = listOf(
+                                                navArgument("startScan") {
+                                                    type = NavType.BoolType
+                                                    defaultValue = false
+                                                }
+                                            )
+                                        ) { backStackEntry ->
+                                            val startScan = backStackEntry.arguments?.getBoolean("startScan") ?: false
                                             val viewModel: DeviceManagementViewModel = viewModel(factory = viewModelFactory)
-                                            DeviceManagementScreen(viewModel = viewModel) {
+                                            DeviceManagementScreen(viewModel = viewModel, startScan = startScan) {
                                                 val targetDeviceJson = Gson().toJson(it)
                                                 navController.navigate("btlejuice?targetDevice=$targetDeviceJson")
                                             }
@@ -445,11 +455,19 @@ class MainActivity : ComponentActivity() {
         requestPermissionsLauncher.launch(requiredPermissions.toTypedArray())
     }
 
-    private fun simulateDatabaseBackup() {
-        // In a real app, this would connect to a cloud service and upload the database.
-        // For now, we'll just log a message.
+    private fun performDatabaseBackup() {
+        val prefs = getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE)
+        val backupUrl = prefs.getString("backup_url", "https://example.com/backup") ?: return
+
         CoroutineScope(Dispatchers.IO).launch {
-            CloudBackup().backupDatabase()
+            val cloudBackup = CloudBackup(applicationContext, httpClient)
+            val success = cloudBackup.backupDatabase(backupUrl)
+            if (success) {
+                // Ideally show a notification or toast on Main thread
+                println("Backup successful")
+            } else {
+                println("Backup failed")
+            }
         }
     }
 }

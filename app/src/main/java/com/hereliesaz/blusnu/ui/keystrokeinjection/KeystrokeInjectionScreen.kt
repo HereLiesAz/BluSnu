@@ -40,13 +40,10 @@ fun KeystrokeInjectionScreen(
     onDeviceSelected: (com.hereliesaz.blusnu.data.TargetDevice) -> Unit
 ) {
     var textToSend by remember { mutableStateOf("") }
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     var expanded by remember { mutableStateOf(false) }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = screenHeight * 0.2f),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.TopEnd
     ) {
         Column(
@@ -56,6 +53,11 @@ fun KeystrokeInjectionScreen(
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            Text(
+                text = "Inject keystrokes via HID emulation.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }
