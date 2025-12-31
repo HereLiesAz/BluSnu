@@ -220,7 +220,12 @@ class MainActivity : ComponentActivity() {
                 } else {
                     val navController = rememberNavController()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
-                    val currentDestination = navBackStackEntry?.destination?.route
+                    // Normalize route so parameterized destinations like "btlejuice?targetDevice=..."
+                    // match base routes such as "btlejuice" in the navigation rail.
+                    val currentDestination = navBackStackEntry
+                        ?.destination
+                        ?.route
+                        ?.substringBefore("?")
                     val configuration = LocalConfiguration.current
                     val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
 
@@ -229,12 +234,12 @@ class MainActivity : ComponentActivity() {
                         color = MaterialTheme.colorScheme.background
                     ) {
                         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                             val topMargin = maxHeight * 0.1f
+                             val tenPercentHeight = maxHeight * 0.1f
 
                              Row(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .padding(top = topMargin)
+                                    .padding(top = tenPercentHeight)
                              ) {
                                 AzNavRail(
                                     navController = navController,
@@ -280,7 +285,11 @@ class MainActivity : ComponentActivity() {
                                     azRailSubItem(id = "settings", hostId = "system", text = "Settings", route = "settings")
                                 }
 
-                                Box(modifier = Modifier.weight(1f)) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(top = tenPercentHeight)
+                                ) {
                                     NavHost(
                                         navController = navController,
                                         startDestination = "dashboard"
