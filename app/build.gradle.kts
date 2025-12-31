@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -5,6 +8,22 @@ plugins {
     alias(libs.plugins.kotlin.ksp)
     kotlin("plugin.serialization") version "2.2.20"
 }
+
+// Load version.properties
+val versionProps = Properties()
+val versionPropsFile = file("../version.properties")
+if (versionPropsFile.exists()) {
+    versionProps.load(FileInputStream(versionPropsFile))
+}
+
+val vMajor = versionProps.getProperty("major", "1")
+val vMinor = versionProps.getProperty("minor", "0")
+val vPatch = versionProps.getProperty("patch", "0")
+
+// Calculate version code and name
+// Priority: CI Properties -> version.properties
+val buildCode = project.findProperty("versionCode")?.toString()?.toIntOrNull() ?: 1
+val buildName = project.findProperty("versionName")?.toString() ?: "$vMajor.$vMinor.$vPatch-dev"
 
 android {
     namespace = "com.hereliesaz.blusnu"
@@ -14,8 +33,8 @@ android {
         applicationId = "com.hereliesaz.blusnu"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = buildCode
+        versionName = buildName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
