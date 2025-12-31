@@ -33,16 +33,18 @@ fun GattFuzzingScreen(viewModel: GattFuzzingViewModel) {
     val selectedDevice by viewModel.selectedDevice.collectAsState()
     val devices by viewModel.devices.collectAsState()
     val status by viewModel.status.collectAsState()
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     var expanded by remember { mutableStateOf(false) }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = screenHeight * 0.2f),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.TopEnd
     ) {
         Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = "Fuzz GATT services to find vulnerabilities.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(16.dp)
+            )
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }
