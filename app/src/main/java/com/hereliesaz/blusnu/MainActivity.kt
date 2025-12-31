@@ -220,7 +220,12 @@ class MainActivity : ComponentActivity() {
                 } else {
                     val navController = rememberNavController()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
-                    val currentDestination = navBackStackEntry?.destination?.route
+                    // Normalize route so parameterized destinations like "btlejuice?targetDevice=..."
+                    // match base routes such as "btlejuice" in the navigation rail.
+                    val currentDestination = navBackStackEntry
+                        ?.destination
+                        ?.route
+                        ?.substringBefore("?")
                     val configuration = LocalConfiguration.current
                     val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
 
