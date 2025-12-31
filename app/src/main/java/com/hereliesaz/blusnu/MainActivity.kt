@@ -236,19 +236,14 @@ class MainActivity : AppCompatActivity() {
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) {
-                        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                             val tenPercentHeight = maxHeight * 0.1f
-
-                             Row(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(top = tenPercentHeight)
-                             ) {
-                                AzNavRail(
-                                    navController = navController,
-                                    currentDestination = currentDestination,
-                                    isLandscape = isLandscape
-                                ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            AzNavRail(
+                                navController = navController,
+                                currentDestination = currentDestination,
+                                isLandscape = isLandscape
+                            ) {
                                     azSettings(
                                         packRailButtons = true,
                                         displayAppNameInHeader = false,
@@ -291,7 +286,6 @@ class MainActivity : AppCompatActivity() {
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .padding(top = tenPercentHeight)
                                 ) {
                                     NavHost(
                                         navController = navController,
@@ -424,13 +418,12 @@ class MainActivity : AppCompatActivity() {
                                         }
                                     }
                                 }
-                             }
+                            }
                         }
                     }
                 }
             }
         }
-    }
 
     private fun requestRequiredPermissions() {
         val requiredPermissions = mutableListOf(
