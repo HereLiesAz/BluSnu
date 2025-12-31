@@ -18,10 +18,17 @@ import com.hereliesaz.blusnu.data.TargetDevice
 @Composable
 fun DeviceManagementScreen(
     viewModel: DeviceManagementViewModel,
+    startScan: Boolean = false,
     onNavigateToBtlejuice: (TargetDevice) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     var selectedDevice by remember { mutableStateOf<TargetDevice?>(null) }
+
+    LaunchedEffect(startScan) {
+        if (startScan && !state.isScanning) {
+            viewModel.startScan()
+        }
+    }
 
     if (selectedDevice != null) {
         DeviceDetailsDialog(
@@ -38,6 +45,12 @@ fun DeviceManagementScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
+        Text(
+            text = "Manage and scan for Bluetooth devices.",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(16.dp)
+        )
+
         Button(
             onClick = {
                 if (state.isScanning) {

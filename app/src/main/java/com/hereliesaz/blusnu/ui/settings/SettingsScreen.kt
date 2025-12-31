@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.collectAsState
@@ -22,18 +23,30 @@ import com.hereliesaz.blusnu.ui.components.ScreenTitle
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
     val updateStatus by viewModel.updateStatus.collectAsState()
+    val backupUrl by viewModel.backupUrl.collectAsState()
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = screenHeight * 0.2f),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.TopEnd
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.End
         ) {
+            Text(
+                text = "Application settings and configuration.",
+                style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            TextField(
+                value = backupUrl,
+                onValueChange = { viewModel.updateBackupUrl(it) },
+                label = { Text("Cloud Backup URL") }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
             Button(onClick = { viewModel.checkForUpdates() }) {
                 Text("Check for Database Updates")
             }

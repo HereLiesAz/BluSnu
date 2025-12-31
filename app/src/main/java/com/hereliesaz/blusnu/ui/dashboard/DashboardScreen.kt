@@ -42,15 +42,19 @@ fun DashboardScreen(
 ) {
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(top = screenHeight * 0.2f),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.TopEnd
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.End
         ) {
+            Text(
+                text = "Overview of detected devices and recent activity.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
             // Device Counters
             Card(
                 modifier = Modifier.fillMaxWidth(),

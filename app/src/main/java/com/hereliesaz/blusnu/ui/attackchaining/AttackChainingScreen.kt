@@ -65,10 +65,13 @@ fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
     val state by viewModel.uiState.collectAsState()
     var showAddNodeMenu by remember { mutableStateOf(false) }
     var selectedConnector by remember { mutableStateOf<NodeConnector?>(null) }
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Spacer(modifier = Modifier.height(screenHeight * 0.2f))
+        Text(
+            text = "Visually chain attacks and automate workflows.",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(16.dp)
+        )
         Box(modifier = Modifier.weight(1f)) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 state.connections.forEach { (from, to) ->
