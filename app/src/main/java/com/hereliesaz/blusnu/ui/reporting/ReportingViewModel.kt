@@ -1,12 +1,25 @@
 package com.hereliesaz.blusnu.ui.reporting
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.ActionLogger
+import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.LogEntry
+import com.hereliesaz.blusnu.data.TargetDevice
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
-class ReportingViewModel(application: Application) : AndroidViewModel(application) {
+class ReportingViewModel(
+    application: Application,
+    private val deviceRepository: DeviceRepository? = null // Optional for now to keep backward compat if needed, but should be passed
+) : AndroidViewModel(application) {
 
     val logs: StateFlow<List<LogEntry>> = ActionLogger.logs
 
@@ -20,4 +33,29 @@ class ReportingViewModel(application: Application) : AndroidViewModel(applicatio
         return builder.toString()
     }
 
+    fun exportData(uri: Uri) {
+        if (deviceRepository == null) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val devices = deviceRepository.getAllDevicesOneShot()
+            val json = Gson().toJson(devices)
+            getApplication<Application>().contentResolver.openOutputStream(uri)?.use { outputStream ->
+                outputStream.write(json.toByteArray())
+            }
+        }
+    }
+
+    fun importData(uri: Uri) {
+        if (deviceRepository == null) return
+        viewModelScope.launch(Dispatchers.IO) {
+            getApplication<Application>().contentResolver.openInputStream(uri)?.use { inputStream ->
+                val reader = BufferedReader(InputStreamReader(inputStream))
+                val json = reader.readText()
+                val listType = object : TypeToken<List<TargetDevice>>() {}.type
+                val devices: List<TargetDevice> = Gson().fromJson(json, listType)
+                devices.forEach { device ->
+                    deviceRepository.insert(device)
+                }
+            }
+        }
+    }
 }
