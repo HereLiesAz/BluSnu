@@ -14,37 +14,55 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class BluffsViewModel(
-    private val deviceRepository: DeviceRepository,
-    private val bluffsModule: BluffsModule
-) : ViewModel() {
+class BluffsViewModel(private val deviceRepository: DeviceRepository) : ViewModel() {
+    private val bluffsModule = BluffsModule()
+
+    private val _devices = MutableStateFlow<List<TargetDevice>>(emptyList())
+    val devices: StateFlow<List<TargetDevice>> = _devices
 
     private val _selectedDevice = MutableStateFlow<TargetDevice?>(null)
     val selectedDevice: StateFlow<TargetDevice?> = _selectedDevice
 
-    private val _selectedMode = MutableStateFlow(BluffsMode.A1_SPOOF_LSC_CENTRAL)
+    private val _selectedMode = MutableStateFlow(BluffsMode.A1)
     val selectedMode: StateFlow<BluffsMode> = _selectedMode
 
-    val devices: StateFlow<List<TargetDevice>> = deviceRepository.allDevices
-        .combine(_selectedDevice) { devices, _ ->
-            devices.filter { it.protocol == Protocol.CLASSIC || it.protocol == Protocol.DUAL }
+    private val _isRunning = MutableStateFlow(false)
+    val isRunning: StateFlow<Boolean> = _isRunning
+
+    private val _logs = MutableStateFlow<List<String>>(emptyList())
+    val logs: StateFlow<List<String>> = _logs
+
+    init {
+        viewModelScope.launch {
+            deviceRepository.allDevices.collect { allDevices ->
+                // BLUFFS targets BR/EDR (Classic)
+                _devices.value = allDevices.filter {
+                    it.protocol == Protocol.CLASSIC || it.protocol == Protocol.DUAL
+                }
+            }
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    }
 
-    val logs: StateFlow<List<String>> = bluffsModule.logs
-
-    fun onDeviceSelected(device: TargetDevice) {
+    fun selectDevice(device: TargetDevice) {
         _selectedDevice.value = device
     }
 
-    fun onModeSelected(mode: BluffsMode) {
+    fun selectMode(mode: BluffsMode) {
         _selectedMode.value = mode
     }
 
     fun startAttack() {
-        val device = selectedDevice.value ?: return
+        val device = _selectedDevice.value ?: return
+        if (_isRunning.value) return
+
+        _isRunning.value = true
+        _logs.value = emptyList()
+
         viewModelScope.launch {
-            bluffsModule.runAttack(device.macAddress, selectedMode.value)
+            bluffsModule.startAttack(device, _selectedMode.value).collect { log ->
+                _logs.update { it + log }
+            }
+            _isRunning.value = false
         }
     }
 }

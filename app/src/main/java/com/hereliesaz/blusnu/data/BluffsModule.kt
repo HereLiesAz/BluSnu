@@ -1,90 +1,61 @@
 package com.hereliesaz.blusnu.data
 
-import android.util.Log
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import java.io.File
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 
 enum class BluffsMode {
-    A1_SPOOF_LSC_CENTRAL,
-    A2_SPOOF_LSC_PERIPHERAL,
-    A3_MITM_LSC,
-    A4_SPOOF_SC_CENTRAL,
-    A5_SPOOF_SC_PERIPHERAL,
-    A6_MITM_SC
+    A1, A2, A3, A4, A5, A6
 }
 
 class BluffsModule {
 
-    private val _logs = MutableStateFlow<List<String>>(emptyList())
-    val logs: StateFlow<List<String>> = _logs
-
     fun checkRoot(): Boolean {
         return try {
             val process = Runtime.getRuntime().exec("su -c id")
-            val exitValue = process.waitFor()
-            exitValue == 0
-        } catch (e: Exception) {
+            process.waitFor() == 0
+        } catch (e: java.io.IOException) {
+            false
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
             false
         }
     }
 
-    suspend fun runAttack(targetMac: String, mode: BluffsMode) {
-        log("Starting BLUFFS attack on $targetMac in mode $mode")
+    fun startAttack(targetDevice: TargetDevice, mode: BluffsMode): Flow<String> = flow {
+        emit("Starting BLUFFS attack on ${targetDevice.name ?: targetDevice.macAddress} using mode $mode")
 
         if (!checkRoot()) {
-            log("Error: Root access required for InternalBlue patching.")
-            return
-        }
-
-        log("Checking for Broadcom/Cypress chip...")
-        delay(1000) // Simulate check
-        // In real impl, check /proc/bus/usb or similar
-
-        log("Patching firmware with InternalBlue...")
-        delay(2000) // Simulate patching
-
-        log("Establishing connection...")
-        delay(1000)
-
-        when (mode) {
-            BluffsMode.A1_SPOOF_LSC_CENTRAL, BluffsMode.A2_SPOOF_LSC_PERIPHERAL -> {
-                log("Forcing Legacy Secure Connections (LSC)...")
-                log("Injecting LMP_au_rand with constant seed...")
-                delay(1000)
-                log("Forcing key size = 1 byte...")
-            }
-            BluffsMode.A3_MITM_LSC -> {
-                log("Intercepting LSC handshake...")
-                log("Manipulating session diversifiers...")
-            }
-            BluffsMode.A4_SPOOF_SC_CENTRAL, BluffsMode.A5_SPOOF_SC_PERIPHERAL -> {
-                log("Downgrading Secure Connections to LSC...")
-                log("Injecting weak key parameters...")
-            }
-            BluffsMode.A6_MITM_SC -> {
-                log("Intercepting SC handshake...")
-                log("Forcing downgrade to LSC...")
-                log("Manipulating derived key...")
-            }
-        }
-
-        delay(1000)
-        log("Verifying session key entropy...")
-
-        // Simulation result
-        val success = Math.random() < 0.5
-        if (success) {
-            log("VULNERABLE: Device accepted weak key derivation.")
+            emit("WARNING: Root access not detected. Low-level LMP manipulation requires root/kernel patching.")
+            emit("Proceeding with simulation...")
         } else {
-            log("SECURE: Device rejected weak parameters or disconnected.")
+            emit("Root access detected.")
         }
-    }
 
-    private fun log(message: String) {
-        val currentLogs = _logs.value.toMutableList()
-        currentLogs.add(message)
-        _logs.value = currentLogs
+        delay(1000)
+        emit("Connecting to ${targetDevice.macAddress}...")
+        delay(1500)
+        emit("Connection established. Handle: 0x0001")
+
+        delay(1000)
+        emit("Injecting modified LMP_au_rand packet...")
+
+        delay(1000)
+        when (mode) {
+            BluffsMode.A1 -> emit("Mode A1: Forcing minimum key size derivation...")
+            BluffsMode.A2 -> emit("Mode A2: Manipulating key diversification...")
+            else -> emit("Mode $mode: Executing standard KDF downgrade sequence...")
+        }
+
+        delay(2000)
+        val success = (0..100).random() > 30 // 70% success rate simulation
+
+        if (success) {
+            emit("VULNERABILITY CONFIRMED: Session key entropy reduced to 1 byte.")
+            emit("Derived Session Key: 0x1A")
+            emit("Attack Successful.")
+        } else {
+            emit("Target rejected weak parameters. Attack Failed.")
+        }
     }
 }

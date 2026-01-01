@@ -1,13 +1,19 @@
 package com.hereliesaz.blusnu.ui.bluffs
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -25,107 +31,131 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.BluffsMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BluffsScreen(viewModel: BluffsViewModel) {
+    val devices by viewModel.devices.collectAsState()
     val selectedDevice by viewModel.selectedDevice.collectAsState()
     val selectedMode by viewModel.selectedMode.collectAsState()
-    val devices by viewModel.devices.collectAsState()
+    val isRunning by viewModel.isRunning.collectAsState()
     val logs by viewModel.logs.collectAsState()
-    var expandedDevice by remember { mutableStateOf(false) }
-    var expandedMode by remember { mutableStateOf(false) }
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.End
+    var deviceExpanded by remember { mutableStateOf(false) }
+    var modeExpanded by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopEnd
     ) {
-        Text(
-            text = "BLUFFS (CVE-2023-24023) Auditor\n\n" +
-                   "Tests for Bluetooth Forward and Future Secrecy vulnerabilities by manipulating LMP parameters to force weak key derivation.",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        // Device Selection
-        ExposedDropdownMenuBox(
-            expanded = expandedDevice,
-            onExpandedChange = { expandedDevice = !expandedDevice }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            TextField(
-                value = selectedDevice?.name ?: "Select a target device",
-                onValueChange = {},
-                readOnly = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDevice) },
-                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
+            Text(
+                text = "BLUFFS (CVE-2023-24023) Attack",
+                style = MaterialTheme.typography.headlineSmall
             )
-            ExposedDropdownMenu(
-                expanded = expandedDevice,
-                onDismissRequest = { expandedDevice = false }
+            Text(
+                text = "Attempts to downgrade Bluetooth Classic session key security using LMP manipulation.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error
+            )
+
+            // Device Selection
+            ExposedDropdownMenuBox(
+                expanded = deviceExpanded,
+                onExpandedChange = { deviceExpanded = !deviceExpanded }
             ) {
-                devices.forEach { device ->
-                    val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
-                    val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
-                    DropdownMenuItem(
-                        text = { Text(device.name ?: "Unknown", color = textColor) },
-                        onClick = {
-                            viewModel.onDeviceSelected(device)
-                            expandedDevice = false
-                        }
-                    )
+                TextField(
+                    value = selectedDevice?.name ?: "Select Target Device",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Target Device (Classic/Dual)") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = deviceExpanded) },
+                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = !isRunning)
+                )
+                ExposedDropdownMenu(
+                    expanded = deviceExpanded,
+                    onDismissRequest = { deviceExpanded = false }
+                ) {
+                    devices.forEach { device ->
+                        DropdownMenuItem(
+                            text = { Text(device.name ?: device.macAddress) },
+                            onClick = {
+                                viewModel.selectDevice(device)
+                                deviceExpanded = false
+                            }
+                        )
+                    }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Mode Selection
-        ExposedDropdownMenuBox(
-            expanded = expandedMode,
-            onExpandedChange = { expandedMode = !expandedMode }
-        ) {
-            TextField(
-                value = selectedMode.name,
-                onValueChange = {},
-                readOnly = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedMode) },
-                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
-            )
-            ExposedDropdownMenu(
-                expanded = expandedMode,
-                onDismissRequest = { expandedMode = false }
+            // Mode Selection
+            ExposedDropdownMenuBox(
+                expanded = modeExpanded,
+                onExpandedChange = { modeExpanded = !modeExpanded }
             ) {
-                BluffsMode.values().forEach { mode ->
-                    DropdownMenuItem(
-                        text = { Text(mode.name) },
-                        onClick = {
-                            viewModel.onModeSelected(mode)
-                            expandedMode = false
-                        }
-                    )
+                TextField(
+                    value = selectedMode.name,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Attack Mode") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modeExpanded) },
+                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = !isRunning)
+                )
+                ExposedDropdownMenu(
+                    expanded = modeExpanded,
+                    onDismissRequest = { modeExpanded = false }
+                ) {
+                    BluffsMode.values().forEach { mode ->
+                        DropdownMenuItem(
+                            text = { Text(mode.name) },
+                            onClick = {
+                                viewModel.selectMode(mode)
+                                modeExpanded = false
+                            }
+                        )
+                    }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = { viewModel.startAttack() },
-            enabled = selectedDevice != null
-        ) {
-            Text("Start Audit")
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            items(logs) { log ->
-                Text(log)
+            // Logs
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .background(Color.DarkGray.copy(alpha = 0.3f))
+                    .padding(8.dp)
+            ) {
+                LazyColumn(reverseLayout = true) {
+                    items(logs) { log ->
+                        Text(text = log, style = MaterialTheme.typography.bodySmall, color = Color.White)
+                    }
+                }
             }
+
+            if (isRunning) {
+                CircularProgressIndicator()
+            }
+
+            Button(
+                onClick = { viewModel.startAttack() },
+                enabled = selectedDevice != null && !isRunning,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (isRunning) "ATTACK IN PROGRESS..." else "EXECUTE ATTACK")
+            }
+
+            Spacer(modifier = Modifier.fillMaxWidth().height(screenHeight * 0.1f))
         }
     }
 }
