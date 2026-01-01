@@ -8,6 +8,7 @@ import com.hereliesaz.blusnu.data.BtlejackingState
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.HardwareManager
 import com.hereliesaz.blusnu.data.HardwareState
+import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.TargetDevice
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,7 +48,8 @@ class BtlejackingViewModel(
 
         deviceRepository.allDevices
             .onEach { devices ->
-                _state.value = _state.value.copy(discoveredDevices = devices)
+                val bleDevices = devices.filter { it.protocol == Protocol.BLE || it.protocol == Protocol.DUAL }
+                _state.value = _state.value.copy(discoveredDevices = bleDevices)
             }
             .launchIn(viewModelScope)
 

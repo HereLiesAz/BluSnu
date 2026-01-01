@@ -47,7 +47,8 @@ fun BluesnarfingScreen(viewModel: BluesnarfingViewModel, hasPermissions: Boolean
     ) {
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = "Unauthorized access to device information.",
+                text = "Bluesnarfing exploits OBEX (Object Exchange) over Bluetooth to steal contacts, calendar entries, and other data.\n\n" +
+                       "This attack targets Classic Bluetooth. While effective on older feature phones and early smartphones, modern devices usually require explicit pairing or user confirmation for OBEX transfers.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(16.dp)
             )
