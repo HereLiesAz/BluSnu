@@ -57,12 +57,18 @@ import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingScreen
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingViewModel
 import com.hereliesaz.blusnu.ui.bluetoothlog.BluetoothLogScreen
 import com.hereliesaz.blusnu.ui.bluetoothlog.BluetoothLogViewModel
+import com.hereliesaz.blusnu.ui.blespam.BleSpamScreen
+import com.hereliesaz.blusnu.ui.blespam.BleSpamViewModel
 import com.hereliesaz.blusnu.ui.bluebugging.BluebuggingScreen
 import com.hereliesaz.blusnu.ui.bluebugging.BluebuggingViewModel
 import com.hereliesaz.blusnu.ui.bluesmack.BlueSmackScreen
 import com.hereliesaz.blusnu.ui.bluesmack.BlueSmackViewModel
 import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen
 import com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingViewModel
+import com.hereliesaz.blusnu.ui.bluffs.BluffsScreen
+import com.hereliesaz.blusnu.ui.bluffs.BluffsViewModel
+import com.hereliesaz.blusnu.ui.braktooth.BrakToothScreen
+import com.hereliesaz.blusnu.ui.braktooth.BrakToothViewModel
 import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingScreen
 import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingViewModel
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceScreen
@@ -74,6 +80,8 @@ import com.hereliesaz.blusnu.ui.devicemanagement.DeviceManagementScreen
 import com.hereliesaz.blusnu.ui.devicemanagement.DeviceManagementViewModel
 import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingScreen
 import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingViewModel
+import com.hereliesaz.blusnu.ui.gattrelay.GattRelayScreen
+import com.hereliesaz.blusnu.ui.gattrelay.GattRelayViewModel
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationScreen
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationViewModel
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
@@ -82,10 +90,14 @@ import com.hereliesaz.blusnu.ui.reporting.ReportingScreen
 import com.hereliesaz.blusnu.ui.rawcommands.RawCommandsScreen
 import com.hereliesaz.blusnu.ui.magisk.MagiskScreen
 import com.hereliesaz.blusnu.ui.magisk.MagiskViewModel
+import com.hereliesaz.blusnu.ui.perfektblue.PerfektBlueScreen
+import com.hereliesaz.blusnu.ui.perfektblue.PerfektBlueViewModel
 import com.hereliesaz.blusnu.ui.rawcommands.RawCommandsViewModel
 import com.hereliesaz.blusnu.ui.reporting.ReportingViewModel
 import com.hereliesaz.blusnu.ui.settings.SettingsScreen
 import com.hereliesaz.blusnu.ui.settings.SettingsViewModel
+import com.hereliesaz.blusnu.ui.smpbypass.SmpBypassScreen
+import com.hereliesaz.blusnu.ui.smpbypass.SmpBypassViewModel
 import com.hereliesaz.blusnu.ui.spoofing.SpoofingScreen
 import com.hereliesaz.blusnu.ui.spoofing.SpoofingViewModel
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
@@ -94,7 +106,6 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import org.osmdroid.config.Configuration
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -142,6 +153,12 @@ class MainActivity : AppCompatActivity() {
                     modelClass.isAssignableFrom(BluesnarfingViewModel::class.java) -> {
                         BluesnarfingViewModel(application, deviceRepository) as T
                     }
+                    modelClass.isAssignableFrom(BluffsViewModel::class.java) -> {
+                        BluffsViewModel(deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(BrakToothViewModel::class.java) -> {
+                        BrakToothViewModel(deviceRepository) as T
+                    }
                     modelClass.isAssignableFrom(GattFuzzingViewModel::class.java) -> {
                         GattFuzzingViewModel(application, deviceRepository) as T
                     }
@@ -151,6 +168,12 @@ class MainActivity : AppCompatActivity() {
                     }
                     modelClass.isAssignableFrom(BtlejuiceViewModel::class.java) -> {
                         BtlejuiceViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(BleSpamViewModel::class.java) -> {
+                        BleSpamViewModel() as T
+                    }
+                    modelClass.isAssignableFrom(GattRelayViewModel::class.java) -> {
+                        GattRelayViewModel() as T
                     }
                     modelClass.isAssignableFrom(GeolocationViewModel::class.java) -> {
                         GeolocationViewModel(application, deviceRepository) as T
@@ -187,6 +210,12 @@ class MainActivity : AppCompatActivity() {
                     modelClass.isAssignableFrom(MagiskViewModel::class.java) -> {
                         MagiskViewModel() as T
                     }
+                    modelClass.isAssignableFrom(PerfektBlueViewModel::class.java) -> {
+                        PerfektBlueViewModel(deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(SmpBypassViewModel::class.java) -> {
+                        SmpBypassViewModel() as T
+                    }
                     else -> throw IllegalArgumentException("Unknown ViewModel class")
                 }
             }
@@ -202,9 +231,6 @@ class MainActivity : AppCompatActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         supportActionBar?.hide()
-
-        // Configure osmdroid
-        Configuration.getInstance().userAgentValue = BuildConfig.APPLICATION_ID
 
         vulnerabilityCorrelator.loadVulnerabilities()
 
@@ -278,12 +304,16 @@ class MainActivity : AppCompatActivity() {
                                     azRailSubItem(id = "bluebugging", hostId = "classic_attacks", text = "Bugging", route = "bluebugging")
                                     azRailSubItem(id = "bluesnarfing", hostId = "classic_attacks", text = "Snarfing", route = "bluesnarfing")
                                     azRailSubItem(id = "bluesmack", hostId = "classic_attacks", text = "Smack", route = "bluesmack")
+                                    azRailSubItem(id = "bluffs", hostId = "classic_attacks", text = "BLUFFS", route = "bluffs")
+                                    azRailSubItem(id = "braktooth", hostId = "classic_attacks", text = "BrakTooth", route = "braktooth")
 
                                     // BLE Attacks
                                     azRailHostItem(id = "ble_attacks", text = "BLE", onClick = {})
                                     azRailSubItem(id = "gattfuzzing", hostId = "ble_attacks", text = "Fuzzing", route = "gattfuzzing")
                                     azRailSubItem(id = "btlejacking", hostId = "ble_attacks", text = "Jacking", route = "btlejacking")
                                     azRailSubItem(id = "btlejuice", hostId = "ble_attacks", text = "Juice", route = "btlejuice")
+                                    azRailSubItem(id = "blespam", hostId = "ble_attacks", text = "BLE Spam", route = "blespam")
+                                    azRailSubItem(id = "gattrelay", hostId = "ble_attacks", text = "Relay", route = "gattrelay")
 
                                     // Advanced
                                     azRailHostItem(id = "advanced", text = "Advanced", onClick = {})
@@ -291,6 +321,8 @@ class MainActivity : AppCompatActivity() {
                                     azRailSubItem(id = "keystroke_injection", hostId = "advanced", text = "Injection", route = "keystroke_injection")
                                     azRailSubItem(id = "attack_chaining", hostId = "advanced", text = "Chaining", route = "attack_chaining")
                                     azRailSubItem(id = "raw_commands", hostId = "advanced", text = "Raw Cmds", route = "raw_commands")
+                                    azRailSubItem(id = "perfektblue", hostId = "advanced", text = "PerfektBlue", route = "perfektblue")
+                                    azRailSubItem(id = "smpbypass", hostId = "advanced", text = "SMP Bypass", route = "smpbypass")
 
                                     // System
                                     azRailHostItem(id = "system", text = "System", onClick = {})
@@ -343,6 +375,14 @@ class MainActivity : AppCompatActivity() {
                                         composable("bluesnarfing") {
                                             val viewModel: BluesnarfingViewModel = viewModel(factory = viewModelFactory)
                                             com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen(viewModel = viewModel, hasPermissions = hasPermissions)
+                                        }
+                                        composable("bluffs") {
+                                            val viewModel: BluffsViewModel = viewModel(factory = viewModelFactory)
+                                            BluffsScreen(viewModel = viewModel)
+                                        }
+                                        composable("braktooth") {
+                                            val viewModel: BrakToothViewModel = viewModel(factory = viewModelFactory)
+                                            BrakToothScreen(viewModel = viewModel)
                                         }
                                         composable("btlejacking") {
                                             val viewModel: BtlejackingViewModel = viewModel(factory = viewModelFactory)
@@ -401,6 +441,14 @@ class MainActivity : AppCompatActivity() {
                                             val viewModel: GattFuzzingViewModel = viewModel(factory = viewModelFactory)
                                             GattFuzzingScreen(viewModel = viewModel)
                                         }
+                                        composable("blespam") {
+                                            val viewModel: BleSpamViewModel = viewModel(factory = viewModelFactory)
+                                            BleSpamScreen(viewModel = viewModel)
+                                        }
+                                        composable("gattrelay") {
+                                            val viewModel: GattRelayViewModel = viewModel(factory = viewModelFactory)
+                                            GattRelayScreen(viewModel = viewModel)
+                                        }
                                         composable("bluesmack") {
                                             val viewModel: BlueSmackViewModel = viewModel(factory = viewModelFactory)
                                             BlueSmackScreen(viewModel = viewModel)
@@ -419,6 +467,14 @@ class MainActivity : AppCompatActivity() {
                                                 onDeviceSelected = viewModel::onDeviceSelected,
                                                 onStartMitmAttack = viewModel::onStartMitmAttack
                                             )
+                                        }
+                                        composable("perfektblue") {
+                                            val viewModel: PerfektBlueViewModel = viewModel(factory = viewModelFactory)
+                                            PerfektBlueScreen(viewModel = viewModel)
+                                        }
+                                        composable("smpbypass") {
+                                            val viewModel: SmpBypassViewModel = viewModel(factory = viewModelFactory)
+                                            SmpBypassScreen(viewModel = viewModel)
                                         }
                                         composable("bluetooth_log") {
                                             val viewModel: BluetoothLogViewModel = viewModel(factory = viewModelFactory)
