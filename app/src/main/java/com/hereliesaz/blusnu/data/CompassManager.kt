@@ -36,7 +36,6 @@ class CompassManager(context: Context) {
                     event.values.copyInto(geomagnetic)
                     hasGeomagnetic = true
                 }
-                }
 
                 if (hasGravity && hasGeomagnetic) {
                     val R = FloatArray(9)

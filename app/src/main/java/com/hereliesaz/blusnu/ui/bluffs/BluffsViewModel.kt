@@ -60,7 +60,7 @@ class BluffsViewModel(private val deviceRepository: DeviceRepository) : ViewMode
 
         viewModelScope.launch {
             bluffsModule.startAttack(device, _selectedMode.value).collect { log ->
-                _logs.update { it + log }
+                _logs.value = _logs.value + log
             }
             _isRunning.value = false
         }

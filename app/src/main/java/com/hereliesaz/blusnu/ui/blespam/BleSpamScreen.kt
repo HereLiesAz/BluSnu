@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.PayloadType
 
@@ -38,6 +39,7 @@ fun BleSpamScreen(viewModel: BleSpamViewModel) {
     val isAdvertising by viewModel.isAdvertising.collectAsState()
     val selectedPayloadType by viewModel.selectedPayloadType.collectAsState()
     var expanded by remember { mutableStateOf(false) }
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -108,6 +110,8 @@ fun BleSpamScreen(viewModel: BleSpamViewModel) {
             ) {
                 Text(if (isAdvertising) "STOP ATTACK" else "START ATTACK")
             }
+
+            Spacer(modifier = Modifier.fillMaxWidth().height(screenHeight * 0.1f))
         }
     }
 }

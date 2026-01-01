@@ -1,67 +1,59 @@
 package com.hereliesaz.blusnu.data
 
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+
+enum class BrakToothVector(val description: String) {
+    V1_LMP_Feature_Response_Flooding("Crash via Feature Response Flooding"),
+    V2_LMP_AuRand_Flooding("Crash via AuRand Flooding"),
+    V4_LMP_Feature_Response_Deduplication("Deadlock via Feature Response Deduplication"),
+    V6_LMP_Timing_Attack("Timing Attack on LMP State Machine"),
+    V13_LMP_Max_Slot_Length_Overflow("Buffer Overflow via Max Slot Length")
+}
 
 class BrakToothModule {
 
-    private val _connectionStatus = MutableStateFlow("Disconnected")
-    val connectionStatus: StateFlow<String> = _connectionStatus
-
-    private val _logs = MutableStateFlow<List<String>>(emptyList())
-    val logs: StateFlow<List<String>> = _logs
-
-    private var isConnected = false
-
-    suspend fun connectToEsp32() {
-        log("Attempting to connect to ESP32 dongle via USB-OTG...")
-        _connectionStatus.value = "Connecting..."
-        delay(1500) // Simulate connection delay
-
-        // Simulation: 50% chance of finding the dongle
-        val success = Math.random() < 0.8 // high success for demo
-        if (success) {
-            isConnected = true
-            _connectionStatus.value = "Connected (ESP32 - BrakTooth Fuzzer)"
-            log("Connected to ESP32 firmware v1.0")
-        } else {
-            isConnected = false
-            _connectionStatus.value = "Connection Failed"
-            log("Error: No supported ESP32 device found.")
-        }
+    suspend fun checkHardware(): Boolean {
+        delay(1000) // Simulate USB enumeration
+        // Simulation: 80% chance of finding the dongle
+        return (1..10).random() > 2
     }
 
-    suspend fun runCrashTest(targetMac: String) {
-        if (!isConnected) {
-            log("Error: Must connect to ESP32 hardware first.")
-            return
-        }
+    fun startFuzzing(targetDevice: TargetDevice, vector: BrakToothVector): Flow<String> = flow {
+        emit("Initializing BrakTooth Fuzzer...")
+        emit("Target: ${targetDevice.name ?: targetDevice.macAddress}")
+        emit("Vector: ${vector.name}")
 
-        log("Targeting $targetMac for BrakTooth crash test...")
+        delay(800)
+        emit("Connecting to ESP32 firmware via /dev/ttyUSB0...")
+        delay(800)
+        emit("ESP32: Firmware v1.0.4 (BrakTooth Patched) Ready.")
+
+        delay(1000)
+        emit("Syncing with target clock (Page Scan)...")
+        delay(1500)
+        emit("Target locked. RSSI: -45dBm")
+
         delay(500)
+        emit("Starting injection sequence: ${vector.description}")
 
-        // Simulate sending commands to ESP32
-        log("Sending LMP_feature_req flood...")
-        delay(1000)
-        log("Sending oversized LMP packet...")
-        delay(1000)
-
-        log("Monitoring target responsiveness...")
-        delay(2000)
-
-        // Simulation result
-        val crashed = Math.random() < 0.3
-        if (crashed) {
-            log("CRITICAL: Target stopped responding (Potential Crash/DoS).")
-        } else {
-            log("Target appears stable.")
+        // Simulate packet injection loop
+        for (i in 1..5) {
+            delay(600)
+            emit("Injecting Malformed Packet batch #$i/5...")
         }
-    }
 
-    private fun log(message: String) {
-        val currentLogs = _logs.value.toMutableList()
-        currentLogs.add(message)
-        _logs.value = currentLogs
+        delay(1000)
+        val crashDetected = (1..100).random() > 40 // 60% success rate
+
+        if (crashDetected) {
+            emit("CRASH DETECTED: Target stopped responding to L2CAP pings.")
+            emit("Vulnerability Confirmed: ${vector.name}")
+        } else {
+            emit("Target resilient. No crash detected.")
+        }
+
+        emit("Fuzzing session complete.")
     }
 }
