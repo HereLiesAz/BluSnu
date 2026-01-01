@@ -78,7 +78,6 @@ dependencies {
     implementation(libs.aznavrail)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.fragment)
-    implementation(libs.osmdroid.android)
     implementation(libs.play.services.location)
     implementation(libs.ktor.client.android)
     implementation(libs.ktor.client.content.negotiation)
