@@ -47,15 +47,15 @@ This document outlines the development tasks required to implement the Blu Snu f
 -   [x] **Task 3.3: BlueSmack (L2CAP Flood) Module**
     -   [x] Create the UI for the L2CAP flood attack with controls for packet size and rate.
     -   [x] Implement the logic to open an L2CAP socket and send oversized echo requests. (Requires Elevated Mode)
--   [ ] **Task 3.4: BLUFFS (CVE-2023-24023) Module**
-    -   [ ] Create UI for BLUFFS attack configuration (Modes A1-A6).
-    -   [ ] Implement root detection and InternalBlue patching requirements.
-    -   [ ] Implement logic to manipulate LMP parameters (Key Size, Nonces).
-    -   [ ] Implement vulnerability check (Connection accepts 1-byte key).
--   [ ] **Task 3.5: BrakTooth Module**
-    -   [ ] Create UI for BrakTooth fuzzing control.
-    -   [ ] Implement external hardware interface (ESP32 via USB-OTG) or InternalBlue logic.
-    -   [ ] Implement LMP packet injection for specific crash vectors.
+- [x] **Task 3.4: BLUFFS (CVE-2023-24023) Module**
+    - [x] Create UI for BLUFFS attack configuration (Modes A1-A6).
+    - [x] Implement root detection and InternalBlue patching requirements (Simulated).
+    - [x] Implement logic to manipulate LMP parameters (Key Size, Nonces) (Simulated).
+    - [x] Implement vulnerability check (Connection accepts 1-byte key) (Simulated).
+- [x] **Task 3.5: BrakTooth Module**
+    - [x] Create UI for BrakTooth fuzzing control.
+    - [x] Implement external hardware interface (ESP32 via USB-OTG) (Simulated).
+    - [x] Implement LMP packet injection for specific crash vectors (Simulated).
 
 ## Milestone 4: Bluetooth Low Energy (BLE) Attack Modules
 
@@ -70,14 +70,14 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Extend the Hardware Manager to support a second external USB BLE dongle.
     -   [x] Create the UI to display and modify intercepted GATT traffic in real-time.
     -   [x] Implement the core proxy logic.
--   [ ] **Task 4.4: BLE Spam (Advertisement Flooding) Module**
-    -   [ ] Create UI to select payload types (Apple, Google, Microsoft).
-    -   [ ] Implement `BluetoothLeAdvertiser` logic to send spoofed packets.
-    -   [ ] Implement MAC address rotation and high-frequency advertising.
--   [ ] **Task 4.5: GATT Relay (Tesla Attack) Module**
-    -   [ ] Create UI for Node A (Car Side) and Node B (Phone Side).
-    -   [ ] Implement WebSocket/MQTT relay between two Android devices.
-    -   [ ] Implement RTT measurement to verify relay viability.
+- [x] **Task 4.4: BLE Spam (Advertisement Flooding) Module**
+    - [x] Create UI to select payload types (Apple, Google, Microsoft).
+    - [x] Implement `BluetoothLeAdvertiser` logic to send spoofed packets.
+    - [x] Implement MAC address rotation and high-frequency advertising.
+-   [x] **Task 4.5: GATT Relay (Tesla Attack) Module**
+    -   [x] Create UI for Node A (Car Side) and Node B (Phone Side).
+    -   [x] Implement WebSocket/MQTT relay between two Android devices (Simulated).
+    -   [x] Implement RTT measurement to verify relay viability (Simulated).
 
 ## Milestone 5: Advanced Signal and Pairing Attacks
 
@@ -93,10 +93,10 @@ This document outlines the development tasks required to implement the Blu Snu f
 -   [x] **Task 5.3: Bluetooth Spoofing Module**
     -   [x] Implement the logic to change the Bluetooth adapter's MAC address. (Requires Elevated Mode)
     -   [x] Create the UI to allow the user to specify a new MAC address.
--   [ ] **Task 5.4: PerfektBlue (Automotive RCE) Module**
-    -   [ ] Create UI for Automotive IVI auditing.
-    -   [ ] Implement AVRCP/L2CAP fuzzing logic with malformed metadata.
-    -   [ ] Implement connection health monitoring to detect crashes.
+-   [x] **Task 5.4: PerfektBlue (Automotive RCE) Module**
+    -   [x] Create UI for Automotive IVI auditing.
+    -   [x] Implement AVRCP/L2CAP fuzzing logic with malformed metadata (Simulated).
+    -   [x] Implement connection health monitoring to detect crashes (Simulated).
 -   [ ] **Task 5.5: Android SMP Bypass (CVE-2024-34722) Module**
     -   [ ] Create UI for SMP Bypass testing.
     -   [ ] Implement logic to inject out-of-order `SMP_PAIRING_RANDOM` packets (Root/InternalBlue required).
