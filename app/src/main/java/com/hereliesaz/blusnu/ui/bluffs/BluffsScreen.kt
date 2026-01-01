@@ -136,7 +136,7 @@ fun BluffsScreen(viewModel: BluffsViewModel) {
                     .padding(8.dp)
             ) {
                 LazyColumn(reverseLayout = true) {
-                    items(logs) { log ->
+                    items(logs.reversed()) { log ->
                         Text(text = log, style = MaterialTheme.typography.bodySmall, color = Color.White)
                     }
                 }

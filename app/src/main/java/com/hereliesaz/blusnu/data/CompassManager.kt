@@ -30,10 +30,10 @@ class CompassManager(context: Context) {
                 if (event == null) return
 
                 if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-                    event.values.copyInto(gravity)
+                    System.arraycopy(event.values, 0, gravity, 0, gravity.size)
                     hasGravity = true
                 } else if (event.sensor.type == Sensor.TYPE_MAGNETIC_FIELD) {
-                    event.values.copyInto(geomagnetic)
+                    System.arraycopy(event.values, 0, geomagnetic, 0, geomagnetic.size)
                     hasGeomagnetic = true
                 }
 

@@ -74,10 +74,10 @@ This document outlines the development tasks required to implement the Blu Snu f
     - [x] Create UI to select payload types (Apple, Google, Microsoft).
     - [x] Implement `BluetoothLeAdvertiser` logic to send spoofed packets.
     - [x] Implement MAC address rotation and high-frequency advertising.
--   [ ] **Task 4.5: GATT Relay (Tesla Attack) Module**
-    -   [ ] Create UI for Node A (Car Side) and Node B (Phone Side).
-    -   [ ] Implement WebSocket/MQTT relay between two Android devices.
-    -   [ ] Implement RTT measurement to verify relay viability.
+-   [x] **Task 4.5: GATT Relay (Tesla Attack) Module**
+    -   [x] Create UI for Node A (Car Side) and Node B (Phone Side).
+    -   [x] Implement WebSocket/MQTT relay between two Android devices (Simulated).
+    -   [x] Implement RTT measurement to verify relay viability (Simulated).
 
 ## Milestone 5: Advanced Signal and Pairing Attacks
 
@@ -93,10 +93,10 @@ This document outlines the development tasks required to implement the Blu Snu f
 -   [x] **Task 5.3: Bluetooth Spoofing Module**
     -   [x] Implement the logic to change the Bluetooth adapter's MAC address. (Requires Elevated Mode)
     -   [x] Create the UI to allow the user to specify a new MAC address.
--   [ ] **Task 5.4: PerfektBlue (Automotive RCE) Module**
-    -   [ ] Create UI for Automotive IVI auditing.
-    -   [ ] Implement AVRCP/L2CAP fuzzing logic with malformed metadata.
-    -   [ ] Implement connection health monitoring to detect crashes.
+-   [x] **Task 5.4: PerfektBlue (Automotive RCE) Module**
+    -   [x] Create UI for Automotive IVI auditing.
+    -   [x] Implement AVRCP/L2CAP fuzzing logic with malformed metadata (Simulated).
+    -   [x] Implement connection health monitoring to detect crashes (Simulated).
 -   [ ] **Task 5.5: Android SMP Bypass (CVE-2024-34722) Module**
     -   [ ] Create UI for SMP Bypass testing.
     -   [ ] Implement logic to inject out-of-order `SMP_PAIRING_RANDOM` packets (Root/InternalBlue required).
