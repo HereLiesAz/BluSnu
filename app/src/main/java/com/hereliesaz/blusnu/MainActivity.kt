@@ -121,6 +121,7 @@ class MainActivity : AppCompatActivity() {
     private val attackChainTemplateRepository by lazy { AttackChainTemplateRepository(database.attackChainTemplateDao()) }
     private val hardwareManager by lazy { HardwareManager() }
     private val btlejuiceModule by lazy { BtlejuiceModule(hardwareManager) }
+    private val bleSpamModule by lazy { com.hereliesaz.blusnu.data.BleSpamModule(applicationContext) }
     private val keystrokeInjectionModule by lazy { com.hereliesaz.blusnu.data.KeystrokeInjectionModule() }
     private val vulnerabilityCorrelator by lazy { VulnerabilityCorrelator(applicationContext) }
     private val httpClient by lazy {
@@ -170,7 +171,7 @@ class MainActivity : AppCompatActivity() {
                         BtlejuiceViewModel(application, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BleSpamViewModel::class.java) -> {
-                        BleSpamViewModel() as T
+                        BleSpamViewModel(bleSpamModule) as T
                     }
                     modelClass.isAssignableFrom(GattRelayViewModel::class.java) -> {
                         GattRelayViewModel() as T
