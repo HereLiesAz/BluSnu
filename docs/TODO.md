@@ -47,11 +47,11 @@ This document outlines the development tasks required to implement the Blu Snu f
 -   [x] **Task 3.3: BlueSmack (L2CAP Flood) Module**
     -   [x] Create the UI for the L2CAP flood attack with controls for packet size and rate.
     -   [x] Implement the logic to open an L2CAP socket and send oversized echo requests. (Requires Elevated Mode)
--   [ ] **Task 3.4: BLUFFS (CVE-2023-24023) Module**
-    -   [ ] Create UI for BLUFFS attack configuration (Modes A1-A6).
-    -   [ ] Implement root detection and InternalBlue patching requirements.
-    -   [ ] Implement logic to manipulate LMP parameters (Key Size, Nonces).
-    -   [ ] Implement vulnerability check (Connection accepts 1-byte key).
+- [x] **Task 3.4: BLUFFS (CVE-2023-24023) Module**
+    - [x] Create UI for BLUFFS attack configuration (Modes A1-A6).
+    - [x] Implement root detection and InternalBlue patching requirements (Simulated).
+    - [x] Implement logic to manipulate LMP parameters (Key Size, Nonces) (Simulated).
+    - [x] Implement vulnerability check (Connection accepts 1-byte key) (Simulated).
 -   [ ] **Task 3.5: BrakTooth Module**
     -   [ ] Create UI for BrakTooth fuzzing control.
     -   [ ] Implement external hardware interface (ESP32 via USB-OTG) or InternalBlue logic.
