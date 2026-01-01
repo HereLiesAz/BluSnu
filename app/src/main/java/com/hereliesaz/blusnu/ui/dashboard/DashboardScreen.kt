@@ -46,7 +46,7 @@ fun DashboardScreen(
         contentAlignment = Alignment.TopEnd
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(16.dp).fillMaxSize(),
             horizontalAlignment = Alignment.End
         ) {
             Text(
@@ -106,6 +106,9 @@ fun DashboardScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.fillMaxWidth().height(screenHeight * 0.1f))
         }
     }
 }
@@ -170,18 +173,31 @@ fun DashboardScreenPreview() {
 
 @Composable
 fun Heatmap(devices: List<TargetDevice>) {
+    val devicesWithLoc = devices.filter { it.latitude != null && it.longitude != null }
+    if (devicesWithLoc.isEmpty()) return
+
+    val minLat = devicesWithLoc.minOf { it.latitude!! }
+    val maxLat = devicesWithLoc.maxOf { it.latitude!! }
+    val minLon = devicesWithLoc.minOf { it.longitude!! }
+    val maxLon = devicesWithLoc.maxOf { it.longitude!! }
+
+    val latRange = (maxLat - minLat).coerceAtLeast(0.0001) // Avoid divide by zero
+    val lonRange = (maxLon - minLon).coerceAtLeast(0.0001)
+
     Canvas(modifier = Modifier.fillMaxWidth().height(200.dp)) {
-        devices.forEach { device ->
-            if (device.latitude != null && device.longitude != null) {
-                drawCircle(
-                    color = Color.Red,
-                    center = Offset(
-                        x = size.width * (device.latitude.toFloat() / 180f),
-                        y = size.height * (device.longitude.toFloat() / 180f)
-                    ),
-                    radius = 10f
-                )
-            }
+        devicesWithLoc.forEach { device ->
+            // Invert Y because screen Y goes down, Latitude goes up (North)
+            val normalizedLat = (device.latitude!! - minLat) / latRange
+            val normalizedLon = (device.longitude!! - minLon) / lonRange
+
+            drawCircle(
+                color = Color.Red,
+                center = Offset(
+                    x = (normalizedLon * size.width).toFloat(),
+                    y = ((1 - normalizedLat) * size.height).toFloat()
+                ),
+                radius = 10f
+            )
         }
     }
 }
