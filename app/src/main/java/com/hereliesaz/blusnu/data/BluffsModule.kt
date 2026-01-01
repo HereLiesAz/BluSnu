@@ -14,7 +14,10 @@ class BluffsModule {
         return try {
             val process = Runtime.getRuntime().exec("su -c id")
             process.waitFor() == 0
-        } catch (e: Exception) {
+        } catch (e: java.io.IOException) {
+            false
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
             false
         }
     }
