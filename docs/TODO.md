@@ -1,6 +1,6 @@
 # Blu Snu Project: Task List
 
-This document outlines the development tasks required to implement the Blu Snu framework, as detailed in the conceptual blueprint. The project is broken down into modules and milestones.
+This document outlines the development tasks required to implement the Blu Snu framework, as detailed in the conceptual blueprint and "The Modern Wireless Arsenal" report. The project is broken down into modules and milestones.
 
 ## Milestone 1: Project Setup and Core Framework
 
@@ -47,6 +47,15 @@ This document outlines the development tasks required to implement the Blu Snu f
 -   [x] **Task 3.3: BlueSmack (L2CAP Flood) Module**
     -   [x] Create the UI for the L2CAP flood attack with controls for packet size and rate.
     -   [x] Implement the logic to open an L2CAP socket and send oversized echo requests. (Requires Elevated Mode)
+- [x] **Task 3.4: BLUFFS (CVE-2023-24023) Module**
+    - [x] Create UI for BLUFFS attack configuration (Modes A1-A6).
+    - [x] Implement root detection and InternalBlue patching requirements.
+    - [x] Implement logic to manipulate LMP parameters (Key Size, Nonces).
+    - [x] Implement vulnerability check (Connection accepts 1-byte key).
+- [x] **Task 3.5: BrakTooth Module**
+    - [x] Create UI for BrakTooth fuzzing control.
+    - [x] Implement external hardware interface (ESP32 via USB-OTG) or InternalBlue logic.
+    - [x] Implement LMP packet injection for specific crash vectors.
 
 ## Milestone 4: Bluetooth Low Energy (BLE) Attack Modules
 
@@ -61,6 +70,14 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Extend the Hardware Manager to support a second external USB BLE dongle.
     -   [x] Create the UI to display and modify intercepted GATT traffic in real-time.
     -   [x] Implement the core proxy logic.
+-   [ ] **Task 4.4: BLE Spam (Advertisement Flooding) Module**
+    -   [ ] Create UI to select payload types (Apple, Google, Microsoft).
+    -   [ ] Implement `BluetoothLeAdvertiser` logic to send spoofed packets.
+    -   [ ] Implement MAC address rotation and high-frequency advertising.
+-   [ ] **Task 4.5: GATT Relay (Tesla Attack) Module**
+    -   [ ] Create UI for Node A (Car Side) and Node B (Phone Side).
+    -   [ ] Implement WebSocket/MQTT relay between two Android devices.
+    -   [ ] Implement RTT measurement to verify relay viability.
 
 ## Milestone 5: Advanced Signal and Pairing Attacks
 
@@ -68,17 +85,26 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Implement baseline distance estimation using the log-distance path loss model.
     -   [x] Implement a Kalman filter or moving average to smooth RSSI readings.
     -   [x] Design the "Map" view UI.
--   [x] **Task 5.2: Keystroke Injection (CVE-2023-45866) Module**
+-   [x] **Task 5.2: Keystroke Injection (CVE-2023-45866 / "BlueDucky") Module**
     -   [x] Implement the logic to emulate an HID keyboard and attempt "Just Works" pairing.
     -   [x] Create the UI to send keystroke commands if the attack is successful.
+    -   [ ] Add DuckyScript parsing support.
+    -   [ ] Implement raw L2CAP socket method for root users (bypass Android API pairing prompts).
 -   [x] **Task 5.3: Bluetooth Spoofing Module**
     -   [x] Implement the logic to change the Bluetooth adapter's MAC address. (Requires Elevated Mode)
     -   [x] Create the UI to allow the user to specify a new MAC address.
+-   [ ] **Task 5.4: PerfektBlue (Automotive RCE) Module**
+    -   [ ] Create UI for Automotive IVI auditing.
+    -   [ ] Implement AVRCP/L2CAP fuzzing logic with malformed metadata.
+    -   [ ] Implement connection health monitoring to detect crashes.
+-   [ ] **Task 5.5: Android SMP Bypass (CVE-2024-34722) Module**
+    -   [ ] Create UI for SMP Bypass testing.
+    -   [ ] Implement logic to inject out-of-order `SMP_PAIRING_RANDOM` packets (Root/InternalBlue required).
 
 ## Milestone 6: Automation Core and Finalization
 
 -   [ ] **Task 6.1: Attack Chaining Canvas**
-    -   [ ] Design and implement the visual node-based editor.
+    -   [x] Design and implement the visual node-based editor.
     -   [ ] Create the initial set of nodes for all implemented modules and logic (If/Else, Wait, Loop).
     -   [ ] Implement the data flow logic between connected nodes.
 -   [ ] **Task 6.2: Pre-built Attack Chain Templates**
@@ -114,6 +140,16 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Implement the UI and basic functionality for the GATT Fuzzing screen.
     -   [x] Implement the UI and basic functionality for the Btlejacking screen.
     -   [x] Implement the UI and basic functionality for the Attack Chaining screen.
+    -   [x] Implement the UI and basic functionality for Keystroke Injection (BlueDucky).
+    -   [x] Implement the UI and basic functionality for Spoofing.
+    -   [x] Implement the UI and basic functionality for Magisk/Root.
+    -   [x] Implement the UI and basic functionality for Raw Commands.
+    -   [ ] Implement the UI and basic functionality for BLUFFS.
+    -   [ ] Implement the UI and basic functionality for BrakTooth.
+    -   [ ] Implement the UI and basic functionality for BLE Spam.
+    -   [ ] Implement the UI and basic functionality for GATT Relay.
+    -   [ ] Implement the UI and basic functionality for PerfektBlue.
+    -   [ ] Implement the UI and basic functionality for SMP Bypass.
 -   [x] **Task 7.5: Data Sharing and Analytics**
     -   [x] Add a sentence to the ethical use prompt asking the user to share anonymized data with the developer.
     -   [x] Add "Agree" and "Cancel" buttons to the new prompt.
