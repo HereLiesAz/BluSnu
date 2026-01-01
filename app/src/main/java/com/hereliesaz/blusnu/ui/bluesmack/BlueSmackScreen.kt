@@ -41,7 +41,8 @@ fun BlueSmackScreen(viewModel: BlueSmackViewModel) {
     ) {
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = "Denial of Service attack on Bluetooth devices.",
+                text = "BlueSmack is a Denial of Service (DoS) attack that uses L2CAP ping packets to overwhelm a target device.\n\n" +
+                       "This attack mimics the 'Ping of Death' and targets Classic Bluetooth devices. Modern devices often have rate limiting or packet size checks that mitigate this attack.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(16.dp)
             )

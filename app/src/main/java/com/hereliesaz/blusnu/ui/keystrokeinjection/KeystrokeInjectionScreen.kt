@@ -54,7 +54,8 @@ fun KeystrokeInjectionScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Inject keystrokes via HID emulation.",
+                text = "Keystroke Injection emulates a Bluetooth HID keyboard to send keystrokes to a target device.\n\n" +
+                       "Requires the target to pair with this device. Once paired, arbitrary text can be injected, allowing for remote command execution.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
