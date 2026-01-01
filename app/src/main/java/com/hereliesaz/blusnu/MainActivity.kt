@@ -122,6 +122,8 @@ class MainActivity : AppCompatActivity() {
     private val hardwareManager by lazy { HardwareManager() }
     private val btlejuiceModule by lazy { BtlejuiceModule(hardwareManager) }
     private val bleSpamModule by lazy { com.hereliesaz.blusnu.data.BleSpamModule(applicationContext) }
+    private val bluffsModule by lazy { com.hereliesaz.blusnu.data.BluffsModule() }
+    private val brakToothModule by lazy { com.hereliesaz.blusnu.data.BrakToothModule() }
     private val keystrokeInjectionModule by lazy { com.hereliesaz.blusnu.data.KeystrokeInjectionModule() }
     private val vulnerabilityCorrelator by lazy { VulnerabilityCorrelator(applicationContext) }
     private val httpClient by lazy {
@@ -155,10 +157,10 @@ class MainActivity : AppCompatActivity() {
                         BluesnarfingViewModel(application, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BluffsViewModel::class.java) -> {
-                        BluffsViewModel(deviceRepository) as T
+                        BluffsViewModel(deviceRepository, bluffsModule) as T
                     }
                     modelClass.isAssignableFrom(BrakToothViewModel::class.java) -> {
-                        BrakToothViewModel(deviceRepository) as T
+                        BrakToothViewModel(deviceRepository, brakToothModule) as T
                     }
                     modelClass.isAssignableFrom(GattFuzzingViewModel::class.java) -> {
                         GattFuzzingViewModel(application, deviceRepository) as T
