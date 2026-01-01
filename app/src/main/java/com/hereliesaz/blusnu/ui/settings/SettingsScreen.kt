@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -25,6 +26,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
     val updateStatus by viewModel.updateStatus.collectAsState()
     val backupUrl by viewModel.backupUrl.collectAsState()
     val permissionsStatus by viewModel.permissionsStatus.collectAsState()
+    val isMetric by viewModel.isMetric.collectAsState()
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
@@ -36,7 +38,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
         contentAlignment = Alignment.TopEnd
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(16.dp).fillMaxSize(),
             horizontalAlignment = Alignment.End
         ) {
             Text(
@@ -54,6 +56,19 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             }
             Spacer(modifier = Modifier.height(16.dp))
 
+            androidx.compose.foundation.layout.Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Use Metric System (Meters)")
+                androidx.compose.material3.Switch(
+                    checked = isMetric,
+                    onCheckedChange = { viewModel.toggleMetric() }
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
             TextField(
                 value = backupUrl,
                 onValueChange = { viewModel.updateBackupUrl(it) },
@@ -66,6 +81,9 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text(updateStatus)
+
+            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.fillMaxWidth().height(screenHeight * 0.1f))
         }
     }
 }

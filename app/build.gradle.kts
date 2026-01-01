@@ -1,5 +1,7 @@
 import java.util.Properties
 import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.ByteArrayOutputStream
 
 plugins {
     alias(libs.plugins.android.application)
@@ -9,6 +11,18 @@ plugins {
     kotlin("plugin.serialization") version "2.2.20"
 }
 
+// Helper to get git commit count using standard Java ProcessBuilder to avoid Gradle API deprecations/scope issues
+fun getGitCommitCount(): Int {
+    return try {
+        val process = ProcessBuilder("git", "rev-list", "--count", "HEAD").start()
+        process.waitFor()
+        val output = process.inputStream.bufferedReader().readText().trim()
+        output.toIntOrNull() ?: 0
+    } catch (e: Exception) {
+        0
+    }
+}
+
 // Load version.properties
 val versionProps = Properties()
 val versionPropsFile = file("../version.properties")
@@ -16,14 +30,28 @@ if (versionPropsFile.exists()) {
     versionProps.load(FileInputStream(versionPropsFile))
 }
 
-val vMajor = versionProps.getProperty("major", "1")
-val vMinor = versionProps.getProperty("minor", "0")
-val vPatch = versionProps.getProperty("patch", "0")
+// Increment Build Number logic
+var buildNum = versionProps.getProperty("build", "0").toInt()
+
+// Check if we are running a build task
+if (gradle.startParameter.taskNames.any { it.contains("assemble") || it.contains("build") || it.contains("install") }) {
+    buildNum += 1
+    versionProps.setProperty("build", buildNum.toString())
+    versionProps.store(FileOutputStream(versionPropsFile), null)
+}
+
+val vMajor = versionProps.getProperty("major", "1").toInt()
+val vMinor = versionProps.getProperty("minor", "0").toInt()
+val patchOffset = versionProps.getProperty("patchOffset", "0").toInt()
+val currentGitCount = getGitCommitCount()
+val vPatch = (currentGitCount - patchOffset).coerceAtLeast(0)
 
 // Calculate version code and name
-// Priority: CI Properties -> version.properties
-val buildCode = project.findProperty("versionCode")?.toString()?.toIntOrNull() ?: 1
-val buildName = project.findProperty("versionName")?.toString() ?: "$vMajor.$vMinor.$vPatch-dev"
+// VersionCode: Major(2) Minor(2) Patch(2) Build(3) -> XX XX XX XXX
+val buildCode = vMajor * 10000000 + vMinor * 100000 + vPatch * 1000 + buildNum
+val buildName = "$vMajor.$vMinor.$vPatch.$buildNum"
+
+println("Configuring Build: Name=$buildName, Code=$buildCode")
 
 android {
     namespace = "com.hereliesaz.blusnu"
@@ -37,6 +65,12 @@ android {
         versionName = buildName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Expose version details to code if needed
+        buildConfigField("int", "VERSION_MAJOR", "$vMajor")
+        buildConfigField("int", "VERSION_MINOR", "$vMinor")
+        buildConfigField("int", "VERSION_PATCH", "$vPatch")
+        buildConfigField("int", "BUILD_NUMBER", "$buildNum")
     }
 
     buildTypes {
