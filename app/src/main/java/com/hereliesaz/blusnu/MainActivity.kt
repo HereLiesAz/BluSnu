@@ -190,7 +190,7 @@ class MainActivity : AppCompatActivity() {
                         DashboardViewModel(application, deviceRepository, savedSessionRepository, attackChainTemplateRepository) as T
                     }
                     modelClass.isAssignableFrom(ReportingViewModel::class.java) -> {
-                        ReportingViewModel(application) as T
+                        ReportingViewModel(application, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BluetoothLogViewModel::class.java) -> {
                         BluetoothLogViewModel(application, bluetoothLog, deviceRepository) as T

@@ -13,11 +13,14 @@ interface TargetDeviceDao {
     @Query("SELECT * FROM target_devices")
     fun getAll(): Flow<List<TargetDevice>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(device: TargetDevice)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(device: TargetDevice): Long
 
     @Update
     suspend fun update(device: TargetDevice)
+
+    @Query("SELECT * FROM target_devices WHERE macAddress = :macAddress")
+    suspend fun getDevice(macAddress: String): TargetDevice?
 
     @Query("UPDATE target_devices SET notes = :notes WHERE macAddress = :macAddress")
     suspend fun updateNotes(macAddress: String, notes: String)
