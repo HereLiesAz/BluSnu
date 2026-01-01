@@ -1,4 +1,4 @@
-name: Clear GitHub Actions Cache
+name: Clear Build Cache
 
 on:
   workflow_dispatch:
@@ -10,24 +10,21 @@ jobs:
   clear-cache:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-
-      - name: Delete all caches
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "Fetching list of cache keys..."
-          cacheKeys=$(gh cache list --limit 100 --json key --jq '.[].key')
-
-          if [ -z "$cacheKeys" ]; then
-            echo "No caches found."
-            exit 0
-          fi
-
-          echo "Deleting caches..."
-          for key in $cacheKeys; do
-            echo "Deleting cache key: $key"
-            gh cache delete "$key"
-          done
-          echo "All caches cleared."
+      - name: Clear cache
+        uses: actions/github-script@v6
+        with:
+          script: |
+            console.log("About to clear caches...")
+            const caches = await github.rest.actions.getActionsCacheList({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            })
+            for (const cache of caches.data.actions_caches) {
+              console.log(cache)
+              await github.rest.actions.deleteActionsCacheById({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                cache_id: cache.id,
+              })
+            }
+            console.log("Caches cleared.")
