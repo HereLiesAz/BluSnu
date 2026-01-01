@@ -70,10 +70,10 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Extend the Hardware Manager to support a second external USB BLE dongle.
     -   [x] Create the UI to display and modify intercepted GATT traffic in real-time.
     -   [x] Implement the core proxy logic.
--   [ ] **Task 4.4: BLE Spam (Advertisement Flooding) Module**
-    -   [ ] Create UI to select payload types (Apple, Google, Microsoft).
-    -   [ ] Implement `BluetoothLeAdvertiser` logic to send spoofed packets.
-    -   [ ] Implement MAC address rotation and high-frequency advertising.
+- [x] **Task 4.4: BLE Spam (Advertisement Flooding) Module**
+    - [x] Create UI to select payload types (Apple, Google, Microsoft).
+    - [x] Implement `BluetoothLeAdvertiser` logic to send spoofed packets.
+    - [x] Implement MAC address rotation and high-frequency advertising.
 -   [ ] **Task 4.5: GATT Relay (Tesla Attack) Module**
     -   [ ] Create UI for Node A (Car Side) and Node B (Phone Side).
     -   [ ] Implement WebSocket/MQTT relay between two Android devices.
