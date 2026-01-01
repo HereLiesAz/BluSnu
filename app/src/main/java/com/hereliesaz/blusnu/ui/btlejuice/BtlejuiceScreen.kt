@@ -7,6 +7,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.TargetDevice
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,17 +35,35 @@ fun BtlejuiceScreen(
     gattTraffic: GattTraffic
 ) {
     var selectedDevice by remember { mutableStateOf<TargetDevice?>(null) }
+    val uriHandler = LocalUriHandler.current
 
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.TopEnd
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Man-in-the-Middle attack framework for BLE.",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
+            val descriptionText = buildAnnotatedString {
+                append("Btlejuice is a framework for performing Man-in-the-Middle (MitM) attacks on Bluetooth Low Energy (BLE) devices.\n")
+                append("It intercepts GATT packets by acting as a proxy between the target device and the mobile app.\n\n")
+                append("Requires two Bluetooth 4.0+ adapters.\n")
+                pushStringAnnotation(tag = "URL", annotation = "https://www.adafruit.com/product/1327")
+                withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                    append("Buy Bluetooth Dongle")
+                }
+                pop()
+            }
+            ClickableText(
+                text = descriptionText,
+                style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onBackground),
+                modifier = Modifier.padding(bottom = 16.dp),
+                onClick = { offset ->
+                    descriptionText.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                        .firstOrNull()?.let { annotation ->
+                            uriHandler.openUri(annotation.item)
+                        }
+                }
             )
+
             HardwareStatus(hardwareState, onConnectHardware, onConnectDual)
             Spacer(modifier = Modifier.height(16.dp))
 

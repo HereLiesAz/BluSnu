@@ -24,7 +24,12 @@ import com.hereliesaz.blusnu.ui.components.ScreenTitle
 fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
     val updateStatus by viewModel.updateStatus.collectAsState()
     val backupUrl by viewModel.backupUrl.collectAsState()
+    val permissionsStatus by viewModel.permissionsStatus.collectAsState()
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        viewModel.checkPermissions()
+    }
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -40,6 +45,15 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
+            // Permissions Status
+            Text("Permissions Status:", style = androidx.compose.material3.MaterialTheme.typography.titleSmall)
+            permissionsStatus.forEach { (permission, isGranted) ->
+                val color = if (isGranted) androidx.compose.ui.graphics.Color.Green else androidx.compose.ui.graphics.Color.Red
+                val text = permission.substringAfterLast(".")
+                Text(text = "$text: ${if (isGranted) "Granted" else "Denied"}", color = color)
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
             TextField(
                 value = backupUrl,
                 onValueChange = { viewModel.updateBackupUrl(it) },
@@ -50,8 +64,8 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             Button(onClick = { viewModel.checkForUpdates() }) {
                 Text("Check for Database Updates")
             }
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(updateStatus)
-    }
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(updateStatus)
+        }
     }
 }

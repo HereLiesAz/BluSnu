@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.ActionLogger
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.GattFuzzingModule
+import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.TargetDevice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,8 +35,10 @@ class GattFuzzingViewModel(application: Application, deviceRepository: DeviceRep
 
     init {
         viewModelScope.launch {
-            deviceRepository.allDevices.collect {
-                _devices.value = it
+            deviceRepository.allDevices.collect { allDevices ->
+                _devices.value = allDevices.filter {
+                    it.protocol == Protocol.BLE || it.protocol == Protocol.DUAL
+                }
             }
         }
     }

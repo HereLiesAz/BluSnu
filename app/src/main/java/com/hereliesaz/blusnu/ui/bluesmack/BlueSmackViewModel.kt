@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.ActionLogger
 import com.hereliesaz.blusnu.data.DeviceRepository
+import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.TargetDevice
 import com.hereliesaz.blusnu.utils.RootExecutor
 import kotlinx.coroutines.Dispatchers
@@ -32,8 +33,10 @@ class BlueSmackViewModel(application: Application, deviceRepository: DeviceRepos
     var hasPermissions = false
     init {
         viewModelScope.launch {
-            deviceRepository.allDevices.collect {
-                _devices.value = it
+            deviceRepository.allDevices.collect { allDevices ->
+                _devices.value = allDevices.filter {
+                    it.protocol == Protocol.CLASSIC || it.protocol == Protocol.DUAL
+                }
             }
         }
     }

@@ -41,7 +41,8 @@ fun GattFuzzingScreen(viewModel: GattFuzzingViewModel) {
     ) {
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = "Fuzz GATT services to find vulnerabilities.",
+                text = "GATT Fuzzing involves sending random, malformed, or unexpected data to BLE characteristics to crash services or uncover unexpected behavior.\n\n" +
+                       "This technique is effective against poorly tested IoT devices and smart wearables that do not properly validate input.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(16.dp)
             )

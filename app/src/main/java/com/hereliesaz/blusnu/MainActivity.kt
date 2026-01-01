@@ -150,7 +150,7 @@ class MainActivity : AppCompatActivity() {
                         BtlejackingViewModel(application, hardwareManager, btlejackingModule, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BtlejuiceViewModel::class.java) -> {
-                        BtlejuiceViewModel(application) as T
+                        BtlejuiceViewModel(application, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(GeolocationViewModel::class.java) -> {
                         GeolocationViewModel(application, deviceRepository) as T
