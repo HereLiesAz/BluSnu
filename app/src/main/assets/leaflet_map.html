@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { width: 100vw; height: 100vh; }
+        /* Dark mode map style filter */
+        .leaflet-layer, .leaflet-control-zoom-in, .leaflet-control-zoom-out, .leaflet-control-attribution {
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        var map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+        var markers = {};
+        var userMarker = null;
+
+        // Custom Icons could be added here
+
+        function updateUserLocation(lat, lng) {
+            if (userMarker) {
+                userMarker.setLatLng([lat, lng]);
+            } else {
+                userMarker = L.marker([lat, lng]).addTo(map).bindPopup("Your Location");
+                map.setView([lat, lng], 15);
+            }
+        }
+
+        function updateDevices(base64Json) {
+            // devicesJson is a base64 encoded stringified JSON array of {mac, lat, lng, name}
+            // Use decodeURIComponent(escape(window.atob(b64))) to handle UTF-8 properly
+            var devicesJson = decodeURIComponent(escape(window.atob(base64Json)));
+            var devices = JSON.parse(devicesJson);
+            var currentMacs = new Set();
+
+            devices.forEach(function(device) {
+                if (device.lat != null && device.lng != null) {
+                    currentMacs.add(device.mac);
+                    if (markers[device.mac]) {
+                        markers[device.mac].setLatLng([device.lat, device.lng]);
+                        markers[device.mac].setPopupContent(device.name || device.mac);
+                    } else {
+                        var marker = L.marker([device.lat, device.lng])
+                            .addTo(map)
+                            .bindPopup(device.name || device.mac);
+                        markers[device.mac] = marker;
+                    }
+                }
+            });
+
+            // Remove markers for devices that are no longer in the list (if desired, or keep them)
+            // For now, we keep them unless we want strict sync.
+            // If the list is the "full current state", we should remove.
+            for (var mac in markers) {
+                if (!currentMacs.has(mac)) {
+                    map.removeLayer(markers[mac]);
+                    delete markers[mac];
+                }
+            }
+        }
+    </script>
+</body>
+</html>

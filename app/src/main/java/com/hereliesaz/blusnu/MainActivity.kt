@@ -89,6 +89,7 @@ import com.hereliesaz.blusnu.ui.settings.SettingsViewModel
 import com.hereliesaz.blusnu.ui.spoofing.SpoofingScreen
 import com.hereliesaz.blusnu.ui.spoofing.SpoofingViewModel
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
+import com.hereliesaz.blusnu.BuildConfig
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CoroutineScope
@@ -148,7 +149,7 @@ class MainActivity : AppCompatActivity() {
                         BtlejackingViewModel(application, hardwareManager, btlejackingModule, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BtlejuiceViewModel::class.java) -> {
-                        BtlejuiceViewModel(application) as T
+                        BtlejuiceViewModel(application, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(GeolocationViewModel::class.java) -> {
                         GeolocationViewModel(application, deviceRepository) as T
@@ -437,6 +438,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
 
     private fun requestRequiredPermissions() {
         val requiredPermissions = mutableListOf(

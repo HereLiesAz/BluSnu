@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.BluebuggingModule
 import com.hereliesaz.blusnu.data.DeviceRepository
+import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.TargetDevice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,8 +38,10 @@ class BluebuggingViewModel(application: Application, deviceRepository: DeviceRep
     var hasPermissions = false
     init {
         viewModelScope.launch {
-            deviceRepository.allDevices.collect {
-                _devices.value = it
+            deviceRepository.allDevices.collect { allDevices ->
+                _devices.value = allDevices.filter {
+                    it.protocol == Protocol.CLASSIC || it.protocol == Protocol.DUAL
+                }
             }
         }
     }

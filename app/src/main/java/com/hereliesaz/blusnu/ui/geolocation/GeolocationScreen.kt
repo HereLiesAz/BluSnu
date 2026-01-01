@@ -28,14 +28,9 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.TargetDevice
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
-import org.osmdroid.views.overlay.TilesOverlay
+import com.hereliesaz.blusnu.ui.components.LeafletMapView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,38 +96,10 @@ fun GeolocationScreen(viewModel: GeolocationViewModel, deviceRepository: DeviceR
                 .fillMaxWidth()
                 .weight(1f)
         ) {
-            AndroidView(
+            LeafletMapView(
                 modifier = Modifier.fillMaxSize(),
-                factory = { context ->
-                    MapView(context).apply {
-                        setTileSource(TileSourceFactory.MAPNIK)
-                        setMultiTouchControls(true)
-                        controller.setZoom(15.0)
-                        // Apply dark theme
-                        overlayManager.tilesOverlay.setColorFilter(TilesOverlay.INVERT_COLORS)
-                    }
-                },
-                update = { mapView ->
-                    mapView.overlays.clear()
-                    uiState.userLocation?.let {
-                        val userMarker = Marker(mapView)
-                        userMarker.position = GeoPoint(it.latitude, it.longitude)
-                        userMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                        userMarker.title = "Your Location"
-                        mapView.overlays.add(userMarker)
-                        mapView.controller.setCenter(userMarker.position)
-                    }
-                    uiState.devices.forEach { device ->
-                        if (device.latitude != null && device.longitude != null) {
-                            val deviceMarker = Marker(mapView)
-                            deviceMarker.position = GeoPoint(device.latitude, device.longitude)
-                            deviceMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                            deviceMarker.title = device.name ?: device.macAddress
-                            mapView.overlays.add(deviceMarker)
-                        }
-                    }
-                    mapView.invalidate()
-                }
+                userLocation = uiState.userLocation?.let { it.latitude to it.longitude },
+                devices = uiState.devices
             )
         }
     }

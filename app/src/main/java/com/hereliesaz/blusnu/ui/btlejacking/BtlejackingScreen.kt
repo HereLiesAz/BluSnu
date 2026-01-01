@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -34,6 +35,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.BtlejackingState
 import com.hereliesaz.blusnu.data.HardwareState
@@ -45,6 +50,7 @@ fun BtlejackingScreen(viewModel: BtlejackingViewModel, hasPermissions: Boolean) 
     val state by viewModel.state.collectAsState()
     var selectedTarget by remember { mutableStateOf<TargetDevice?>(null) }
     var expanded by remember { mutableStateOf(false) }
+    val uriHandler = LocalUriHandler.current
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -56,11 +62,27 @@ fun BtlejackingScreen(viewModel: BtlejackingViewModel, hasPermissions: Boolean) 
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = "Hijack ongoing BLE connections using Btlejack.",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
+            val descriptionText = buildAnnotatedString {
+                append("Btlejacking provides capabilities to sniff, jam, and hijack Bluetooth Low Energy (BLE) connections using Btlejack software and compatible hardware.\n\n")
+                append("Requires a BBC Micro:bit v1.\n")
+                pushStringAnnotation(tag = "URL", annotation = "https://microbit.org/buy/")
+                withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                    append("Buy Micro:bit")
+                }
+                pop()
+            }
+            ClickableText(
+                text = descriptionText,
+                style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onBackground),
+                modifier = Modifier.padding(bottom = 16.dp),
+                onClick = { offset ->
+                    descriptionText.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                        .firstOrNull()?.let { annotation ->
+                            uriHandler.openUri(annotation.item)
+                        }
+                }
             )
+
             // Hardware Status and Controls
             Text("Hardware Status: ${state.hardwareState}")
         when (state.hardwareState) {
