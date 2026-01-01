@@ -59,7 +59,8 @@ fun SpoofingScreen(
             horizontalAlignment = Alignment.End
         ) {
             Text(
-                text = "Spoof device identity (MAC address).",
+                text = "Spoofing changes the local Bluetooth adapter's MAC address to impersonate another device or evade blocklists.\n\n" +
+                       "Requires a rooted device and a Bluetooth chipset/driver that supports address modification. It may not work on all hardware.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )

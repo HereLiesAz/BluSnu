@@ -42,7 +42,8 @@ fun BluebuggingScreen(viewModel: BluebuggingViewModel) {
     ) {
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = "Exploit vulnerabilities to control device via Bluetooth.",
+                text = "Bluebugging exploits older devices (typically pre-2005) to access phone commands, make calls, and send messages without the user's knowledge.\n\n" +
+                       "This attack targets Bluetooth Classic devices. It is highly unlikely to work on modern smartphones, which have patched these vulnerabilities long ago.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(16.dp)
             )

@@ -1,6 +1,9 @@
 package com.hereliesaz.blusnu.ui.settings
 
 import android.app.Application
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.DatabaseUpdater
@@ -19,6 +22,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _backupUrl = MutableStateFlow(sharedPreferences.getString("backup_url", "https://example.com/backup") ?: "")
     val backupUrl: StateFlow<String> = _backupUrl
 
+    private val _permissionsStatus = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val permissionsStatus: StateFlow<Map<String, Boolean>> = _permissionsStatus
+
+    init {
+        checkPermissions()
+    }
+
     fun checkForUpdates() {
         viewModelScope.launch {
             _updateStatus.value = "Checking for updates..."
@@ -30,5 +40,28 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun updateBackupUrl(newUrl: String) {
         _backupUrl.value = newUrl
         sharedPreferences.edit().putString("backup_url", newUrl).apply()
+    }
+
+    fun checkPermissions() {
+        val permissions = mutableListOf(
+            android.Manifest.permission.ACCESS_FINE_LOCATION,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+            android.Manifest.permission.INTERNET
+        )
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            permissions.add(android.Manifest.permission.BLUETOOTH_SCAN)
+            permissions.add(android.Manifest.permission.BLUETOOTH_CONNECT)
+            permissions.add(android.Manifest.permission.BLUETOOTH_ADVERTISE)
+        }
+
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+             permissions.add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
+
+        val statusMap = permissions.associateWith { permission ->
+            ContextCompat.checkSelfPermission(getApplication(), permission) == PackageManager.PERMISSION_GRANTED
+        }
+        _permissionsStatus.value = statusMap
     }
 }

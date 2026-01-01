@@ -89,10 +89,12 @@ import com.hereliesaz.blusnu.ui.settings.SettingsViewModel
 import com.hereliesaz.blusnu.ui.spoofing.SpoofingScreen
 import com.hereliesaz.blusnu.ui.spoofing.SpoofingViewModel
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
+import com.hereliesaz.blusnu.BuildConfig
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import org.osmdroid.config.Configuration
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -148,7 +150,7 @@ class MainActivity : AppCompatActivity() {
                         BtlejackingViewModel(application, hardwareManager, btlejackingModule, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BtlejuiceViewModel::class.java) -> {
-                        BtlejuiceViewModel(application) as T
+                        BtlejuiceViewModel(application, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(GeolocationViewModel::class.java) -> {
                         GeolocationViewModel(application, deviceRepository) as T
@@ -200,6 +202,9 @@ class MainActivity : AppCompatActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         supportActionBar?.hide()
+
+        // Configure osmdroid
+        Configuration.getInstance().userAgentValue = BuildConfig.APPLICATION_ID
 
         vulnerabilityCorrelator.loadVulnerabilities()
 
@@ -437,6 +442,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
 
     private fun requestRequiredPermissions() {
         val requiredPermissions = mutableListOf(
