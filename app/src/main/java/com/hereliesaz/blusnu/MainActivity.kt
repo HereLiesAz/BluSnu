@@ -94,7 +94,6 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import org.osmdroid.config.Configuration
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -202,9 +201,6 @@ class MainActivity : AppCompatActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         supportActionBar?.hide()
-
-        // Configure osmdroid
-        Configuration.getInstance().userAgentValue = BuildConfig.APPLICATION_ID
 
         vulnerabilityCorrelator.loadVulnerabilities()
 
