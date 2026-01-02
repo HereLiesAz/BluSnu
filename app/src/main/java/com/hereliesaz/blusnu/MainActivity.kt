@@ -100,6 +100,7 @@ import com.hereliesaz.blusnu.ui.smpbypass.SmpBypassScreen
 import com.hereliesaz.blusnu.ui.smpbypass.SmpBypassViewModel
 import com.hereliesaz.blusnu.ui.spoofing.SpoofingScreen
 import com.hereliesaz.blusnu.ui.spoofing.SpoofingViewModel
+import com.hereliesaz.blusnu.ui.MENU_CATEGORIES
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 import com.hereliesaz.blusnu.BuildConfig
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -294,43 +295,17 @@ class MainActivity : AppCompatActivity() {
                                         defaultShape = AzButtonShape.RECTANGLE
                                     )
 
-                                    // Monitor
-                                    azRailHostItem(id = "monitor", text = "Monitor", onClick = {})
-                                    azRailSubItem(id = "dashboard", hostId = "monitor", text = "Dashboard", route = "dashboard")
-                                    azRailSubItem(id = "targets", hostId = "monitor", text = "Targets", route = "targets")
-                                    azRailSubItem(id = "geolocation", hostId = "monitor", text = "Location", route = "geolocation")
-                                    azRailSubItem(id = "reporting", hostId = "monitor", text = "Reporting", route = "reporting")
-                                    azRailSubItem(id = "bluetooth_log", hostId = "monitor", text = "Log", route = "bluetooth_log")
-
-                                    // Classic Attacks
-                                    azRailHostItem(id = "classic_attacks", text = "Classic", onClick = {})
-                                    azRailSubItem(id = "bluebugging", hostId = "classic_attacks", text = "Bugging", route = "bluebugging")
-                                    azRailSubItem(id = "bluesnarfing", hostId = "classic_attacks", text = "Snarfing", route = "bluesnarfing")
-                                    azRailSubItem(id = "bluesmack", hostId = "classic_attacks", text = "Smack", route = "bluesmack")
-                                    azRailSubItem(id = "bluffs", hostId = "classic_attacks", text = "BLUFFS", route = "bluffs")
-                                    azRailSubItem(id = "braktooth", hostId = "classic_attacks", text = "BrakTooth", route = "braktooth")
-
-                                    // BLE Attacks
-                                    azRailHostItem(id = "ble_attacks", text = "BLE", onClick = {})
-                                    azRailSubItem(id = "gattfuzzing", hostId = "ble_attacks", text = "Fuzzing", route = "gattfuzzing")
-                                    azRailSubItem(id = "btlejacking", hostId = "ble_attacks", text = "Jacking", route = "btlejacking")
-                                    azRailSubItem(id = "btlejuice", hostId = "ble_attacks", text = "Juice", route = "btlejuice")
-                                    azRailSubItem(id = "blespam", hostId = "ble_attacks", text = "BLE Spam", route = "blespam")
-                                    azRailSubItem(id = "gattrelay", hostId = "ble_attacks", text = "Relay", route = "gattrelay")
-
-                                    // Advanced
-                                    azRailHostItem(id = "advanced", text = "Advanced", onClick = {})
-                                    azRailSubItem(id = "spoofing", hostId = "advanced", text = "Spoofing", route = "spoofing")
-                                    azRailSubItem(id = "keystroke_injection", hostId = "advanced", text = "Injection", route = "keystroke_injection")
-                                    azRailSubItem(id = "attack_chaining", hostId = "advanced", text = "Chaining", route = "attack_chaining")
-                                    azRailSubItem(id = "raw_commands", hostId = "advanced", text = "Raw Cmds", route = "raw_commands")
-                                    azRailSubItem(id = "perfektblue", hostId = "advanced", text = "PerfektBlue", route = "perfektblue")
-                                    azRailSubItem(id = "smpbypass", hostId = "advanced", text = "SMP Bypass", route = "smpbypass")
-
-                                    // System
-                                    azRailHostItem(id = "system", text = "System", onClick = {})
-                                    azRailSubItem(id = "magisk", hostId = "system", text = "Magisk", route = "magisk")
-                                    azRailSubItem(id = "settings", hostId = "system", text = "Settings", route = "settings")
+                                    MENU_CATEGORIES.forEach { category ->
+                                        azRailHostItem(id = category.id, text = category.text, onClick = {})
+                                        category.items.forEach { item ->
+                                            azRailSubItem(
+                                                id = item.id,
+                                                hostId = category.id,
+                                                text = item.text,
+                                                route = item.route
+                                            )
+                                        }
+                                    }
                                 }
 
                                 Box(

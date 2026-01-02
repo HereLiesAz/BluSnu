@@ -28,8 +28,7 @@ class BrakToothViewModelTest {
         brakToothModule = mock()
 
         `when`(deviceRepository.allDevices).thenReturn(flowOf(emptyList()))
-        `when`(brakToothModule.connectionStatus).thenReturn(MutableStateFlow("Disconnected"))
-        `when`(brakToothModule.logs).thenReturn(MutableStateFlow(emptyList()))
+        // `when`(brakToothModule.checkHardware()).thenReturn(true) // Suspended functions need careful mocking, assuming simple mock works or omitted if not called in setup
 
         viewModel = BrakToothViewModel(deviceRepository, brakToothModule)
     }
