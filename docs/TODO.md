@@ -47,15 +47,15 @@ This document outlines the development tasks required to implement the Blu Snu f
 -   [x] **Task 3.3: BlueSmack (L2CAP Flood) Module**
     -   [x] Create the UI for the L2CAP flood attack with controls for packet size and rate.
     -   [x] Implement the logic to open an L2CAP socket and send oversized echo requests. (Requires Elevated Mode)
-- [x] **Task 3.4: BLUFFS (CVE-2023-24023) Module**
-    - [x] Create UI for BLUFFS attack configuration (Modes A1-A6).
-    - [x] Implement root detection and InternalBlue patching requirements (Simulated).
-    - [x] Implement logic to manipulate LMP parameters (Key Size, Nonces) (Simulated).
-    - [x] Implement vulnerability check (Connection accepts 1-byte key) (Simulated).
-- [x] **Task 3.5: BrakTooth Module**
-    - [x] Create UI for BrakTooth fuzzing control.
-    - [x] Implement external hardware interface (ESP32 via USB-OTG) (Simulated).
-    - [x] Implement LMP packet injection for specific crash vectors (Simulated).
+-   [x] **Task 3.4: BLUFFS (CVE-2023-24023) Module**
+    -   [x] Create UI for BLUFFS attack configuration (Modes A1-A6).
+    -   [x] Implement root detection and InternalBlue patching requirements (Simulated).
+    -   [x] Implement logic to manipulate LMP parameters (Key Size, Nonces) (Simulated).
+    -   [x] Implement vulnerability check (Connection accepts 1-byte key) (Simulated).
+-   [x] **Task 3.5: BrakTooth Module**
+    -   [x] Create UI for BrakTooth fuzzing control.
+    -   [x] Implement external hardware interface (ESP32 via USB-OTG) (Simulated).
+    -   [x] Implement LMP packet injection for specific crash vectors (Simulated).
 
 ## Milestone 4: Bluetooth Low Energy (BLE) Attack Modules
 
@@ -70,10 +70,10 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Extend the Hardware Manager to support a second external USB BLE dongle.
     -   [x] Create the UI to display and modify intercepted GATT traffic in real-time.
     -   [x] Implement the core proxy logic.
-- [x] **Task 4.4: BLE Spam (Advertisement Flooding) Module**
-    - [x] Create UI to select payload types (Apple, Google, Microsoft).
-    - [x] Implement `BluetoothLeAdvertiser` logic to send spoofed packets.
-    - [x] Implement MAC address rotation and high-frequency advertising.
+-   [x] **Task 4.4: BLE Spam (Advertisement Flooding) Module**
+    -   [x] Create UI to select payload types (Apple, Google, Microsoft).
+    -   [x] Implement `BluetoothLeAdvertiser` logic to send spoofed packets.
+    -   [x] Implement MAC address rotation and high-frequency advertising.
 -   [x] **Task 4.5: GATT Relay (Tesla Attack) Module**
     -   [x] Create UI for Node A (Car Side) and Node B (Phone Side).
     -   [x] Implement WebSocket/MQTT relay between two Android devices (Simulated).
