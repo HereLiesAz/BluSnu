@@ -2,9 +2,15 @@ package com.hereliesaz.blusnu
 
 import android.Manifest
 import android.app.Application
+import android.bluetooth.BluetoothAdapter
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -19,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,8 +34,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.edit
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -74,6 +84,7 @@ import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingViewModel
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceScreen
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceViewModel
 import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
+import com.hereliesaz.blusnu.ui.components.SystemRequirementsDialog
 import com.hereliesaz.blusnu.ui.dashboard.DashboardScreen
 import com.hereliesaz.blusnu.ui.dashboard.DashboardViewModel
 import com.hereliesaz.blusnu.ui.devicemanagement.DeviceManagementScreen
@@ -116,6 +127,12 @@ class MainActivity : AppCompatActivity() {
 
     private val _hasPermissions = MutableStateFlow(false)
     val hasPermissions: StateFlow<Boolean> = _hasPermissions
+
+    private val _isBluetoothEnabled = MutableStateFlow(false)
+    private val _isLocationEnabled = MutableStateFlow(false)
+    private val _isDeveloperOptionsEnabled = MutableStateFlow(false)
+    private val _isRooted = MutableStateFlow(false)
+
     private val database by lazy { AppDatabase.getDatabase(this) }
     private val deviceRepository by lazy { com.hereliesaz.blusnu.data.DeviceRepository(database.targetDeviceDao()) }
     private val savedSessionRepository by lazy { SavedSessionRepository(database.savedSessionDao()) }
@@ -231,6 +248,14 @@ class MainActivity : AppCompatActivity() {
             _hasPermissions.value = permissions.values.all { it }
         }
 
+    private val bluetoothReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == BluetoothAdapter.ACTION_STATE_CHANGED) {
+                checkBluetoothState()
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -239,9 +264,29 @@ class MainActivity : AppCompatActivity() {
         vulnerabilityCorrelator.loadVulnerabilities()
 
         requestRequiredPermissions()
+        checkBluetoothState()
+        registerReceiver(bluetoothReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
 
         setContent {
             val hasPermissions by hasPermissions.collectAsState()
+            val isBluetoothEnabled by _isBluetoothEnabled.collectAsState()
+            val isLocationEnabled by _isLocationEnabled.collectAsState()
+            val isDeveloperOptionsEnabled by _isDeveloperOptionsEnabled.collectAsState()
+            val isRooted by _isRooted.collectAsState()
+
+            // Poll for system settings changes that don't broadcast intent
+            val lifecycleOwner = LocalLifecycleOwner.current
+            DisposableEffect(lifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) {
+                        checkSystemRequirements()
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose {
+                    lifecycleOwner.lifecycle.removeObserver(observer)
+                }
+            }
 
             BluSnuTheme {
                 var showDisclaimer by remember { mutableStateOf(!getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).getBoolean("disclaimer_accepted", false)) }
@@ -258,7 +303,32 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
                         showDisclaimer = false
+                        checkSystemRequirements() // Re-check after disclaimer
                     }
+                } else if (!isBluetoothEnabled || !isLocationEnabled || !isDeveloperOptionsEnabled || !isRooted) {
+                    SystemRequirementsDialog(
+                        isBluetoothEnabled = isBluetoothEnabled,
+                        isLocationEnabled = isLocationEnabled,
+                        isDeveloperOptionsEnabled = isDeveloperOptionsEnabled,
+                        isRooted = isRooted,
+                        onEnableBluetooth = {
+                            try {
+                                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                                startActivity(enableBtIntent)
+                            } catch (e: SecurityException) {
+                                Toast.makeText(applicationContext, "Permission denied to enable Bluetooth", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        onEnableLocation = {
+                            startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                        },
+                        onEnableDeveloperOptions = {
+                            startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
+                        },
+                        onRequestRoot = {
+                            checkRootAccess()
+                        }
+                    )
                 } else {
                     val navController = rememberNavController()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -475,6 +545,43 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        unregisterReceiver(bluetoothReceiver)
+    }
+
+    private fun checkBluetoothState() {
+        _isBluetoothEnabled.value = bluetoothAdapter?.isEnabled == true
+    }
+
+    private fun checkSystemRequirements() {
+        checkBluetoothState()
+
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        _isLocationEnabled.value = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+
+        val devOptions = Settings.Global.getInt(
+            contentResolver,
+            Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0
+        )
+        _isDeveloperOptionsEnabled.value = devOptions == 1
+
+        checkRootAccess()
+    }
+
+    private fun checkRootAccess() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val process = Runtime.getRuntime().exec("su -c id")
+                val exitCode = process.waitFor()
+                _isRooted.value = exitCode == 0
+            } catch (e: Exception) {
+                _isRooted.value = false
             }
         }
     }
