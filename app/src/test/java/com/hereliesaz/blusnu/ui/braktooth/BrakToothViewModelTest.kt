@@ -25,13 +25,11 @@ class BrakToothViewModelTest {
     @Before
     fun setup() {
         deviceRepository = mock()
-        brakToothModule = mock()
+        // brakToothModule is instantiated inside ViewModel
 
         `when`(deviceRepository.allDevices).thenReturn(flowOf(emptyList()))
-        `when`(brakToothModule.connectionStatus).thenReturn(MutableStateFlow("Disconnected"))
-        `when`(brakToothModule.logs).thenReturn(MutableStateFlow(emptyList()))
 
-        viewModel = BrakToothViewModel(deviceRepository, brakToothModule)
+        viewModel = BrakToothViewModel(deviceRepository)
     }
 
     @Test
