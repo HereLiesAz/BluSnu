@@ -24,11 +24,9 @@ fun SystemRequirementsDialog(
     isBluetoothEnabled: Boolean,
     isLocationEnabled: Boolean,
     isDeveloperOptionsEnabled: Boolean,
-    isRooted: Boolean,
     onEnableBluetooth: () -> Unit,
     onEnableLocation: () -> Unit,
     onEnableDeveloperOptions: () -> Unit,
-    onRequestRoot: () -> Unit,
     onDismiss: () -> Unit = {}
 ) {
     Dialog(
@@ -85,16 +83,6 @@ fun SystemRequirementsDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Enable Developer Options")
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            if (!isRooted) {
-                Button(
-                    onClick = onRequestRoot,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Request Root Access")
                 }
                 Spacer(modifier = Modifier.height(8.dp))
             }

@@ -305,12 +305,11 @@ class MainActivity : AppCompatActivity() {
                         showDisclaimer = false
                         checkSystemRequirements() // Re-check after disclaimer
                     }
-                } else if (!isBluetoothEnabled || !isLocationEnabled || !isDeveloperOptionsEnabled || !isRooted) {
+                } else if (!isBluetoothEnabled || !isLocationEnabled || !isDeveloperOptionsEnabled) {
                     SystemRequirementsDialog(
                         isBluetoothEnabled = isBluetoothEnabled,
                         isLocationEnabled = isLocationEnabled,
                         isDeveloperOptionsEnabled = isDeveloperOptionsEnabled,
-                        isRooted = isRooted,
                         onEnableBluetooth = {
                             try {
                                 val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
@@ -324,9 +323,6 @@ class MainActivity : AppCompatActivity() {
                         },
                         onEnableDeveloperOptions = {
                             startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
-                        },
-                        onRequestRoot = {
-                            checkRootAccess()
                         }
                     )
                 } else {
@@ -577,9 +573,22 @@ class MainActivity : AppCompatActivity() {
     private fun checkRootAccess() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val process = Runtime.getRuntime().exec("su -c id")
-                val exitCode = process.waitFor()
-                _isRooted.value = exitCode == 0
+                // First try just "su" to trigger the prompt
+                val suProcess = Runtime.getRuntime().exec("su")
+                val os = java.io.DataOutputStream(suProcess.outputStream)
+                os.writeBytes("id\n")
+                os.writeBytes("exit\n")
+                os.flush()
+                val suExitCode = suProcess.waitFor()
+
+                if (suExitCode == 0) {
+                    _isRooted.value = true
+                } else {
+                    // Fallback to su -c id check
+                    val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "id"))
+                    val exitCode = process.waitFor()
+                    _isRooted.value = exitCode == 0
+                }
             } catch (e: Exception) {
                 _isRooted.value = false
             }

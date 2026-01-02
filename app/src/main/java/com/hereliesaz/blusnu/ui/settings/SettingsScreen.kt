@@ -27,10 +27,12 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
     val backupUrl by viewModel.backupUrl.collectAsState()
     val permissionsStatus by viewModel.permissionsStatus.collectAsState()
     val isMetric by viewModel.isMetric.collectAsState()
+    val isRooted by viewModel.isRooted.collectAsState()
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
         viewModel.checkPermissions()
+        viewModel.checkRootAccess()
     }
 
     Box(
@@ -53,6 +55,15 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                 val color = if (isGranted) androidx.compose.ui.graphics.Color.Green else androidx.compose.ui.graphics.Color.Red
                 val text = permission.substringAfterLast(".")
                 Text(text = "$text: ${if (isGranted) "Granted" else "Denied"}", color = color)
+            }
+
+            val rootColor = if (isRooted) androidx.compose.ui.graphics.Color.Green else androidx.compose.ui.graphics.Color.Red
+            Text(text = "Root Access: ${if (isRooted) "Granted" else "Denied"}", color = rootColor)
+            if (!isRooted) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Button(onClick = { viewModel.checkRootAccess() }) {
+                    Text("Request Root Access")
+                }
             }
             Spacer(modifier = Modifier.height(16.dp))
 
