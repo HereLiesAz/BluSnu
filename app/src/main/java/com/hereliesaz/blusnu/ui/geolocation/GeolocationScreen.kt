@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,6 +29,9 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.ui.draw.rotate
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.TargetDevice
 import com.hereliesaz.blusnu.ui.components.LeafletMapView
@@ -36,32 +40,42 @@ import com.hereliesaz.blusnu.ui.components.LeafletMapView
 @Composable
 fun GeolocationScreen(viewModel: GeolocationViewModel, deviceRepository: DeviceRepository) {
     val uiState by viewModel.uiState.collectAsState()
-    var selectedDevice by remember { mutableStateOf<TargetDevice?>(null) }
     var expanded by remember { mutableStateOf(false) }
 
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        viewModel.startTracking()
+        onDispose {
+            viewModel.stopTracking()
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
+        // Top Section: Arrow, Distance, Selector (Weight 0.5)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .zIndex(1f),
-            horizontalAlignment = Alignment.End
+                .weight(0.5f)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
         ) {
             Text(
                 text = "Track device locations on a map.",
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(vertical = 16.dp)
+                modifier = Modifier.padding(bottom = 16.dp)
             )
+
             ExposedDropdownMenuBox(
                 expanded = expanded,
-                onExpandedChange = { expanded = !expanded }
+                onExpandedChange = { expanded = !expanded },
+                modifier = Modifier.fillMaxWidth()
             ) {
                 TextField(
-                    value = selectedDevice?.name ?: "Select a target device",
+                    value = uiState.selectedDevice?.name ?: "Select a target device",
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
+                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true).fillMaxWidth()
                 )
                 ExposedDropdownMenu(
                     expanded = expanded,
@@ -73,7 +87,7 @@ fun GeolocationScreen(viewModel: GeolocationViewModel, deviceRepository: DeviceR
                         DropdownMenuItem(
                             text = { Text(device.name ?: "Unknown", color = textColor) },
                             onClick = {
-                                selectedDevice = device
+                                viewModel.selectDevice(device)
                                 expanded = false
                             }
                         )
@@ -81,20 +95,48 @@ fun GeolocationScreen(viewModel: GeolocationViewModel, deviceRepository: DeviceR
                 }
             }
 
-            Button(onClick = {
-                selectedDevice?.let {
-                    val newRssi = it.rssi + (-5..5).random()
-                    viewModel.onDeviceRssiUpdated(it, newRssi)
+            Spacer(modifier = Modifier.height(24.dp))
+
+            if (uiState.selectedDevice != null) {
+                if (uiState.distanceToTarget != null && uiState.bearingToTarget != null) {
+                    val bearing = uiState.bearingToTarget!!
+                    val currentAzimuth = uiState.currentAzimuth
+                    val rotation = bearing - currentAzimuth
+
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Filled.ArrowUpward,
+                        contentDescription = "Direction to device",
+                        modifier = Modifier
+                            .rotate(rotation)
+                            .size(100.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    val distanceText = if (uiState.isMetric) {
+                        "%.2f m".format(uiState.distanceToTarget)
+                    } else {
+                        val feet = uiState.distanceToTarget!! * 3.28084
+                        val ft = feet.toInt()
+                        val inches = ((feet - ft) * 12).toInt()
+                        "$ft ft $inches in"
+                    }
+                    Text(
+                        text = "Distance: $distanceText",
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+                } else {
+                    Text("Device location unknown or waiting for GPS...")
                 }
-            }, enabled = selectedDevice != null) {
-                Text("Simulate RSSI Update")
             }
         }
 
+        // Map Section (Weight 0.4)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
+                .weight(0.4f)
         ) {
             LeafletMapView(
                 modifier = Modifier.fillMaxSize(),
@@ -102,5 +144,12 @@ fun GeolocationScreen(viewModel: GeolocationViewModel, deviceRepository: DeviceR
                 devices = uiState.devices
             )
         }
+
+        // Bottom Clear Zone (Weight 0.1)
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(0.1f)
+        )
     }
 }

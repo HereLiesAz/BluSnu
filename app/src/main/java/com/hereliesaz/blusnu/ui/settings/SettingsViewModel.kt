@@ -25,8 +25,17 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _permissionsStatus = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val permissionsStatus: StateFlow<Map<String, Boolean>> = _permissionsStatus
 
+    private val _isMetric = MutableStateFlow(sharedPreferences.getBoolean("use_metric", false))
+    val isMetric: StateFlow<Boolean> = _isMetric
+
     init {
         checkPermissions()
+    }
+
+    fun toggleMetric() {
+        val newValue = !_isMetric.value
+        _isMetric.value = newValue
+        sharedPreferences.edit().putBoolean("use_metric", newValue).apply()
     }
 
     fun checkForUpdates() {

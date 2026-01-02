@@ -24,17 +24,22 @@ class AttackChainExecutor {
         }
     }
 
-    private suspend fun executeNode(node: AttackNode, state: AttackChainingState) {
+    private suspend fun executeNode(node: AttackNode, state: AttackChainingState, context: com.hereliesaz.blusnu.ui.attackchaining.nodes.ExecutionContext = com.hereliesaz.blusnu.ui.attackchaining.nodes.ExecutionContext()) {
         _output.emit("Executing node: ${node.name}")
-        val result = node.execute()
-        _output.emit("Result: $result")
+        val result = node.execute(context)
+        _output.emit("Result: ${result.output}")
 
         // Find the next node to execute
         val connections = state.connections.filter { it.first.nodeId == node.id }
         for (connection in connections) {
             val nextNode = state.nodes[connection.second.nodeId]
             if (nextNode != null) {
-                executeNode(nextNode, state)
+                // Pass context to next node (e.g. target device found)
+                val nextContext = context.copy(
+                    lastResult = result.output,
+                    targetDevice = result.targetDevice ?: context.targetDevice
+                )
+                executeNode(nextNode, state, nextContext)
             }
         }
     }
