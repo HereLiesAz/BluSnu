@@ -26,7 +26,7 @@ val MENU_CATEGORIES = listOf(
     ),
     NavigationCategory(
         id = "impersonation",
-        text = "Impersonation",
+        text = "Fake",
         items = listOf(
             NavigationItem("spoofing", "Spoofing", "spoofing"),
             NavigationItem("btlejacking", "Jacking", "btlejacking"),
@@ -37,7 +37,7 @@ val MENU_CATEGORIES = listOf(
     ),
     NavigationCategory(
         id = "exploitation",
-        text = "Exploitation",
+        text = "Exploit",
         items = listOf(
             NavigationItem("bluebugging", "Bugging", "bluebugging"),
             NavigationItem("bluesnarfing", "Snarfing", "bluesnarfing"),
@@ -48,7 +48,7 @@ val MENU_CATEGORIES = listOf(
     ),
     NavigationCategory(
         id = "disruption",
-        text = "Disruption",
+        text = "Disrupt",
         items = listOf(
             NavigationItem("bluesmack", "Smack", "bluesmack"),
             NavigationItem("blespam", "BLE Spam", "blespam"),
@@ -58,7 +58,7 @@ val MENU_CATEGORIES = listOf(
     ),
     NavigationCategory(
         id = "utilities",
-        text = "Utilities",
+        text = "Utility",
         items = listOf(
             NavigationItem("attack_chaining", "Chaining", "attack_chaining"),
             NavigationItem("raw_commands", "Raw Cmds", "raw_commands"),
