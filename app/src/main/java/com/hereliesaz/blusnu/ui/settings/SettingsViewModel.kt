@@ -28,8 +28,37 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _isMetric = MutableStateFlow(sharedPreferences.getBoolean("use_metric", false))
     val isMetric: StateFlow<Boolean> = _isMetric
 
+    private val _isRooted = MutableStateFlow(false)
+    val isRooted: StateFlow<Boolean> = _isRooted
+
     init {
         checkPermissions()
+        checkRootAccess()
+    }
+
+    fun checkRootAccess() {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                // First try just "su" to trigger the prompt
+                val suProcess = Runtime.getRuntime().exec("su")
+                val os = java.io.DataOutputStream(suProcess.outputStream)
+                os.writeBytes("id\n")
+                os.writeBytes("exit\n")
+                os.flush()
+                val suExitCode = suProcess.waitFor()
+
+                if (suExitCode == 0) {
+                     _isRooted.value = true
+                } else {
+                    // Fallback to su -c id check
+                    val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "id"))
+                    val exitCode = process.waitFor()
+                    _isRooted.value = exitCode == 0
+                }
+            } catch (e: Exception) {
+                _isRooted.value = false
+            }
+        }
     }
 
     fun toggleMetric() {
