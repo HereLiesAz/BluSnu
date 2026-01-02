@@ -33,12 +33,13 @@ fun MagiskScreen() {
         Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = {
-                uriHandler.openUri("https://github.com/HereLiesAz/BluSnu/tree/main/magisk")
+                uriHandler.openUri("https://github.com/Fanker-C/bluez-android")
             }
         ) {
-            Text("View Module on GitHub")
+            Text("View Magisk Module")
         }
         Spacer(modifier = Modifier.height(16.dp))
+        Text("Alternatively, you can manually build a module:")
         Text("1. Obtain precompiled binaries for the BlueZ tools (hcitool, btmgmt, etc.) for your device's architecture.")
         Text("2. Place the binaries in the `magisk/system/bin` directory in the root of this project.")
         Text("3. Zip the contents of the `magisk` directory to create the module file.")

@@ -572,26 +572,23 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkRootAccess() {
         CoroutineScope(Dispatchers.IO).launch {
-            try {
-                // First try just "su" to trigger the prompt
-                val suProcess = Runtime.getRuntime().exec("su")
-                val os = java.io.DataOutputStream(suProcess.outputStream)
-                os.writeBytes("id\n")
-                os.writeBytes("exit\n")
-                os.flush()
-                val suExitCode = suProcess.waitFor()
+            _isRooted.value = isRootAvailable()
+        }
+    }
 
-                if (suExitCode == 0) {
-                    _isRooted.value = true
-                } else {
-                    // Fallback to su -c id check
-                    val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "id"))
-                    val exitCode = process.waitFor()
-                    _isRooted.value = exitCode == 0
-                }
-            } catch (e: Exception) {
-                _isRooted.value = false
-            }
+    private fun isRootAvailable(): Boolean {
+        return try {
+            val process = ProcessBuilder("su", "-c", "id")
+                .redirectErrorStream(true)
+                .start()
+
+            // We must consume the stream to prevent blocking
+            process.inputStream.use { it.readBytes() }
+
+            val exitCode = process.waitFor()
+            exitCode == 0
+        } catch (e: Exception) {
+            false
         }
     }
 
