@@ -158,10 +158,10 @@ class MainActivity : AppCompatActivity() {
                         BluesnarfingViewModel(application, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BluffsViewModel::class.java) -> {
-                        BluffsViewModel(deviceRepository) as T
+                        BluffsViewModel(deviceRepository, bluffsModule) as T
                     }
                     modelClass.isAssignableFrom(BrakToothViewModel::class.java) -> {
-                        BrakToothViewModel(deviceRepository) as T
+                        BrakToothViewModel(deviceRepository, brakToothModule) as T
                     }
                     modelClass.isAssignableFrom(GattFuzzingViewModel::class.java) -> {
                         GattFuzzingViewModel(application, deviceRepository) as T
