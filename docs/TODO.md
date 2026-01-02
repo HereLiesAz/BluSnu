@@ -88,8 +88,8 @@ This document outlines the development tasks required to implement the Blu Snu f
 -   [x] **Task 5.2: Keystroke Injection (CVE-2023-45866 / "BlueDucky") Module**
     -   [x] Implement the logic to emulate an HID keyboard and attempt "Just Works" pairing.
     -   [x] Create the UI to send keystroke commands if the attack is successful.
-    -   [ ] Add DuckyScript parsing support.
-    -   [ ] Implement raw L2CAP socket method for root users (bypass Android API pairing prompts).
+    -   [x] Add DuckyScript parsing support.
+    -   [x] Implement raw L2CAP socket method for root users (bypass Android API pairing prompts) (Simulated).
 -   [x] **Task 5.3: Bluetooth Spoofing Module**
     -   [x] Implement the logic to change the Bluetooth adapter's MAC address. (Requires Elevated Mode)
     -   [x] Create the UI to allow the user to specify a new MAC address.
@@ -106,7 +106,7 @@ This document outlines the development tasks required to implement the Blu Snu f
 -   [x] **Task 6.1: Attack Chaining Canvas**
     -   [x] Design and implement the visual node-based editor.
     -   [x] Create the initial set of nodes for all implemented modules and logic (If/Else, Wait, Loop).
-    -   [x] Implement the data flow logic between connected nodes.
+    -   [x] Implement the data flow logic between connected nodes (Implemented via Executor Context).
 -   [x] **Task 6.2: Pre-built Attack Chain Templates**
     -   [x] Implement the logic to load and save attack chains.
     -   [x] Create the initial set of templates (e.g., "Simple Scan," "Snarf and Inject").
@@ -144,12 +144,12 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Implement the UI and basic functionality for Spoofing.
     -   [x] Implement the UI and basic functionality for Magisk/Root.
     -   [x] Implement the UI and basic functionality for Raw Commands.
-    -   [ ] Implement the UI and basic functionality for BLUFFS.
-    -   [ ] Implement the UI and basic functionality for BrakTooth.
-    -   [ ] Implement the UI and basic functionality for BLE Spam.
-    -   [ ] Implement the UI and basic functionality for GATT Relay.
-    -   [ ] Implement the UI and basic functionality for PerfektBlue.
-    -   [ ] Implement the UI and basic functionality for SMP Bypass.
+    -   [x] Implement the UI and basic functionality for BLUFFS.
+    -   [x] Implement the UI and basic functionality for BrakTooth.
+    -   [x] Implement the UI and basic functionality for BLE Spam.
+    -   [x] Implement the UI and basic functionality for GATT Relay.
+    -   [x] Implement the UI and basic functionality for PerfektBlue.
+    -   [x] Implement the UI and basic functionality for SMP Bypass.
 -   [x] **Task 7.5: Data Sharing and Analytics**
     -   [x] Add a sentence to the ethical use prompt asking the user to share anonymized data with the developer.
     -   [x] Add "Agree" and "Cancel" buttons to the new prompt.
