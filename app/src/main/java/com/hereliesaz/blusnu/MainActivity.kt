@@ -217,7 +217,7 @@ class MainActivity : AppCompatActivity() {
                         PerfektBlueViewModel(deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(SmpBypassViewModel::class.java) -> {
-                        SmpBypassViewModel() as T
+                        SmpBypassViewModel(deviceRepository) as T
                     }
                     else -> throw IllegalArgumentException("Unknown ViewModel class")
                 }
@@ -431,6 +431,7 @@ class MainActivity : AppCompatActivity() {
                                                 state = state,
                                                 onAttemptAttack = viewModel::onAttemptAttack,
                                                 onSendKeystrokes = viewModel::onSendKeystrokes,
+                                                onRunDuckyScript = viewModel::onRunDuckyScript,
                                                 onDeviceSelected = {
                                                     Toast.makeText(applicationContext, "Device selected: ${it.name}", Toast.LENGTH_SHORT).show()
                                                 }

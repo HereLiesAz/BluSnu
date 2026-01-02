@@ -37,9 +37,11 @@ fun KeystrokeInjectionScreen(
     state: KeystrokeInjectionState,
     onAttemptAttack: () -> Unit,
     onSendKeystrokes: (String) -> Unit,
+    onRunDuckyScript: (String) -> Unit,
     onDeviceSelected: (com.hereliesaz.blusnu.data.TargetDevice) -> Unit
 ) {
     var textToSend by remember { mutableStateOf("") }
+    var duckyScript by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
 
     Box(
@@ -118,6 +120,23 @@ fun KeystrokeInjectionScreen(
                     ) {
                         Text("Send")
                     }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                TextField(
+                    value = duckyScript,
+                    onValueChange = { duckyScript = it },
+                    label = { Text("DuckyScript") },
+                    modifier = Modifier.fillMaxWidth().height(150.dp),
+                    maxLines = 10
+                )
+                Button(
+                    onClick = { onRunDuckyScript(duckyScript) },
+                    enabled = duckyScript.isNotEmpty(),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Run Script")
                 }
             }
 

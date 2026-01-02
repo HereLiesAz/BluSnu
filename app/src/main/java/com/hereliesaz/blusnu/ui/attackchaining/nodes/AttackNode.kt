@@ -4,6 +4,36 @@ import androidx.compose.ui.geometry.Offset
 import com.hereliesaz.blusnu.data.TargetDevice
 import kotlinx.coroutines.delay
 
+// Base interface for all nodes
+interface AttackNode {
+    val id: NodeId
+    val position: Offset
+    val inputs: List<NodeConnector>
+    val outputs: List<NodeConnector>
+    val name: String
+    val title: String
+    val targetDevice: TargetDevice?
+    suspend fun execute(context: ExecutionContext): ExecutionResult
+    fun copy(position: Offset): AttackNode
+    fun withTarget(device: TargetDevice): AttackNode
+}
+
+data class ExecutionContext(
+    val lastResult: String? = null,
+    val targetDevice: TargetDevice? = null
+)
+
+data class ExecutionResult(
+    val output: String,
+    val targetDevice: TargetDevice? = null
+)
+
+// A unique identifier for a node
+typealias NodeId = String
+
+// Represents a connection point on a node
+data class NodeConnector(val id: String, val nodeId: NodeId)
+
 // Start Node
 data class StartNode(
     override val id: NodeId,
@@ -14,32 +44,12 @@ data class StartNode(
     override val targetDevice: TargetDevice? = null
 ) : AttackNode {
     override val title: String = "Start"
-    override suspend fun execute(): String {
+    override suspend fun execute(context: ExecutionContext): ExecutionResult {
         delay(100)
-        return "StartNode executed"
+        return ExecutionResult("StartNode executed", targetDevice)
     }
     override fun copy(position: Offset): AttackNode = this.copy(position = position)
     override fun withTarget(device: TargetDevice): AttackNode = this.copy(targetDevice = device)
-}
-
-// A unique identifier for a node
-typealias NodeId = String
-
-// Represents a connection point on a node
-data class NodeConnector(val id: String, val nodeId: NodeId)
-
-// Base interface for all nodes
-interface AttackNode {
-    val id: NodeId
-    val position: Offset
-    val inputs: List<NodeConnector>
-    val outputs: List<NodeConnector>
-    val name: String
-    val title: String
-    val targetDevice: TargetDevice?
-    suspend fun execute(): String
-    fun copy(position: Offset): AttackNode
-    fun withTarget(device: TargetDevice): AttackNode
 }
 
 // Logic Nodes
@@ -52,9 +62,9 @@ data class IfElseNode(
     override val targetDevice: TargetDevice? = null
 ) : AttackNode {
     override val title: String = "If/Else"
-    override suspend fun execute(): String {
+    override suspend fun execute(context: ExecutionContext): ExecutionResult {
         delay(100)
-        return "IfElseNode executed"
+        return ExecutionResult("IfElseNode executed", context.targetDevice)
     }
     override fun copy(position: Offset): AttackNode = this.copy(position = position)
     override fun withTarget(device: TargetDevice): AttackNode = this.copy(targetDevice = device)
@@ -69,9 +79,9 @@ data class WaitNode(
     override val targetDevice: TargetDevice? = null
 ) : AttackNode {
     override val title: String = "Wait"
-    override suspend fun execute(): String {
+    override suspend fun execute(context: ExecutionContext): ExecutionResult {
         delay(1000)
-        return "WaitNode executed"
+        return ExecutionResult("WaitNode executed", context.targetDevice)
     }
     override fun copy(position: Offset): AttackNode = this.copy(position = position)
     override fun withTarget(device: TargetDevice): AttackNode = this.copy(targetDevice = device)
@@ -86,9 +96,9 @@ data class LoopNode(
     override val targetDevice: TargetDevice? = null
 ) : AttackNode {
     override val title: String = "Loop"
-    override suspend fun execute(): String {
+    override suspend fun execute(context: ExecutionContext): ExecutionResult {
         delay(100)
-        return "LoopNode executed"
+        return ExecutionResult("LoopNode executed", context.targetDevice)
     }
     override fun copy(position: Offset): AttackNode = this.copy(position = position)
     override fun withTarget(device: TargetDevice): AttackNode = this.copy(targetDevice = device)
@@ -98,15 +108,15 @@ data class LoopNode(
 data class ScanBleNode(
     override val id: NodeId,
     override val position: Offset = Offset.Zero,
-    override val inputs: List<NodeConnector> = emptyList(),
+    override val inputs: List<NodeConnector> = listOf(NodeConnector("trigger", id)),
     override val outputs: List<NodeConnector> = listOf(NodeConnector("devices", id)),
     override val name: String = "Scan BLE Devices",
     override val targetDevice: TargetDevice? = null
 ) : AttackNode {
     override val title: String = "Scan BLE Devices"
-    override suspend fun execute(): String {
+    override suspend fun execute(context: ExecutionContext): ExecutionResult {
         delay(2000)
-        return "ScanBleNode executed"
+        return ExecutionResult("ScanBleNode executed: Found 3 devices", null)
     }
     override fun copy(position: Offset): AttackNode = this.copy(position = position)
     override fun withTarget(device: TargetDevice): AttackNode = this.copy(targetDevice = device)
@@ -121,9 +131,14 @@ data class BluesnarfNode(
     override val targetDevice: TargetDevice? = null
 ) : AttackNode {
     override val title: String = "Bluesnarf"
-    override suspend fun execute(): String {
+    override suspend fun execute(context: ExecutionContext): ExecutionResult {
+        val target = targetDevice ?: context.targetDevice
         delay(3000)
-        return "BluesnarfNode executed"
+        return if (target != null) {
+            ExecutionResult("Bluesnarf executed on ${target.macAddress}", target)
+        } else {
+            ExecutionResult("Bluesnarf failed: No target", null)
+        }
     }
     override fun copy(position: Offset): AttackNode = this.copy(position = position)
     override fun withTarget(device: TargetDevice): AttackNode = this.copy(targetDevice = device)
@@ -138,9 +153,14 @@ data class KeystrokeInjectionNode(
     override val targetDevice: TargetDevice? = null
 ) : AttackNode {
     override val title: String = "Keystroke Injection"
-    override suspend fun execute(): String {
+    override suspend fun execute(context: ExecutionContext): ExecutionResult {
+        val target = targetDevice ?: context.targetDevice
         delay(1500)
-        return "KeystrokeInjectionNode executed"
+        return if (target != null) {
+            ExecutionResult("Keystroke Injection executed on ${target.macAddress}", target)
+        } else {
+            ExecutionResult("Keystroke Injection failed: No target", null)
+        }
     }
     override fun copy(position: Offset): AttackNode = this.copy(position = position)
     override fun withTarget(device: TargetDevice): AttackNode = this.copy(targetDevice = device)

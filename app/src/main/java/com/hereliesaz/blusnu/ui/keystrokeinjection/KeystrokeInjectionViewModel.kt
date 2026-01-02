@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.ActionLogger
 import com.hereliesaz.blusnu.data.DeviceRepository
+import com.hereliesaz.blusnu.data.DuckyScriptParser
 import com.hereliesaz.blusnu.data.KeystrokeInjectionModule
 import com.hereliesaz.blusnu.data.TargetDevice
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +27,7 @@ class KeystrokeInjectionViewModel(
     deviceRepository: DeviceRepository
 ) : AndroidViewModel(application) {
 
+    private val duckyScriptParser = DuckyScriptParser()
     private val _state = MutableStateFlow(KeystrokeInjectionState())
     val state: StateFlow<KeystrokeInjectionState> = _state.asStateFlow()
 
@@ -34,6 +36,32 @@ class KeystrokeInjectionViewModel(
             deviceRepository.allDevices.collect { devices ->
                 _state.update { it.copy(devices = devices) }
             }
+        }
+    }
+
+    fun onRunDuckyScript(script: String) {
+        ActionLogger.log("Running DuckyScript")
+        viewModelScope.launch {
+            log("Executing DuckyScript...")
+            duckyScriptParser.execute(script) { cmd ->
+                when (cmd.type) {
+                    DuckyScriptParser.CommandType.STRING -> {
+                        log("TYPE: ${cmd.args}")
+                        keystrokeInjectionModule.sendKeystrokes(cmd.args)
+                    }
+                    DuckyScriptParser.CommandType.ENTER -> {
+                        log("PRESS: ENTER")
+                        // Simulate ENTER (implementation depends on module support, assuming generic send for now)
+                        keystrokeInjectionModule.sendKeystrokes("\n")
+                    }
+                    DuckyScriptParser.CommandType.GUI -> {
+                        log("PRESS: GUI ${cmd.args}")
+                        // Placeholder for GUI key
+                    }
+                    else -> log("Skipping unsupported command: ${cmd.type}")
+                }
+            }
+            log("Script execution finished.")
         }
     }
     fun onDeviceSelected(device: TargetDevice) {
