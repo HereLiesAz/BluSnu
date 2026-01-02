@@ -13,6 +13,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.any
 
 class BluffsViewModelTest {
 
@@ -29,6 +30,7 @@ class BluffsViewModelTest {
         // bluffsModule is instantiated inside ViewModel
 
         `when`(deviceRepository.allDevices).thenReturn(flowOf(emptyList()))
+        `when`(bluffsModule.startAttack(any(), any())).thenReturn(flowOf("Log 1"))
 
         viewModel = BluffsViewModel(deviceRepository)
     }
