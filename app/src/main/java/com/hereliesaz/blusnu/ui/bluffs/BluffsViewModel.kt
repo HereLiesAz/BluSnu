@@ -14,8 +14,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class BluffsViewModel(private val deviceRepository: DeviceRepository) : ViewModel() {
-    private val bluffsModule = BluffsModule()
+class BluffsViewModel(
+    private val deviceRepository: DeviceRepository,
+    private val bluffsModule: BluffsModule
+) : ViewModel() {
 
     private val _devices = MutableStateFlow<List<TargetDevice>>(emptyList())
     val devices: StateFlow<List<TargetDevice>> = _devices

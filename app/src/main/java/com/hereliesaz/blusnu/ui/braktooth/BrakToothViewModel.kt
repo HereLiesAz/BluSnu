@@ -14,8 +14,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class BrakToothViewModel(private val deviceRepository: DeviceRepository) : ViewModel() {
-    private val brakToothModule = BrakToothModule()
+class BrakToothViewModel(
+    private val deviceRepository: DeviceRepository,
+    private val brakToothModule: BrakToothModule
+) : ViewModel() {
 
     private val _devices = MutableStateFlow<List<TargetDevice>>(emptyList())
     val devices: StateFlow<List<TargetDevice>> = _devices
