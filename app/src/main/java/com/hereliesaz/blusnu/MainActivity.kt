@@ -294,43 +294,43 @@ class MainActivity : AppCompatActivity() {
                                         defaultShape = AzButtonShape.RECTANGLE
                                     )
 
-                                    // Monitor
-                                    azRailHostItem(id = "monitor", text = "Monitor", onClick = {})
-                                    azRailSubItem(id = "dashboard", hostId = "monitor", text = "Dashboard", route = "dashboard")
-                                    azRailSubItem(id = "targets", hostId = "monitor", text = "Targets", route = "targets")
-                                    azRailSubItem(id = "geolocation", hostId = "monitor", text = "Location", route = "geolocation")
-                                    azRailSubItem(id = "reporting", hostId = "monitor", text = "Reporting", route = "reporting")
-                                    azRailSubItem(id = "bluetooth_log", hostId = "monitor", text = "Log", route = "bluetooth_log")
+                                    // Recon
+                                    azRailHostItem(id = "recon", text = "Recon", onClick = {})
+                                    azRailSubItem(id = "dashboard", hostId = "recon", text = "Dashboard", route = "dashboard")
+                                    azRailSubItem(id = "targets", hostId = "recon", text = "Targets", route = "targets")
+                                    azRailSubItem(id = "geolocation", hostId = "recon", text = "Location", route = "geolocation")
+                                    azRailSubItem(id = "reporting", hostId = "recon", text = "Reporting", route = "reporting")
+                                    azRailSubItem(id = "bluetooth_log", hostId = "recon", text = "Log", route = "bluetooth_log")
 
-                                    // Classic Attacks
-                                    azRailHostItem(id = "classic_attacks", text = "Classic", onClick = {})
-                                    azRailSubItem(id = "bluebugging", hostId = "classic_attacks", text = "Bugging", route = "bluebugging")
-                                    azRailSubItem(id = "bluesnarfing", hostId = "classic_attacks", text = "Snarfing", route = "bluesnarfing")
-                                    azRailSubItem(id = "bluesmack", hostId = "classic_attacks", text = "Smack", route = "bluesmack")
-                                    azRailSubItem(id = "bluffs", hostId = "classic_attacks", text = "BLUFFS", route = "bluffs")
-                                    azRailSubItem(id = "braktooth", hostId = "classic_attacks", text = "BrakTooth", route = "braktooth")
+                                    // Impersonation
+                                    azRailHostItem(id = "impersonation", text = "Impersonation", onClick = {})
+                                    azRailSubItem(id = "spoofing", hostId = "impersonation", text = "Spoofing", route = "spoofing")
+                                    azRailSubItem(id = "btlejacking", hostId = "impersonation", text = "Jacking", route = "btlejacking")
+                                    azRailSubItem(id = "btlejuice", hostId = "impersonation", text = "Juice", route = "btlejuice")
+                                    azRailSubItem(id = "gattrelay", hostId = "impersonation", text = "Relay", route = "gattrelay")
+                                    azRailSubItem(id = "bluffs", hostId = "impersonation", text = "BLUFFS", route = "bluffs")
 
-                                    // BLE Attacks
-                                    azRailHostItem(id = "ble_attacks", text = "BLE", onClick = {})
-                                    azRailSubItem(id = "gattfuzzing", hostId = "ble_attacks", text = "Fuzzing", route = "gattfuzzing")
-                                    azRailSubItem(id = "btlejacking", hostId = "ble_attacks", text = "Jacking", route = "btlejacking")
-                                    azRailSubItem(id = "btlejuice", hostId = "ble_attacks", text = "Juice", route = "btlejuice")
-                                    azRailSubItem(id = "blespam", hostId = "ble_attacks", text = "BLE Spam", route = "blespam")
-                                    azRailSubItem(id = "gattrelay", hostId = "ble_attacks", text = "Relay", route = "gattrelay")
+                                    // Exploitation
+                                    azRailHostItem(id = "exploitation", text = "Exploitation", onClick = {})
+                                    azRailSubItem(id = "bluebugging", hostId = "exploitation", text = "Bugging", route = "bluebugging")
+                                    azRailSubItem(id = "bluesnarfing", hostId = "exploitation", text = "Snarfing", route = "bluesnarfing")
+                                    azRailSubItem(id = "keystroke_injection", hostId = "exploitation", text = "Injection", route = "keystroke_injection")
+                                    azRailSubItem(id = "perfektblue", hostId = "exploitation", text = "PerfektBlue", route = "perfektblue")
+                                    azRailSubItem(id = "smpbypass", hostId = "exploitation", text = "SMP Bypass", route = "smpbypass")
 
-                                    // Advanced
-                                    azRailHostItem(id = "advanced", text = "Advanced", onClick = {})
-                                    azRailSubItem(id = "spoofing", hostId = "advanced", text = "Spoofing", route = "spoofing")
-                                    azRailSubItem(id = "keystroke_injection", hostId = "advanced", text = "Injection", route = "keystroke_injection")
-                                    azRailSubItem(id = "attack_chaining", hostId = "advanced", text = "Chaining", route = "attack_chaining")
-                                    azRailSubItem(id = "raw_commands", hostId = "advanced", text = "Raw Cmds", route = "raw_commands")
-                                    azRailSubItem(id = "perfektblue", hostId = "advanced", text = "PerfektBlue", route = "perfektblue")
-                                    azRailSubItem(id = "smpbypass", hostId = "advanced", text = "SMP Bypass", route = "smpbypass")
+                                    // Disruption
+                                    azRailHostItem(id = "disruption", text = "Disruption", onClick = {})
+                                    azRailSubItem(id = "bluesmack", hostId = "disruption", text = "Smack", route = "bluesmack")
+                                    azRailSubItem(id = "blespam", hostId = "disruption", text = "BLE Spam", route = "blespam")
+                                    azRailSubItem(id = "braktooth", hostId = "disruption", text = "BrakTooth", route = "braktooth")
+                                    azRailSubItem(id = "gattfuzzing", hostId = "disruption", text = "Fuzzing", route = "gattfuzzing")
 
-                                    // System
-                                    azRailHostItem(id = "system", text = "System", onClick = {})
-                                    azRailSubItem(id = "magisk", hostId = "system", text = "Magisk", route = "magisk")
-                                    azRailSubItem(id = "settings", hostId = "system", text = "Settings", route = "settings")
+                                    // Utilities
+                                    azRailHostItem(id = "utilities", text = "Utilities", onClick = {})
+                                    azRailSubItem(id = "attack_chaining", hostId = "utilities", text = "Chaining", route = "attack_chaining")
+                                    azRailSubItem(id = "raw_commands", hostId = "utilities", text = "Raw Cmds", route = "raw_commands")
+                                    azRailSubItem(id = "magisk", hostId = "utilities", text = "Magisk", route = "magisk")
+                                    azRailSubItem(id = "settings", hostId = "utilities", text = "Settings", route = "settings")
                                 }
 
                                 Box(
