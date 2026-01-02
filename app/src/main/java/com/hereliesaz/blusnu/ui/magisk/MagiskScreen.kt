@@ -1,15 +1,22 @@
 package com.hereliesaz.blusnu.ui.magisk
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun MagiskScreen() {
+    val uriHandler = LocalUriHandler.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -17,11 +24,22 @@ fun MagiskScreen() {
     ) {
         Text(
             text = "Instructions for installing BlueZ tools via Magisk.",
-            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(bottom = 16.dp)
         )
-        Text("Install BlueZ Tools with Magisk")
+        Text("Install BlueZ Tools with Magisk", style = MaterialTheme.typography.titleMedium)
+        Spacer(modifier = Modifier.height(8.dp))
         Text("To use the Raw Commands screen, you need to install the BlueZ tools on your device. This can be done with a Magisk module.")
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = {
+                uriHandler.openUri("https://github.com/Fanker-C/bluez-android")
+            }
+        ) {
+            Text("View Magisk Module")
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Alternatively, you can manually build a module:")
         Text("1. Obtain precompiled binaries for the BlueZ tools (hcitool, btmgmt, etc.) for your device's architecture.")
         Text("2. Place the binaries in the `magisk/system/bin` directory in the root of this project.")
         Text("3. Zip the contents of the `magisk` directory to create the module file.")

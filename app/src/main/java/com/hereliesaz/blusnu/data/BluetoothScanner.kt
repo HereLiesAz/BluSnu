@@ -28,7 +28,7 @@ class BluetoothScanner(
 ) {
 
     private var isClassicReceiverRegistered = false
-    private val bleScanner: BluetoothLeScanner by lazy {
+    private val bleScanner: BluetoothLeScanner? by lazy {
         bluetoothAdapter.bluetoothLeScanner
     }
 
@@ -169,11 +169,17 @@ class BluetoothScanner(
 
     @SuppressLint("MissingPermission")
     fun startBleScan() {
-        bleScanner.startScan(bleScanCallback)
+        if (bleScanner != null) {
+            bleScanner?.startScan(bleScanCallback)
+        } else {
+            CoroutineScope(Dispatchers.IO).launch {
+                bluetoothLog.log("Error: Bluetooth LE Scanner not available (Bluetooth might be off)")
+            }
+        }
     }
 
     @SuppressLint("MissingPermission")
     fun stopBleScan() {
-        bleScanner.stopScan(bleScanCallback)
+        bleScanner?.stopScan(bleScanCallback)
     }
 }
