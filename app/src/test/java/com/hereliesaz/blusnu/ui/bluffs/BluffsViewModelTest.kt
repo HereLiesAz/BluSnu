@@ -26,22 +26,21 @@ class BluffsViewModelTest {
     @Before
     fun setup() {
         deviceRepository = mock()
-        bluffsModule = mock()
+        // bluffsModule is instantiated inside ViewModel
 
         `when`(deviceRepository.allDevices).thenReturn(flowOf(emptyList()))
-        `when`(bluffsModule.logs).thenReturn(MutableStateFlow(emptyList()))
 
-        viewModel = BluffsViewModel(deviceRepository, bluffsModule)
+        viewModel = BluffsViewModel(deviceRepository)
     }
 
     @Test
     fun `initial state is correct`() {
-        assertEquals(BluffsMode.A1_SPOOF_LSC_CENTRAL, viewModel.selectedMode.value)
+        assertEquals(BluffsMode.A1, viewModel.selectedMode.value)
     }
 
     @Test
     fun `onModeSelected updates state`() {
-        viewModel.onModeSelected(BluffsMode.A3_MITM_LSC)
-        assertEquals(BluffsMode.A3_MITM_LSC, viewModel.selectedMode.value)
+        viewModel.selectMode(BluffsMode.A3)
+        assertEquals(BluffsMode.A3, viewModel.selectedMode.value)
     }
 }
