@@ -19,7 +19,7 @@ val MENU_CATEGORIES = listOf(
         items = listOf(
             NavigationItem("dashboard", "Dashboard", "dashboard"),
             NavigationItem("targets", "Targets", "targets"),
-            NavigationItem("geolocation", "Location", "geolocation"),
+            NavigationItem("find", "Find", "find"),
             NavigationItem("reporting", "Reporting", "reporting"),
             NavigationItem("bluetooth_log", "Log", "bluetooth_log")
         )

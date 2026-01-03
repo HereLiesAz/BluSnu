@@ -13,7 +13,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -28,7 +27,7 @@ data class LocationDataPoint(
     val rssi: Int
 )
 
-data class GeolocationUiState(
+data class FindUiState(
     val devices: List<TargetDevice> = emptyList(),
     val userLocation: Location? = null,
     val isTracking: Boolean = false,
@@ -39,7 +38,7 @@ data class GeolocationUiState(
     val isMetric: Boolean = false
 )
 
-class GeolocationViewModel(
+class FindViewModel(
     application: Application,
     private val deviceRepository: DeviceRepository
 ) : AndroidViewModel(application) {
@@ -50,8 +49,8 @@ class GeolocationViewModel(
     private val deviceRssiHistory = mutableMapOf<String, MutableList<LocationDataPoint>>()
     private val sharedPreferences = application.getSharedPreferences("blusnu_prefs", android.content.Context.MODE_PRIVATE)
 
-    private val _uiState = MutableStateFlow(GeolocationUiState(isMetric = sharedPreferences.getBoolean("use_metric", false)))
-    val uiState: StateFlow<GeolocationUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(FindUiState(isMetric = sharedPreferences.getBoolean("use_metric", false)))
+    val uiState: StateFlow<FindUiState> = _uiState.asStateFlow()
 
     private var locationJob: Job? = null
     private var compassJob: Job? = null

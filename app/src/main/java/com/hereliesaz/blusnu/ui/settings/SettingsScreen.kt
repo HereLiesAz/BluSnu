@@ -7,9 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.collectAsState
@@ -19,6 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.hereliesaz.aznavrail.AzButton
+import com.hereliesaz.aznavrail.AzTextBox
+import com.hereliesaz.aznavrail.AzToggle
 import com.hereliesaz.blusnu.ui.components.ScreenTitle
 
 @Composable
@@ -61,9 +62,10 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             Text(text = "Root Access: ${if (isRooted) "Granted" else "Denied"}", color = rootColor)
             if (!isRooted) {
                 Spacer(modifier = Modifier.height(4.dp))
-                Button(onClick = { viewModel.checkRootAccess() }) {
-                    Text("Request Root Access")
-                }
+                AzButton(
+                    onClick = { viewModel.checkRootAccess() },
+                    text = "Request Root Access"
+                )
             }
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -73,23 +75,28 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Use Metric System (Meters)")
-                androidx.compose.material3.Switch(
-                    checked = isMetric,
-                    onCheckedChange = { viewModel.toggleMetric() }
+                AzToggle(
+                    isChecked = isMetric,
+                    onToggle = { viewModel.toggleMetric() },
+                    toggleOnText = "Metric",
+                    toggleOffText = "Imperial"
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            TextField(
+            AzTextBox(
                 value = backupUrl,
                 onValueChange = { viewModel.updateBackupUrl(it) },
-                label = { Text("Cloud Backup URL") }
+                hint = "Cloud Backup URL",
+                onSubmit = { viewModel.updateBackupUrl(it) },
+                submitButtonContent = { Text("Save") }
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            Button(onClick = { viewModel.checkForUpdates() }) {
-                Text("Check for Database Updates")
-            }
+            AzButton(
+                onClick = { viewModel.checkForUpdates() },
+                text = "Check for Database Updates"
+            )
             Spacer(modifier = Modifier.height(16.dp))
             Text(updateStatus)
 
