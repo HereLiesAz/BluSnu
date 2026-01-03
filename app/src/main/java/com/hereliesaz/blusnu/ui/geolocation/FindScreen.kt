@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -87,60 +88,97 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
                     }
                     Text(
                         text = "Estimated Range: $distanceText",
-                        style = MaterialTheme.typography.headlineLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 } else {
                     Text(
-                        text = "Waiting for signal...",
-                        style = MaterialTheme.typography.headlineSmall,
+                        text = "Move the device around to triangulate signal sources.",
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.secondary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                // Arrow Logic
-                // If we have bearing, show it pointing to device.
-                // If we DON'T have bearing (no GPS or no device loc), show arrow pointing North (or Compass)
-                // but faded to indicate "Direction Unknown/Compass Mode".
-
-                val rotation = if (uiState.distanceToTarget != null && uiState.bearingToTarget != null) {
-                    // Valid GPS bearing relative to phone heading
-                    uiState.bearingToTarget!! - uiState.currentAzimuth
+                if (uiState.recordedLocations.size < 3) {
+                    Text(
+                        text = "Stand at 3 different locations at least 5 meters apart to triangulate.",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                    Button(onClick = { viewModel.recordCurrentLocation() }) {
+                        Text("Record Position (${uiState.recordedLocations.size}/3)")
+                    }
                 } else {
-                    // Just compass heading (pointing North) relative to phone
-                    -uiState.currentAzimuth
+                    Text(
+                        text = "Triangulation Complete",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Button(onClick = { viewModel.clearRecordedLocations() }) {
+                        Text("Reset")
+                    }
                 }
 
-                val arrowTint = if (uiState.distanceToTarget != null && uiState.bearingToTarget != null) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                }
+                Spacer(modifier = Modifier.height(16.dp))
 
-                androidx.compose.material3.Icon(
-                    imageVector = Icons.Filled.ArrowUpward,
-                    contentDescription = "Direction to device",
-                    modifier = Modifier
-                        .rotate(rotation)
-                        .size(100.dp),
-                    tint = arrowTint
-                )
+                // Hardware features
+                if (!uiState.isUsbConnected) {
+                    Button(onClick = { viewModel.connectUsbDongle() }) {
+                        Text("Connect USB Dongle (Dual RSSI)")
+                    }
+                } else {
+                    Text("USB Dongle Connected (Dual RSSI Active)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                if (uiState.distanceToTarget != null) {
+                // Tandem Mode Toggle (Using Button as Toggle for simplicity or custom AzToggle if available, but staying standard Compose for now)
+                // Actually, let's use a Row with Switch
+                androidx.compose.foundation.layout.Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Enable Tandem Mode: ", style = MaterialTheme.typography.bodyMedium)
+                    androidx.compose.material3.Switch(
+                        checked = uiState.isTandemModeEnabled,
+                        onCheckedChange = { viewModel.toggleTandemMode() }
+                    )
+                }
+                if (uiState.isTandemModeEnabled) {
+                    Text("Listening for tandem device...", style = MaterialTheme.typography.labelSmall)
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Arrow Logic
+                // Only show arrow if we have a valid bearing to target
+                if (uiState.distanceToTarget != null && uiState.bearingToTarget != null) {
+                    val rotation = uiState.bearingToTarget!! - uiState.currentAzimuth
+
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Filled.ArrowUpward,
+                        contentDescription = "Direction to device",
+                        modifier = Modifier
+                            .rotate(rotation)
+                            .size(100.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "GPS Fix Acquired",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.secondary
                     )
-                } else if (uiState.userLocation == null) {
-                     // Don't say "Waiting for GPS" as primary state, but maybe as status
-                     Text("Acquiring GPS...", style = MaterialTheme.typography.labelSmall)
                 } else {
-                    Text("Device Location Unknown", style = MaterialTheme.typography.labelSmall)
+                    // No valid bearing
+                    Spacer(modifier = Modifier.height(24.dp))
+                    if (uiState.userLocation == null) {
+                         Text("Acquiring GPS...", style = MaterialTheme.typography.labelSmall)
+                    } else {
+                        Text("Device Location Unknown. Move to triangulate.", style = MaterialTheme.typography.labelSmall)
+                    }
+                    Spacer(modifier = Modifier.height(76.dp)) // Placeholder height for arrow
                 }
             }
         }
