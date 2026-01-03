@@ -155,7 +155,7 @@ jobs:
           fi
 
           # Use static name to allow overwriting (clobbering) the existing asset
-          TARGET_NAME="${APP_NAME}-latest-debug.apk"
+          TARGET_NAME="${APP_NAME}-${VERSION_NAME}-debug.apk"
           
           # Rename for release
           mv "$APK_ORIGINAL" "$TARGET_NAME"
