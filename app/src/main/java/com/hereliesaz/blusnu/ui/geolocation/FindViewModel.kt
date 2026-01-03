@@ -72,7 +72,9 @@ class FindViewModel(
                 _uiState.value.selectedDevice?.let { selected ->
                     val updated = devices.find { it.macAddress == selected.macAddress }
                     if (updated != null) {
-                        selectDevice(updated)
+                        // Don't call selectDevice here as it resets rssiDistance
+                        _uiState.value = _uiState.value.copy(selectedDevice = updated)
+                        onDeviceRssiUpdated(updated, updated.rssi)
                     }
                 }
             }
@@ -243,6 +245,7 @@ class FindViewModel(
         val smoothedRssi = geolocationModule.smoothRssi(device.macAddress, rssi.toDouble())
         val distance = geolocationModule.calculateDistance(smoothedRssi)
 
+        // Always update RSSI distance for selected device, regardless of location fix
         if (_uiState.value.selectedDevice?.macAddress == device.macAddress) {
             val updatedDevice = _uiState.value.selectedDevice?.copy(rssi = rssi)
             _uiState.value = _uiState.value.copy(

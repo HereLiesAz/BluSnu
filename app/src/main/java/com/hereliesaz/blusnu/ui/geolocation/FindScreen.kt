@@ -166,9 +166,9 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "GPS Fix Acquired",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.secondary
+                        text = "Target Locked",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 } else {
                     // No valid bearing
