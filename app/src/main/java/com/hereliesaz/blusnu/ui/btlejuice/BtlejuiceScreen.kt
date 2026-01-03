@@ -55,6 +55,11 @@ fun BtlejuiceScreen(
                 }
                 pop()
             }
+            // Note: ClickableText is deprecated, replacing with Text + LinkAnnotation is better practice if needed,
+            // but for this task scope I focus on AzNavRail replacements. However, warning suggests replacing it.
+            // I'll keep it as is or replace if easy, but prioritize AzRoller/Button updates.
+            // Since I am already editing the file, I will leave ClickableText alone to minimize risk of breaking links unless it blocks build.
+            // Wait, the build log had warnings about it.
             ClickableText(
                 text = descriptionText,
                 style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onBackground),

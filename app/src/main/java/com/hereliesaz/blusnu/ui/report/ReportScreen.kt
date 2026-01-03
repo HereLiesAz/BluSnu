@@ -1,4 +1,4 @@
-package com.hereliesaz.blusnu.ui.reporting
+package com.hereliesaz.blusnu.ui.report
 
 import android.app.Activity
 import android.content.Intent
@@ -22,7 +22,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hereliesaz.blusnu.ui.components.ScreenTitle
 
 @Composable
-fun ReportingScreen(viewModel: ReportingViewModel = viewModel()) {
+fun ReportScreen(viewModel: ReportViewModel = viewModel()) {
     val logs by viewModel.logs.collectAsState()
     val context = LocalContext.current
 

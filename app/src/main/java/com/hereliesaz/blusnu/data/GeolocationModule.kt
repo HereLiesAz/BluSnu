@@ -42,7 +42,7 @@ class GeolocationModule {
  */
 class KalmanFilter(
     private val processNoise: Double = 0.125,
-    private val measurementNoise: Double = 4.0
+    private val measurementNoise: Double = 2.0 // Decreased from 4.0 to make it more sensitive to changes
 ) {
     private var errorEstimate = 1.0
     private var currentEstimate = 0.0
