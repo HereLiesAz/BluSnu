@@ -20,9 +20,14 @@ class LocationManager(context: Context) {
 
     @SuppressLint("MissingPermission")
     fun locationFlow(): Flow<android.location.Location> = callbackFlow {
+        // Emit last known location immediately
+        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+            location?.let { trySend(it) }
+        }
+
         val locationRequest = LocationRequest.Builder(
-            Priority.PRIORITY_BALANCED_POWER_ACCURACY,
-            10000L
+            Priority.PRIORITY_HIGH_ACCURACY,
+            5000L
         ).build()
 
         val locationCallback = object : LocationCallback() {

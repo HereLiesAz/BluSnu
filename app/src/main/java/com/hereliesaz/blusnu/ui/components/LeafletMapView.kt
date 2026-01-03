@@ -3,6 +3,7 @@ package com.hereliesaz.blusnu.ui.components
 import android.util.Base64
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
@@ -21,8 +22,21 @@ fun LeafletMapView(
         modifier = modifier,
         factory = { context ->
             WebView(context).apply {
+                setBackgroundColor(Color.TRANSPARENT)
                 settings.javaScriptEnabled = true
-                webViewClient = WebViewClient()
+                settings.domStorageEnabled = true
+                settings.allowFileAccess = true
+                settings.allowContentAccess = true
+                settings.allowFileAccessFromFileURLs = true
+                settings.allowUniversalAccessFromFileURLs = true
+                webViewClient = object : WebViewClient() {
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        super.onPageFinished(view, url)
+                        // Ensure dark background if HTML didn't set it in time
+                        view?.setBackgroundColor(Color.BLACK)
+                    }
+                    // TODO: Add onReceivedError if needed for debugging
+                }
                 loadUrl("file:///android_asset/leaflet_map.html")
             }
         },

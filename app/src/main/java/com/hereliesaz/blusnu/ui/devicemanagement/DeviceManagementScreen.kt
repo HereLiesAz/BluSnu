@@ -13,6 +13,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.hereliesaz.aznavrail.AzButton
+import com.hereliesaz.aznavrail.AzTextBox
+import com.hereliesaz.aznavrail.model.AzButtonShape
 import com.hereliesaz.blusnu.data.TargetDevice
 
 @Composable
@@ -51,7 +54,7 @@ fun DeviceManagementScreen(
             modifier = Modifier.padding(16.dp)
         )
 
-        Button(
+        AzButton(
             onClick = {
                 if (state.isScanning) {
                     viewModel.stopScan()
@@ -59,12 +62,10 @@ fun DeviceManagementScreen(
                     viewModel.startScan()
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(if (state.isScanning) "Stop Scan" else "Start Scan")
-        }
+            text = if (state.isScanning) "Stop Scan" else "Start Scan",
+            shape = AzButtonShape.RECTANGLE,
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        )
 
         Row(
             modifier = Modifier
@@ -162,26 +163,23 @@ fun DeviceDetailsDialog(
                 Text("Protocol: ${device.protocol}")
                 Text("Last Seen: ${device.lastSeen}")
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
+                AzTextBox(
                     value = notes,
                     onValueChange = {
                         notes = it
                         onNotesChanged(it)
                     },
-                    label = { Text("Notes") },
+                    hint = "Notes",
+                    onSubmit = {}, // Notes update live
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss) {
-                Text("Close")
-            }
+            AzButton(onClick = onDismiss, text = "Close", shape = AzButtonShape.RECTANGLE)
         },
         dismissButton = {
-            Button(onClick = onBtlejuiceClick) {
-                Text("Btlejuice")
-            }
+            AzButton(onClick = onBtlejuiceClick, text = "Btlejuice", shape = AzButtonShape.RECTANGLE)
         }
     )
 }
