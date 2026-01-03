@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,6 +17,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.hereliesaz.aznavrail.AzButton
+import com.hereliesaz.aznavrail.model.AzButtonShape
 
 @Composable
 fun SystemRequirementsDialog(
@@ -58,32 +59,29 @@ fun SystemRequirementsDialog(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (!isBluetoothEnabled) {
-                Button(
+                AzButton(
                     onClick = onEnableBluetooth,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Enable Bluetooth")
-                }
+                    text = "Enable Bluetooth",
+                    shape = AzButtonShape.RECTANGLE
+                )
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
             if (!isLocationEnabled) {
-                Button(
+                AzButton(
                     onClick = onEnableLocation,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Enable Location Services")
-                }
+                    text = "Enable Location Services",
+                    shape = AzButtonShape.RECTANGLE
+                )
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
             if (!isDeveloperOptionsEnabled) {
-                Button(
+                AzButton(
                     onClick = onEnableDeveloperOptions,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Enable Developer Options")
-                }
+                    text = "Enable Developer Options",
+                    shape = AzButtonShape.RECTANGLE
+                )
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }

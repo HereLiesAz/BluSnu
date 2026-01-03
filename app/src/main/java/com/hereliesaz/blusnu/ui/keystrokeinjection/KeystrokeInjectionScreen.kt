@@ -11,15 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +24,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
+import com.hereliesaz.aznavrail.AzButton
+import com.hereliesaz.aznavrail.AzRoller
+import com.hereliesaz.aznavrail.AzTextBox
+import com.hereliesaz.aznavrail.model.AzButtonShape
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,7 +40,6 @@ fun KeystrokeInjectionScreen(
 ) {
     var textToSend by remember { mutableStateOf("") }
     var duckyScript by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -61,83 +58,57 @@ fun KeystrokeInjectionScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded }
-            ) {
-                TextField(
-                    value = state.selectedDevice?.name ?: "Select a target device",
-                    onValueChange = {},
-                    readOnly = true,
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    state.devices.forEach { device ->
-                        val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
-                        val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
-                        DropdownMenuItem(
-                            text = { Text(device.name ?: "Unknown", color = textColor) },
-                            onClick = {
-                                onDeviceSelected(device)
-                                expanded = false
-                            }
-                        )
-                    }
-                }
-            }
-            Button(
+
+            val deviceOptions = state.devices.map { it.name ?: it.macAddress }
+            val selectedDeviceName = state.selectedDevice?.let { it.name ?: it.macAddress }
+                                     ?: if (state.devices.isEmpty()) "No devices" else "Select a target device"
+
+            AzRoller(
+                options = deviceOptions,
+                selectedOption = selectedDeviceName,
+                onOptionSelected = { selectedName ->
+                     val device = state.devices.find { (it.name ?: it.macAddress) == selectedName }
+                     if (device != null) {
+                         onDeviceSelected(device)
+                     }
+                },
+                hint = "Select a target device",
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            AzButton(
                 onClick = onAttemptAttack,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !state.isPared && state.selectedDevice != null
-            ) {
-                val text = when {
+                enabled = !state.isPared && state.selectedDevice != null,
+                text = when {
                     state.isPared -> "Paired Successfully"
                     else -> "Attempt Silent Pairing"
-                }
-                Text(text)
-            }
+                },
+                shape = AzButtonShape.RECTANGLE
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             if (state.isPared) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TextField(
-                        value = textToSend,
-                        onValueChange = { textToSend = it },
-                        label = { Text("Enter text to send") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    Button(
-                        onClick = { onSendKeystrokes(textToSend) },
-                        enabled = textToSend.isNotEmpty()
-                    ) {
-                        Text("Send")
-                    }
-                }
+                AzTextBox(
+                    value = textToSend,
+                    onValueChange = { textToSend = it },
+                    hint = "Enter text to send",
+                    onSubmit = { onSendKeystrokes(textToSend) },
+                    submitButtonContent = { Text("Send") },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                TextField(
+                AzTextBox(
                     value = duckyScript,
                     onValueChange = { duckyScript = it },
-                    label = { Text("DuckyScript") },
-                    modifier = Modifier.fillMaxWidth().height(150.dp),
-                    maxLines = 10
+                    hint = "DuckyScript",
+                    multiline = true,
+                    onSubmit = { onRunDuckyScript(duckyScript) },
+                    submitButtonContent = { Text("Run Script") },
+                    modifier = Modifier.fillMaxWidth().height(150.dp)
                 )
-                Button(
-                    onClick = { onRunDuckyScript(duckyScript) },
-                    enabled = duckyScript.isNotEmpty(),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Run Script")
-                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
