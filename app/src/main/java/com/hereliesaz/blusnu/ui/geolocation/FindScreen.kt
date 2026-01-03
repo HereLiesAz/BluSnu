@@ -38,7 +38,7 @@ import com.hereliesaz.blusnu.ui.components.LeafletMapView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GeolocationScreen(viewModel: GeolocationViewModel, deviceRepository: DeviceRepository) {
+fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
     val uiState by viewModel.uiState.collectAsState()
     var expanded by remember { mutableStateOf(false) }
 
@@ -75,28 +75,38 @@ fun GeolocationScreen(viewModel: GeolocationViewModel, deviceRepository: DeviceR
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true).fillMaxWidth()
+                    modifier = Modifier
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
+                        .fillMaxWidth()
                 )
                 ExposedDropdownMenu(
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
                 ) {
-                    uiState.devices.forEach { device ->
-                        val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
-                        val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
-                        DropdownMenuItem(
-                            text = { Text(device.name ?: "Unknown", color = textColor) },
-                            onClick = {
-                                viewModel.selectDevice(device)
-                                expanded = false
-                            }
+                    if (uiState.devices.isEmpty()) {
+                         DropdownMenuItem(
+                            text = { Text("No devices found", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                            onClick = { expanded = false }
                         )
+                    } else {
+                        uiState.devices.forEach { device ->
+                            val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
+                            val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
+                            DropdownMenuItem(
+                                text = { Text(device.name ?: device.macAddress, color = textColor) },
+                                onClick = {
+                                    viewModel.selectDevice(device)
+                                    expanded = false
+                                }
+                            )
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Display placeholder arrow if device selected but location unknown, to show "something"
             if (uiState.selectedDevice != null) {
                 if (uiState.distanceToTarget != null && uiState.bearingToTarget != null) {
                     val bearing = uiState.bearingToTarget!!
@@ -127,7 +137,23 @@ fun GeolocationScreen(viewModel: GeolocationViewModel, deviceRepository: DeviceR
                         style = MaterialTheme.typography.headlineMedium
                     )
                 } else {
-                    Text("Device location unknown or waiting for GPS...")
+                    // Show disabled arrow as placeholder
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Filled.ArrowUpward,
+                        contentDescription = "Direction unknown",
+                        modifier = Modifier
+                            .size(100.dp),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    if (uiState.userLocation == null) {
+                         Text("Waiting for GPS...", color = MaterialTheme.colorScheme.error)
+                    } else if (uiState.selectedDevice?.latitude == null) {
+                        Text("Target location unknown (Needs more scans)", color = MaterialTheme.colorScheme.error)
+                    } else {
+                        Text("Calculating...", color = MaterialTheme.colorScheme.secondary)
+                    }
                 }
             }
         }

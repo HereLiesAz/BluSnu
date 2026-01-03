@@ -25,12 +25,12 @@ class BrakToothViewModelTest {
     @Before
     fun setup() {
         deviceRepository = mock()
-        // brakToothModule is instantiated inside ViewModel
+        brakToothModule = mock()
 
         `when`(deviceRepository.allDevices).thenReturn(flowOf(emptyList()))
         // `when`(brakToothModule.checkHardware()).thenReturn(true) // Suspended functions need careful mocking, assuming simple mock works or omitted if not called in setup
 
-        viewModel = BrakToothViewModel(deviceRepository)
+        viewModel = BrakToothViewModel(deviceRepository, brakToothModule)
     }
 
     @Test
