@@ -16,6 +16,8 @@ import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.TargetDevice
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import com.hereliesaz.aznavrail.AzButton
+import com.hereliesaz.aznavrail.AzRoller
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceHardwareState
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceState
 import com.hereliesaz.blusnu.ui.btlejuice.GattTraffic
@@ -52,6 +54,11 @@ fun BtlejuiceScreen(
                 }
                 pop()
             }
+            // Note: ClickableText is deprecated, replacing with Text + LinkAnnotation is better practice if needed,
+            // but for this task scope I focus on AzNavRail replacements. However, warning suggests replacing it.
+            // I'll keep it as is or replace if easy, but prioritize AzRoller/Button updates.
+            // Since I am already editing the file, I will leave ClickableText alone to minimize risk of breaking links unless it blocks build.
+            // Wait, the build log had warnings about it.
             ClickableText(
                 text = descriptionText,
                 style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onBackground),
@@ -67,20 +74,20 @@ fun BtlejuiceScreen(
             HardwareStatus(hardwareState, onConnectHardware, onConnectDual)
             Spacer(modifier = Modifier.height(16.dp))
 
-        if (hardwareState.isConnected) {
-            TargetSelection(discoveredDevices, selectedDevice) { selectedDevice = it }
-            Spacer(modifier = Modifier.height(16.dp))
+            if (hardwareState.isConnected) {
+                TargetSelection(discoveredDevices, selectedDevice) { selectedDevice = it }
+                Spacer(modifier = Modifier.height(16.dp))
 
-            ProxyControls(
-                btlejuiceState,
-                onStartProxy = { onStartProxy(selectedDevice) },
-                onStopProxy = onStopProxy,
-                isTargetSelected = selectedDevice != null
-            )
+                ProxyControls(
+                    btlejuiceState,
+                    onStartProxy = { onStartProxy(selectedDevice) },
+                    onStopProxy = onStopProxy,
+                    isTargetSelected = selectedDevice != null
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            TrafficLog(gattTraffic.entries)
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        TrafficLog(gattTraffic.entries)
-    }
     }
 }
 
@@ -94,9 +101,9 @@ private fun HardwareStatus(
     Column {
         Text("Hardware Status: ${if(hardwareState.isConnected) "Connected" else "Disconnected"}", style = MaterialTheme.typography.titleMedium)
         if (!hardwareState.isConnected) {
-            Button(onClick = onConnect) { Text("Connect BtleJack") }
+            AzButton(onClick = onConnect, text = "Connect BtleJack")
         } else {
-            Button(onClick = onConnectDual) { Text("Connect USB Dongle") }
+            AzButton(onClick = onConnectDual, text = "Connect USB Dongle")
         }
     }
 }
@@ -108,36 +115,22 @@ private fun TargetSelection(
     selectedDevice: TargetDevice?,
     onDeviceSelected: (TargetDevice) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    val deviceOptions = devices.map { it.name ?: it.macAddress }
+    val selectedOption = selectedDevice?.let { it.name ?: it.macAddress }
+                         ?: if (devices.isEmpty()) "No devices found" else "Select a target device"
 
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
-    ) {
-        TextField(
-            value = selectedDevice?.name ?: "Select a target device",
-            onValueChange = {},
-            readOnly = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            devices.forEach { device ->
-                val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
-                val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
-                DropdownMenuItem(
-                    text = { Text(device.name ?: "Unknown", color = textColor) },
-                    onClick = {
-                        onDeviceSelected(device)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
+    AzRoller(
+        options = deviceOptions,
+        selectedOption = selectedOption,
+        onOptionSelected = { selectedName ->
+             val device = devices.find { (it.name ?: it.macAddress) == selectedName }
+             if (device != null) {
+                 onDeviceSelected(device)
+             }
+        },
+        hint = "Select a target device",
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 @Composable
@@ -148,19 +141,21 @@ private fun ProxyControls(
     isTargetSelected: Boolean
 ) {
     Row {
-        Button(
+        // AzButton doesn't support modifier for weight out of the box?
+        // We can wrap in Box if needed, or if AzButton creates a fixed size button.
+        // If we want them side-by-side, we can just place them.
+
+        AzButton(
             onClick = onStartProxy,
-            enabled = isTargetSelected && !btlejuiceState.isProxying
-        ) {
-            Text("Start Proxy")
-        }
+            enabled = isTargetSelected && !btlejuiceState.isProxying,
+            text = "Start Proxy"
+        )
         Spacer(modifier = Modifier.width(8.dp))
-        Button(
+        AzButton(
             onClick = onStopProxy,
-            enabled = btlejuiceState.isProxying
-        ) {
-            Text("Stop Proxy")
-        }
+            enabled = btlejuiceState.isProxying,
+            text = "Stop Proxy"
+        )
     }
 }
 
