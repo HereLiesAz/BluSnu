@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
@@ -53,11 +52,10 @@ import kotlin.math.roundToInt
 
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TextField
+import com.hereliesaz.aznavrail.AzButton
+import com.hereliesaz.aznavrail.AzRoller
+import com.hereliesaz.aznavrail.model.AzButtonShape
 import com.hereliesaz.blusnu.data.TargetDevice
 
 @Composable
@@ -163,9 +161,7 @@ fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
                 }
                 Spacer(modifier = Modifier.size(16.dp))
                 var showLoadTemplateMenu by remember { mutableStateOf(false) }
-                Button(onClick = { showLoadTemplateMenu = true }) {
-                    Text("Load Template")
-                }
+                AzButton(onClick = { showLoadTemplateMenu = true }, text = "Load Template", shape = AzButtonShape.RECTANGLE)
                 DropdownMenu(
                     expanded = showLoadTemplateMenu,
                     onDismissRequest = { showLoadTemplateMenu = false }
@@ -180,9 +176,7 @@ fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
                     })
                 }
                 Spacer(modifier = Modifier.size(16.dp))
-                Button(onClick = { viewModel.executeChain() }) {
-                    Text("Run")
-                }
+                AzButton(onClick = { viewModel.executeChain() }, text = "Run", shape = AzButtonShape.RECTANGLE)
             }
         }
     }
@@ -198,8 +192,6 @@ fun DraggableNode(
     onConnectorClick: (NodeConnector) -> Unit,
     onDeviceSelected: (TargetDevice) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
     Box(
         modifier = Modifier
             .offset { IntOffset(node.position.x.roundToInt(), node.position.y.roundToInt()) }
@@ -216,34 +208,22 @@ fun DraggableNode(
             Text(text = node.title)
             Spacer(modifier = Modifier.size(8.dp))
             if(node.inputs.any { it.id == "target_mac" }) {
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded }
-                ) {
-                    TextField(
-                        value = node.targetDevice?.name ?: "Select a target",
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        devices.forEach { device ->
-                            val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
-                            val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
-                            DropdownMenuItem(
-                                text = { Text(device.name ?: "Unknown", color = textColor) },
-                                onClick = {
-                                    onDeviceSelected(device)
-                                    expanded = false
-                                }
-                            )
+                val deviceOptions = devices.map { it.name ?: it.macAddress }
+                val selectedOption = node.targetDevice?.let { it.name ?: it.macAddress }
+                                     ?: if (devices.isEmpty()) "No devices" else "Select a target"
+
+                AzRoller(
+                    options = deviceOptions,
+                    selectedOption = selectedOption,
+                    onOptionSelected = { selectedName ->
+                        val device = devices.find { (it.name ?: it.macAddress) == selectedName }
+                        if (device != null) {
+                            onDeviceSelected(device)
                         }
-                    }
-                }
+                    },
+                    hint = "Select a target",
+                    enabled = devices.isNotEmpty()
+                )
             }
             Row {
                 // Input Connectors
@@ -279,9 +259,7 @@ fun DraggableNode(
                 }
             }
             Spacer(modifier = Modifier.size(8.dp))
-            Button(onClick = onDelete) {
-                Text("Delete")
-            }
+            AzButton(onClick = onDelete, text = "Delete", shape = AzButtonShape.RECTANGLE)
         }
     }
 }

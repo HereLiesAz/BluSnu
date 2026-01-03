@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.hereliesaz.aznavrail.AzButton
 import com.hereliesaz.aznavrail.AzRoller
 import com.hereliesaz.aznavrail.AzTextBox
+import com.hereliesaz.aznavrail.model.AzButtonShape
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,7 +59,6 @@ fun SpoofingScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Device Selection
             val deviceOptions = state.devices.map { it.name ?: it.macAddress }
             val selectedDeviceName = state.selectedDevice?.let { it.name ?: it.macAddress }
                                      ?: if (state.devices.isEmpty()) "No devices" else "Select a device to spoof"
@@ -88,36 +88,12 @@ fun SpoofingScreen(
                 },
                 hint = "New MAC Address",
                 modifier = Modifier.fillMaxWidth(),
-                // AzTextBox doesn't inherently show errors via standard Material API,
-                // but we can manage visual feedback or validation in the ViewModel
-                // or assume AzTextBox styling handles it.
-                // Assuming "isError" visual feedback needs to be handled via custom colors or wrapper
-                // if AzTextBox doesn't support it directly. For now, we omit explicit error param
-                // as it's not in the AzTextBox signature I saw.
                 onSubmit = { onApplyClicked() },
                 submitButtonContent = { Text("Apply") }
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Apply Button - AzTextBox has a submit button, but let's keep the explicit action button if needed
-            // or rely on the AzTextBox submit. The original had a separate button.
-            // Let's use AzButton for the Apply action to be explicit, even if redundant with AzTextBox submit.
-            // Actually, AzTextBox has 'submitButtonContent'. If we used that, we don't need this button.
-            // But let's keep the button separate if the flow expects it, OR remove it if we integrated it.
-            // Original UI: TextField -> Button("Apply").
-            // New UI: AzTextBox(submitButtonContent={Text("Apply")}).
-            // So we can remove the separate Apply button and rely on AzTextBox's submit.
-            // However, the original button had 'enabled = !state.isError'. AzTextBox doesn't have an error state prop easily visible.
-            // We can set `enabled` on AzTextBox if needed, but that disables typing.
-            // Let's stick to the AzTextBox integrated submit button for "Apply".
-
-            // Wait, the original had a separate button below the text field.
-            // AzTextBox bundles them. So I will NOT add a separate "Apply" button.
-
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Status Log
             Text(
                 "Status Log",
                 style = MaterialTheme.typography.titleMedium,
@@ -145,12 +121,7 @@ fun SpoofingScreen(
             AzButton(
                 onClick = { onStartMitmAttack() },
                 text = "Start MITM Attack",
-                // modifier = Modifier.fillMaxWidth() // AzButton doesn't take modifier in the DSL example shown?
-                // Wait, the example showed: AzButton(onClick=..., text=..., shape=..., enabled=..., isLoading=..., contentPadding=...)
-                // It does NOT explicitly show a 'modifier' parameter in the snippet, but usually Compose functions do.
-                // I will assume it does or I wrap it. The snippet said "Can be used independently... AzButton(...)".
-                // If it doesn't take a modifier, I might need to wrap it in a Box/Row to fill width.
-                // Let's assume standard Compose practices.
+                shape = AzButtonShape.RECTANGLE
             )
 
             Spacer(modifier = Modifier.height(24.dp))

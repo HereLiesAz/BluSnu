@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.hereliesaz.aznavrail.AzButton
 import com.hereliesaz.aznavrail.AzRoller
 import com.hereliesaz.aznavrail.AzTextBox
+import com.hereliesaz.aznavrail.model.AzButtonShape
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,7 +59,6 @@ fun KeystrokeInjectionScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Device Selection
             val deviceOptions = state.devices.map { it.name ?: it.macAddress }
             val selectedDeviceName = state.selectedDevice?.let { it.name ?: it.macAddress }
                                      ?: if (state.devices.isEmpty()) "No devices" else "Select a target device"
@@ -78,21 +78,17 @@ fun KeystrokeInjectionScreen(
 
             AzButton(
                 onClick = onAttemptAttack,
-                // modifier = Modifier.fillMaxWidth(), // Assuming AzButton behaves well or fills width if configured?
-                // Wait, typically custom buttons might wrap content. But let's assume standard behavior or layout.
-                // The README says "Standard Buttons... can be used independently".
-                // We'll see if we need to wrap it. For now, let's assume it renders OK.
                 enabled = !state.isPared && state.selectedDevice != null,
                 text = when {
                     state.isPared -> "Paired Successfully"
                     else -> "Attempt Silent Pairing"
-                }
+                },
+                shape = AzButtonShape.RECTANGLE
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             if (state.isPared) {
-                // Inline text sending
                 AzTextBox(
                     value = textToSend,
                     onValueChange = { textToSend = it },

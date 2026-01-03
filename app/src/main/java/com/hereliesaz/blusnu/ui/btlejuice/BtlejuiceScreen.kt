@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import com.hereliesaz.aznavrail.AzButton
 import com.hereliesaz.aznavrail.AzRoller
+import com.hereliesaz.aznavrail.model.AzButtonShape
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceHardwareState
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceState
 import com.hereliesaz.blusnu.ui.btlejuice.GattTraffic
@@ -101,9 +102,9 @@ private fun HardwareStatus(
     Column {
         Text("Hardware Status: ${if(hardwareState.isConnected) "Connected" else "Disconnected"}", style = MaterialTheme.typography.titleMedium)
         if (!hardwareState.isConnected) {
-            AzButton(onClick = onConnect, text = "Connect BtleJack")
+            AzButton(onClick = onConnect, text = "Connect BtleJack", shape = AzButtonShape.RECTANGLE)
         } else {
-            AzButton(onClick = onConnectDual, text = "Connect USB Dongle")
+            AzButton(onClick = onConnectDual, text = "Connect USB Dongle", shape = AzButtonShape.RECTANGLE)
         }
     }
 }
@@ -141,20 +142,18 @@ private fun ProxyControls(
     isTargetSelected: Boolean
 ) {
     Row {
-        // AzButton doesn't support modifier for weight out of the box?
-        // We can wrap in Box if needed, or if AzButton creates a fixed size button.
-        // If we want them side-by-side, we can just place them.
-
         AzButton(
             onClick = onStartProxy,
             enabled = isTargetSelected && !btlejuiceState.isProxying,
-            text = "Start Proxy"
+            text = "Start Proxy",
+            shape = AzButtonShape.RECTANGLE
         )
         Spacer(modifier = Modifier.width(8.dp))
         AzButton(
             onClick = onStopProxy,
             enabled = btlejuiceState.isProxying,
-            text = "Stop Proxy"
+            text = "Stop Proxy",
+            shape = AzButtonShape.RECTANGLE
         )
     }
 }

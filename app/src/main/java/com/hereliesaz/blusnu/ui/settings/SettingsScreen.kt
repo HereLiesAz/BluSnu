@@ -20,6 +20,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hereliesaz.aznavrail.AzButton
 import com.hereliesaz.aznavrail.AzTextBox
 import com.hereliesaz.aznavrail.AzToggle
+import com.hereliesaz.aznavrail.model.AzButtonShape
 import com.hereliesaz.blusnu.ui.components.ScreenTitle
 
 @Composable
@@ -64,7 +65,8 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 AzButton(
                     onClick = { viewModel.checkRootAccess() },
-                    text = "Request Root Access"
+                    text = "Request Root Access",
+                    shape = AzButtonShape.RECTANGLE
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -95,7 +97,8 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
 
             AzButton(
                 onClick = { viewModel.checkForUpdates() },
-                text = "Check for Database Updates"
+                text = "Check for Database Updates",
+                shape = AzButtonShape.RECTANGLE
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(updateStatus)
