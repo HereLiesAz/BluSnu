@@ -52,16 +52,7 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            val deviceOptions = if (uiState.devices.isEmpty()) {
-                listOf("No devices found")
-            } else {
-                uiState.devices.map { it.name ?: it.macAddress }
-            }
-
-            // AzRoller doesn't naturally handle empty lists gracefully for selection logic if we depend on index
-            // But here we just pass strings.
-            // We need to map back to the device object on selection.
-
+            val deviceOptions = uiState.devices.map { it.name ?: it.macAddress }
             val selectedOption = uiState.selectedDevice?.let { it.name ?: it.macAddress }
                                  ?: if (uiState.devices.isEmpty()) "No devices found" else "Select a target device"
 
@@ -81,8 +72,26 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Display placeholder arrow if device selected but location unknown, to show "something"
             if (uiState.selectedDevice != null) {
+                // Show RSSI Distance ALWAYS if available
+                if (uiState.rssiDistance != null) {
+                    val dist = uiState.rssiDistance!!
+                    val distanceText = if (uiState.isMetric) {
+                        "%.2f m".format(dist)
+                    } else {
+                        val feet = dist * 3.28084
+                        val ft = feet.toInt()
+                        val inches = ((feet - ft) * 12).toInt()
+                        "$ft ft $inches in"
+                    }
+                    Text(
+                        text = "Estimated Range: $distanceText",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
                 if (uiState.distanceToTarget != null && uiState.bearingToTarget != null) {
                     val bearing = uiState.bearingToTarget!!
                     val currentAzimuth = uiState.currentAzimuth
@@ -97,19 +106,11 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
                         tint = MaterialTheme.colorScheme.primary
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    val distanceText = if (uiState.isMetric) {
-                        "%.2f m".format(uiState.distanceToTarget)
-                    } else {
-                        val feet = uiState.distanceToTarget!! * 3.28084
-                        val ft = feet.toInt()
-                        val inches = ((feet - ft) * 12).toInt()
-                        "$ft ft $inches in"
-                    }
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Distance: $distanceText",
-                        style = MaterialTheme.typography.headlineMedium
+                        text = "GPS Fix Acquired",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.secondary
                     )
                 } else {
                     // Show disabled arrow as placeholder
@@ -125,9 +126,9 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
                     if (uiState.userLocation == null) {
                          Text("Waiting for GPS...", color = MaterialTheme.colorScheme.error)
                     } else if (uiState.selectedDevice?.latitude == null) {
-                        Text("Target location unknown (Needs more scans)", color = MaterialTheme.colorScheme.error)
+                        Text("Move around to triangulate position...", color = MaterialTheme.colorScheme.secondary)
                     } else {
-                        Text("Calculating...", color = MaterialTheme.colorScheme.secondary)
+                        Text("Calculating bearing...", color = MaterialTheme.colorScheme.secondary)
                     }
                 }
             }

@@ -35,7 +35,8 @@ data class FindUiState(
     val selectedDevice: TargetDevice? = null,
     val distanceToTarget: Double? = null,
     val bearingToTarget: Float? = null,
-    val isMetric: Boolean = false
+    val isMetric: Boolean = false,
+    val rssiDistance: Double? = null
 )
 
 class FindViewModel(
@@ -71,7 +72,7 @@ class FindViewModel(
     }
 
     fun selectDevice(device: TargetDevice?) {
-        _uiState.value = _uiState.value.copy(selectedDevice = device)
+        _uiState.value = _uiState.value.copy(selectedDevice = device, rssiDistance = null)
         recalculateTargetData()
     }
 
@@ -150,6 +151,10 @@ class FindViewModel(
         val userLocation = _uiState.value.userLocation ?: return
         val smoothedRssi = geolocationModule.smoothRssi(device.macAddress, rssi.toDouble())
         val distance = geolocationModule.calculateDistance(smoothedRssi)
+
+        if (_uiState.value.selectedDevice?.macAddress == device.macAddress) {
+            _uiState.value = _uiState.value.copy(rssiDistance = distance)
+        }
 
         val history = deviceRssiHistory.getOrPut(device.macAddress) { mutableListOf() }
         history.add(LocationDataPoint(userLocation, rssi))
