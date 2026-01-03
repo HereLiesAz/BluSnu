@@ -93,8 +93,8 @@ import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingScreen
 import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingViewModel
 import com.hereliesaz.blusnu.ui.gattrelay.GattRelayScreen
 import com.hereliesaz.blusnu.ui.gattrelay.GattRelayViewModel
-import com.hereliesaz.blusnu.ui.geolocation.GeolocationScreen
-import com.hereliesaz.blusnu.ui.geolocation.GeolocationViewModel
+import com.hereliesaz.blusnu.ui.geolocation.FindScreen
+import com.hereliesaz.blusnu.ui.geolocation.FindViewModel
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionViewModel
 import com.hereliesaz.blusnu.ui.reporting.ReportingScreen
@@ -196,8 +196,8 @@ class MainActivity : AppCompatActivity() {
                     modelClass.isAssignableFrom(GattRelayViewModel::class.java) -> {
                         GattRelayViewModel() as T
                     }
-                    modelClass.isAssignableFrom(GeolocationViewModel::class.java) -> {
-                        GeolocationViewModel(application, deviceRepository) as T
+                    modelClass.isAssignableFrom(FindViewModel::class.java) -> {
+                        FindViewModel(application, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(KeystrokeInjectionViewModel::class.java) -> {
                         KeystrokeInjectionViewModel(application, keystrokeInjectionModule, deviceRepository) as T
@@ -461,9 +461,9 @@ class MainActivity : AppCompatActivity() {
                                                 gattTraffic = gattTraffic
                                             )
                                         }
-                                        composable("geolocation") {
-                                            val viewModel: GeolocationViewModel = viewModel(factory = viewModelFactory)
-                                            GeolocationScreen(viewModel = viewModel, deviceRepository = deviceRepository)
+                                        composable("find") {
+                                            val viewModel: FindViewModel = viewModel(factory = viewModelFactory)
+                                            FindScreen(viewModel = viewModel, deviceRepository = deviceRepository)
                                         }
                                         composable("keystroke_injection") {
                                             val viewModel: KeystrokeInjectionViewModel = viewModel(factory = viewModelFactory)
