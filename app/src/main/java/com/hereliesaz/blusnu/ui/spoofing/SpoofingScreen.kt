@@ -88,6 +88,7 @@ fun SpoofingScreen(
                 },
                 hint = "New MAC Address",
                 modifier = Modifier.fillMaxWidth(),
+                isError = state.isError, // Now supported in 5.13
                 onSubmit = { onApplyClicked() },
                 submitButtonContent = { Text("Apply") }
             )
@@ -121,7 +122,8 @@ fun SpoofingScreen(
             AzButton(
                 onClick = { onStartMitmAttack() },
                 text = "Start MITM Attack",
-                shape = AzButtonShape.RECTANGLE
+                shape = AzButtonShape.RECTANGLE,
+                modifier = Modifier.fillMaxWidth() // Now supported
             )
 
             Spacer(modifier = Modifier.height(24.dp))

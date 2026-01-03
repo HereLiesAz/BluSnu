@@ -101,13 +101,9 @@ fun BluetoothLogScreen(viewModel: BluetoothLogViewModel) {
         }
         Spacer(modifier = Modifier.height(16.dp))
         Row {
-            Box(modifier = Modifier.weight(1f)) {
-                AzButton(onClick = { viewModel.onSaveToNotes() }, text = "Save to Notes", shape = AzButtonShape.RECTANGLE)
-            }
+            AzButton(onClick = { viewModel.onSaveToNotes() }, text = "Save to Notes", shape = AzButtonShape.RECTANGLE, modifier = Modifier.weight(1f))
             Spacer(modifier = Modifier.padding(horizontal = 8.dp))
-            Box(modifier = Modifier.weight(1f)) {
-                AzButton(onClick = { viewModel.onSaveToFile() }, text = "Save to File", shape = AzButtonShape.RECTANGLE)
-            }
+            AzButton(onClick = { viewModel.onSaveToFile() }, text = "Save to File", shape = AzButtonShape.RECTANGLE, modifier = Modifier.weight(1f))
         }
     }
 }

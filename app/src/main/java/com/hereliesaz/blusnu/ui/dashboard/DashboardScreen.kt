@@ -79,13 +79,12 @@ fun DashboardScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Box(modifier = Modifier.weight(1f)) {
-                     AzButton(
-                        onClick = onStartScanClicked,
-                        text = "Start Scan",
-                        shape = AzButtonShape.RECTANGLE
-                    )
-                }
+                 AzButton(
+                    onClick = onStartScanClicked,
+                    text = "Start Scan",
+                    shape = AzButtonShape.RECTANGLE,
+                    modifier = Modifier.weight(1f)
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
