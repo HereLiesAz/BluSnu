@@ -2,13 +2,14 @@ package com.hereliesaz.blusnu.ui.components
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.unit.dp
+import com.hereliesaz.aznavrail.AzButton
+import com.hereliesaz.aznavrail.model.AzButtonShape
 
 @Composable
 fun DisclaimerDialog(onConfirm: (Boolean) -> Unit) {
@@ -23,14 +24,10 @@ fun DisclaimerDialog(onConfirm: (Boolean) -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(true) }) {
-                Text("Agree and Accept")
-            }
+            AzButton(onClick = { onConfirm(true) }, text = "Agree and Accept", shape = AzButtonShape.RECTANGLE)
         },
         dismissButton = {
-            TextButton(onClick = { onConfirm(false) }) {
-                Text("Decline and Accept")
-            }
+            AzButton(onClick = { onConfirm(false) }, text = "Decline and Accept", shape = AzButtonShape.RECTANGLE)
         }
     )
 }

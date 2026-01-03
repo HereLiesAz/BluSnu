@@ -13,7 +13,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -28,7 +27,7 @@ data class LocationDataPoint(
     val rssi: Int
 )
 
-data class GeolocationUiState(
+data class FindUiState(
     val devices: List<TargetDevice> = emptyList(),
     val userLocation: Location? = null,
     val isTracking: Boolean = false,
@@ -36,10 +35,11 @@ data class GeolocationUiState(
     val selectedDevice: TargetDevice? = null,
     val distanceToTarget: Double? = null,
     val bearingToTarget: Float? = null,
-    val isMetric: Boolean = false
+    val isMetric: Boolean = false,
+    val rssiDistance: Double? = null
 )
 
-class GeolocationViewModel(
+class FindViewModel(
     application: Application,
     private val deviceRepository: DeviceRepository
 ) : AndroidViewModel(application) {
@@ -50,8 +50,8 @@ class GeolocationViewModel(
     private val deviceRssiHistory = mutableMapOf<String, MutableList<LocationDataPoint>>()
     private val sharedPreferences = application.getSharedPreferences("blusnu_prefs", android.content.Context.MODE_PRIVATE)
 
-    private val _uiState = MutableStateFlow(GeolocationUiState(isMetric = sharedPreferences.getBoolean("use_metric", false)))
-    val uiState: StateFlow<GeolocationUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(FindUiState(isMetric = sharedPreferences.getBoolean("use_metric", false)))
+    val uiState: StateFlow<FindUiState> = _uiState.asStateFlow()
 
     private var locationJob: Job? = null
     private var compassJob: Job? = null
@@ -72,7 +72,7 @@ class GeolocationViewModel(
     }
 
     fun selectDevice(device: TargetDevice?) {
-        _uiState.value = _uiState.value.copy(selectedDevice = device)
+        _uiState.value = _uiState.value.copy(selectedDevice = device, rssiDistance = null)
         recalculateTargetData()
     }
 
@@ -151,6 +151,10 @@ class GeolocationViewModel(
         val userLocation = _uiState.value.userLocation ?: return
         val smoothedRssi = geolocationModule.smoothRssi(device.macAddress, rssi.toDouble())
         val distance = geolocationModule.calculateDistance(smoothedRssi)
+
+        if (_uiState.value.selectedDevice?.macAddress == device.macAddress) {
+            _uiState.value = _uiState.value.copy(rssiDistance = distance)
+        }
 
         val history = deviceRssiHistory.getOrPut(device.macAddress) { mutableListOf() }
         history.add(LocationDataPoint(userLocation, rssi))
