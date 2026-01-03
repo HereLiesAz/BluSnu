@@ -127,6 +127,10 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Replace the "Radar" view with a real map using OpenStreetMaps.
     -   [x] Implement a device triangulation algorithm that improves in accuracy as the user moves their phone.
     -   [x] Add a heatmap widget to the Dashboard showing where devices have been found in scans.
+    -   [x] Rename "Reporting" to "Report".
+    -   [x] Implement manual 3-point triangulation logic.
+    -   [x] Add support for USB Dongle (Secondary RSSI).
+    -   [x] Add support for Tandem Mode (Multi-device tracking).
 -   [x] **Task 7.3: Dashboard and Data Persistence**
     -   [x] The vulnerability database should be loaded automatically on app open, not manually.
     -   [x] Remove the "Load Session" button from the Dashboard.
@@ -158,3 +162,6 @@ This document outlines the development tasks required to implement the Blu Snu f
 ## Future Research
 - https://github.com/francozappa/blur
 - https://github.com/francozappa/bias
+- https://github.com/francozappa/bluff
+- https://github.com/francozappa/sniffle
+- https://github.com/francozappa/knob
