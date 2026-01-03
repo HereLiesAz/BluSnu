@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -88,46 +87,23 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
                     }
                     Text(
                         text = "Estimated Range: $distanceText",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.headlineLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 } else {
                     Text(
-                        text = "Move the device around to triangulate signal sources.",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = "Waiting for signal...",
+                        style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.secondary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                if (uiState.recordedLocations.size < 3) {
-                    Text(
-                        text = "Stand at 3 different locations at least 5 meters apart to triangulate.",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
-                    Button(onClick = { viewModel.recordCurrentLocation() }) {
-                        Text("Record Position (${uiState.recordedLocations.size}/3)")
-                    }
-                } else {
-                    Text(
-                        text = "Triangulation Complete",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Button(onClick = { viewModel.clearRecordedLocations() }) {
-                        Text("Reset")
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-
                 // Arrow Logic
-                // If we have bearing, show it pointing to device.
-                // If we DON'T have bearing (no GPS or no device loc), show arrow pointing North (or Compass)
-                // but faded to indicate "Direction Unknown/Compass Mode".
+                val hasGpsFix = uiState.distanceToTarget != null && uiState.bearingToTarget != null
 
-                val rotation = if (uiState.distanceToTarget != null && uiState.bearingToTarget != null) {
+                val rotation = if (hasGpsFix) {
                     // Valid GPS bearing relative to phone heading
                     uiState.bearingToTarget!! - uiState.currentAzimuth
                 } else {
@@ -135,7 +111,7 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
                     -uiState.currentAzimuth
                 }
 
-                val arrowTint = if (uiState.distanceToTarget != null && uiState.bearingToTarget != null) {
+                val arrowTint = if (hasGpsFix) {
                     MaterialTheme.colorScheme.primary
                 } else {
                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
@@ -152,17 +128,24 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                if (uiState.distanceToTarget != null) {
+                if (hasGpsFix) {
                     Text(
-                        text = "GPS Fix Acquired",
-                        style = MaterialTheme.typography.labelSmall,
+                        text = "Target Locked",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    Text(
+                        text = "Compass Mode (North)",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Move around to triangulate position.",
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.secondary
                     )
-                } else if (uiState.userLocation == null) {
-                     // Don't say "Waiting for GPS" as primary state, but maybe as status
-                     Text("Acquiring GPS...", style = MaterialTheme.typography.labelSmall)
-                } else {
-                    Text("Device Location Unknown. Arrow acts as Compass pointing North.", style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
