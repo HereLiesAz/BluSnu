@@ -97,14 +97,14 @@ import com.hereliesaz.blusnu.ui.geolocation.FindScreen
 import com.hereliesaz.blusnu.ui.geolocation.FindViewModel
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionViewModel
-import com.hereliesaz.blusnu.ui.reporting.ReportingScreen
+import com.hereliesaz.blusnu.ui.report.ReportScreen
 import com.hereliesaz.blusnu.ui.rawcommands.RawCommandsScreen
 import com.hereliesaz.blusnu.ui.magisk.MagiskScreen
 import com.hereliesaz.blusnu.ui.magisk.MagiskViewModel
 import com.hereliesaz.blusnu.ui.perfektblue.PerfektBlueScreen
 import com.hereliesaz.blusnu.ui.perfektblue.PerfektBlueViewModel
 import com.hereliesaz.blusnu.ui.rawcommands.RawCommandsViewModel
-import com.hereliesaz.blusnu.ui.reporting.ReportingViewModel
+import com.hereliesaz.blusnu.ui.report.ReportViewModel
 import com.hereliesaz.blusnu.ui.settings.SettingsScreen
 import com.hereliesaz.blusnu.ui.settings.SettingsViewModel
 import com.hereliesaz.blusnu.ui.smpbypass.SmpBypassScreen
@@ -209,8 +209,8 @@ class MainActivity : AppCompatActivity() {
                     modelClass.isAssignableFrom(DashboardViewModel::class.java) -> {
                         DashboardViewModel(application, deviceRepository, savedSessionRepository, attackChainTemplateRepository) as T
                     }
-                    modelClass.isAssignableFrom(ReportingViewModel::class.java) -> {
-                        ReportingViewModel(application, deviceRepository) as T
+                    modelClass.isAssignableFrom(ReportViewModel::class.java) -> {
+                        ReportViewModel(application, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BluetoothLogViewModel::class.java) -> {
                         BluetoothLogViewModel(application, bluetoothLog, deviceRepository) as T
@@ -498,9 +498,9 @@ class MainActivity : AppCompatActivity() {
                                             val viewModel: BlueSmackViewModel = viewModel(factory = viewModelFactory)
                                             BlueSmackScreen(viewModel = viewModel)
                                         }
-                                        composable("reporting") {
-                                            val viewModel: ReportingViewModel = viewModel(factory = viewModelFactory)
-                                            ReportingScreen(viewModel = viewModel)
+                                        composable("report") {
+                                            val viewModel: ReportViewModel = viewModel(factory = viewModelFactory)
+                                            ReportScreen(viewModel = viewModel)
                                         }
                                         composable("spoofing") {
                                             val viewModel: SpoofingViewModel = viewModel(factory = viewModelFactory)

@@ -36,7 +36,8 @@ data class FindUiState(
     val distanceToTarget: Double? = null,
     val bearingToTarget: Float? = null,
     val isMetric: Boolean = false,
-    val rssiDistance: Double? = null
+    val rssiDistance: Double? = null,
+    val recordedLocations: List<LocationDataPoint> = emptyList()
 )
 
 class FindViewModel(
@@ -72,7 +73,7 @@ class FindViewModel(
     }
 
     fun selectDevice(device: TargetDevice?) {
-        _uiState.value = _uiState.value.copy(selectedDevice = device, rssiDistance = null)
+        _uiState.value = _uiState.value.copy(selectedDevice = device, rssiDistance = null, recordedLocations = emptyList())
         recalculateTargetData()
     }
 
@@ -104,6 +105,53 @@ class FindViewModel(
         compassJob?.cancel()
         compassJob = null
         _uiState.value = _uiState.value.copy(isTracking = false)
+    }
+
+    fun recordCurrentLocation() {
+        val userLocation = _uiState.value.userLocation
+        val selectedDevice = _uiState.value.selectedDevice ?: return
+
+        // Use the latest smoothed RSSI if available via distance calc, or fallback to device RSSI.
+        // However, since we don't store smoothed RSSI directly, we should trust the `selectedDevice` state
+        // which we update in onDeviceRssiUpdated.
+        val rssi = selectedDevice.rssi
+
+        if (userLocation != null) {
+            val newPoint = LocationDataPoint(userLocation, rssi)
+            val currentList = _uiState.value.recordedLocations.toMutableList()
+            if (currentList.size < 3) {
+                currentList.add(newPoint)
+                _uiState.value = _uiState.value.copy(recordedLocations = currentList)
+
+                if (currentList.size == 3) {
+                    calculateTriangulation(currentList, selectedDevice)
+                }
+            }
+        }
+    }
+
+    fun clearRecordedLocations() {
+        _uiState.value = _uiState.value.copy(recordedLocations = emptyList())
+    }
+
+    private fun calculateTriangulation(points: List<LocationDataPoint>, device: TargetDevice) {
+         if (points.size != 3) return
+
+         val p1 = points[0]
+         val p2 = points[1]
+         val p3 = points[2]
+
+         val d1 = geolocationModule.calculateDistance(p1.rssi.toDouble())
+         val d2 = geolocationModule.calculateDistance(p2.rssi.toDouble())
+         val d3 = geolocationModule.calculateDistance(p3.rssi.toDouble())
+
+         val estimatedLocation = Trilateration.calculate(p1.location, d1, p2.location, d2, p3.location, d3)
+         if (estimatedLocation != null) {
+             val updatedDevice = device.copy(latitude = estimatedLocation.latitude, longitude = estimatedLocation.longitude)
+             viewModelScope.launch {
+                 deviceRepository.insert(updatedDevice)
+             }
+         }
     }
 
     private fun recalculateTargetData() {
@@ -154,44 +202,16 @@ class FindViewModel(
     }
 
     fun onDeviceRssiUpdated(device: TargetDevice, rssi: Int) {
-        val userLocation = _uiState.value.userLocation
         val smoothedRssi = geolocationModule.smoothRssi(device.macAddress, rssi.toDouble())
         val distance = geolocationModule.calculateDistance(smoothedRssi)
 
         if (_uiState.value.selectedDevice?.macAddress == device.macAddress) {
-            _uiState.value = _uiState.value.copy(rssiDistance = distance)
-        }
-
-        if (userLocation != null) {
-            val history = deviceRssiHistory.getOrPut(device.macAddress) { mutableListOf() }
-            history.add(LocationDataPoint(userLocation, rssi))
-            if (history.size > 10) {
-                history.removeAt(0)
-            }
-
-            if (history.size >= 3) {
-                // Trilateration logic
-                val p1 = history[history.size - 1]
-                val p2 = history[history.size - 2]
-                val p3 = history[history.size - 3]
-
-                // Simple check for movement to avoid collinear/degenerate cases
-                val distMoved = calculateDistance(p1.location.latitude, p1.location.longitude, p3.location.latitude, p3.location.longitude)
-
-                if (distMoved > 2.0) { // Require at least 2 meters movement
-                     val d1 = geolocationModule.calculateDistance(p1.rssi.toDouble())
-                     val d2 = geolocationModule.calculateDistance(p2.rssi.toDouble())
-                     val d3 = geolocationModule.calculateDistance(p3.rssi.toDouble())
-
-                     val estimatedLocation = Trilateration.calculate(p1.location, d1, p2.location, d2, p3.location, d3)
-                     if (estimatedLocation != null) {
-                         val updatedDevice = device.copy(latitude = estimatedLocation.latitude, longitude = estimatedLocation.longitude)
-                         viewModelScope.launch {
-                             deviceRepository.insert(updatedDevice)
-                         }
-                     }
-                }
-            }
+            // Update the selected device with the new RSSI so we have the latest value for recording
+            val updatedDevice = _uiState.value.selectedDevice?.copy(rssi = rssi)
+            _uiState.value = _uiState.value.copy(
+                rssiDistance = distance,
+                selectedDevice = updatedDevice
+            )
         }
     }
 }

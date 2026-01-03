@@ -1,4 +1,4 @@
-package com.hereliesaz.blusnu.ui.reporting
+package com.hereliesaz.blusnu.ui.report
 
 import android.app.Application
 import android.net.Uri
@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
-class ReportingViewModel(
+class ReportViewModel(
     application: Application,
     private val deviceRepository: DeviceRepository? = null // Optional for now to keep backward compat if needed, but should be passed
 ) : AndroidViewModel(application) {
