@@ -8,39 +8,26 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.zIndex
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.unit.dp
+import com.hereliesaz.aznavrail.AzRoller
 import com.hereliesaz.blusnu.data.DeviceRepository
-import com.hereliesaz.blusnu.data.TargetDevice
 import com.hereliesaz.blusnu.ui.components.LeafletMapView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
     val uiState by viewModel.uiState.collectAsState()
-    var expanded by remember { mutableStateOf(false) }
 
     androidx.compose.runtime.DisposableEffect(Unit) {
         viewModel.startTracking()
@@ -65,44 +52,32 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                TextField(
-                    value = uiState.selectedDevice?.name ?: "Select a target device",
-                    onValueChange = {},
-                    readOnly = true,
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier
-                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
-                        .fillMaxWidth()
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    if (uiState.devices.isEmpty()) {
-                         DropdownMenuItem(
-                            text = { Text("No devices found", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                            onClick = { expanded = false }
-                        )
-                    } else {
-                        uiState.devices.forEach { device ->
-                            val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
-                            val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
-                            DropdownMenuItem(
-                                text = { Text(device.name ?: device.macAddress, color = textColor) },
-                                onClick = {
-                                    viewModel.selectDevice(device)
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
-                }
+            val deviceOptions = if (uiState.devices.isEmpty()) {
+                listOf("No devices found")
+            } else {
+                uiState.devices.map { it.name ?: it.macAddress }
             }
+
+            // AzRoller doesn't naturally handle empty lists gracefully for selection logic if we depend on index
+            // But here we just pass strings.
+            // We need to map back to the device object on selection.
+
+            val selectedOption = uiState.selectedDevice?.let { it.name ?: it.macAddress }
+                                 ?: if (uiState.devices.isEmpty()) "No devices found" else "Select a target device"
+
+            AzRoller(
+                options = deviceOptions,
+                selectedOption = selectedOption,
+                onOptionSelected = { selectedName ->
+                    val device = uiState.devices.find { (it.name ?: it.macAddress) == selectedName }
+                    if (device != null) {
+                        viewModel.selectDevice(device)
+                    }
+                },
+                hint = "Select a target device",
+                enabled = uiState.devices.isNotEmpty(),
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 

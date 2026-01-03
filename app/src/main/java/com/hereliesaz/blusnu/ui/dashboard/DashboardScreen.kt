@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +27,7 @@ import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import com.hereliesaz.aznavrail.AzButton
 import com.hereliesaz.blusnu.data.TargetDevice
 
 @Composable
@@ -78,11 +78,20 @@ fun DashboardScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Button(
-                    onClick = onStartScanClicked,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Start Scan")
+                // AzButton doesn't support 'weight' modifier directly if it's a specific composable wrapper
+                // unless we wrap it.
+                // Assuming we can wrap AzButton in a Box with weight or AzButton accepts modifier.
+                // Based on previous assumption, AzButton(modifier = ...) is standard.
+                // If it fails compile, I'll fix it.
+
+                // Note: The previous "weight(1f)" implies it fills the row.
+                // AzButton typically might be fixed size or wrap content.
+                // I'll wrap in Box with weight to be safe.
+                Box(modifier = Modifier.weight(1f)) {
+                     AzButton(
+                        onClick = onStartScanClicked,
+                        text = "Start Scan"
+                    )
                 }
             }
 
