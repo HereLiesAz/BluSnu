@@ -73,6 +73,19 @@ class HardwareManager {
         // In a real implementation, this would send the command over USB serial.
     }
 
+    /**
+     * Reads the RSSI from the secondary hardware for a specific MAC address.
+     * In a real implementation, this would query the USB dongle.
+     * Here we simulate a reading that might differ slightly from the primary antenna due to placement/sensitivity.
+     */
+    fun getSecondaryRssi(macAddress: String): Int? {
+        if (_hardwareState.value != HardwareState.CONNECTED_DUAL) return null
+        // Simulate reading: In reality, this would be a blocking call or callback to the USB serial stream.
+        // For the purpose of this interface, we return a placeholder value derived from "physics" (randomness here for sim)
+        // or -1 if device not seen by dongle.
+        return ((-90..-40).random())
+    }
+
     private fun log(message: String) {
         scope.launch {
             _deviceLogs.emit(message)

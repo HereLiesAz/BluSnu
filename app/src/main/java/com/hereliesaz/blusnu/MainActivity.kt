@@ -197,7 +197,7 @@ class MainActivity : AppCompatActivity() {
                         GattRelayViewModel() as T
                     }
                     modelClass.isAssignableFrom(FindViewModel::class.java) -> {
-                        FindViewModel(application, deviceRepository) as T
+                        FindViewModel(application, deviceRepository, hardwareManager) as T
                     }
                     modelClass.isAssignableFrom(KeystrokeInjectionViewModel::class.java) -> {
                         KeystrokeInjectionViewModel(application, keystrokeInjectionModule, deviceRepository) as T
