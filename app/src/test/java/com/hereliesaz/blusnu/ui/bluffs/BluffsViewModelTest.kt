@@ -27,12 +27,12 @@ class BluffsViewModelTest {
     @Before
     fun setup() {
         deviceRepository = mock()
-        // bluffsModule is instantiated inside ViewModel
+        bluffsModule = mock()
 
         `when`(deviceRepository.allDevices).thenReturn(flowOf(emptyList()))
         `when`(bluffsModule.startAttack(any(), any())).thenReturn(flowOf("Log 1"))
 
-        viewModel = BluffsViewModel(deviceRepository)
+        viewModel = BluffsViewModel(deviceRepository, bluffsModule)
     }
 
     @Test

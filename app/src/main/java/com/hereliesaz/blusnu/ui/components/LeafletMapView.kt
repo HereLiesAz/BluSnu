@@ -22,6 +22,11 @@ fun LeafletMapView(
         factory = { context ->
             WebView(context).apply {
                 settings.javaScriptEnabled = true
+                settings.domStorageEnabled = true
+                settings.allowFileAccess = true
+                settings.allowContentAccess = true
+                settings.allowFileAccessFromFileURLs = true
+                settings.allowUniversalAccessFromFileURLs = true
                 webViewClient = WebViewClient()
                 loadUrl("file:///android_asset/leaflet_map.html")
             }
