@@ -1,4 +1,4 @@
-package com.hereliesaz.blusnu.ui.reporting
+package com.hereliesaz.blusnu.ui.report
 
 import android.app.Application
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
@@ -14,12 +14,12 @@ import org.junit.Test
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.mock
 
-class ReportingViewModelTest {
+class ReportViewModelTest {
 
     @get:Rule
     val instantTaskExecutorRule = InstantTaskExecutorRule()
 
-    private lateinit var viewModel: ReportingViewModel
+    private lateinit var viewModel: ReportViewModel
     private lateinit var application: Application
     private lateinit var deviceRepository: DeviceRepository
 
@@ -31,7 +31,7 @@ class ReportingViewModelTest {
         // Mock the repository's flow (used by exportData)
         `when`(deviceRepository.allDevices).thenReturn(flowOf(emptyList()))
 
-        viewModel = ReportingViewModel(application, deviceRepository)
+        viewModel = ReportViewModel(application, deviceRepository)
     }
 
     @Test
