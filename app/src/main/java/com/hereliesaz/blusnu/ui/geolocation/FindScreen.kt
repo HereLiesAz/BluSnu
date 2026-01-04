@@ -94,32 +94,19 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
                     Spacer(modifier = Modifier.height(8.dp))
                 } else {
                     Text(
-                        text = "Move the device around to triangulate signal sources.",
+                        text = "Waiting for signal...",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.secondary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                if (uiState.recordedLocations.size < 3) {
-                    Text(
-                        text = "Stand at 3 different locations at least 5 meters apart to triangulate.",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
-                    Button(onClick = { viewModel.recordCurrentLocation() }) {
-                        Text("Record Position (${uiState.recordedLocations.size}/3)")
-                    }
-                } else {
-                    Text(
-                        text = "Triangulation Complete",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Button(onClick = { viewModel.clearRecordedLocations() }) {
-                        Text("Reset")
-                    }
-                }
+                // Instruction
+                Text(
+                    text = "Wave device around to locate signal source.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -134,8 +121,7 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Tandem Mode Toggle (Using Button as Toggle for simplicity or custom AzToggle if available, but staying standard Compose for now)
-                // Actually, let's use a Row with Switch
+                // Tandem Mode Toggle
                 androidx.compose.foundation.layout.Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -146,39 +132,39 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
                     )
                 }
                 if (uiState.isTandemModeEnabled) {
-                    Text("Listening for tandem device...", style = MaterialTheme.typography.labelSmall)
+                    Text("Broadcasting service via NSD...", style = MaterialTheme.typography.labelSmall)
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Arrow Logic
-                // Only show arrow if we have a valid bearing to target
-                if (uiState.distanceToTarget != null && uiState.bearingToTarget != null) {
-                    val rotation = uiState.bearingToTarget!! - uiState.currentAzimuth
+                // Show arrow based on Estimated Bearing from Signal Analysis (Fuzzy/Gradient)
+                if (uiState.estimatedBearing != null) {
+                    val rotation = uiState.estimatedBearing!! - uiState.currentAzimuth
 
                     androidx.compose.material3.Icon(
                         imageVector = Icons.Filled.ArrowUpward,
-                        contentDescription = "Direction to device",
+                        contentDescription = "Direction to signal",
                         modifier = Modifier
                             .rotate(rotation)
-                            .size(100.dp),
+                            .size(150.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "GPS Fix Acquired",
+                        text = "Signal Direction",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.secondary
                     )
                 } else {
-                    // No valid bearing
-                    Spacer(modifier = Modifier.height(24.dp))
-                    if (uiState.userLocation == null) {
-                         Text("Acquiring GPS...", style = MaterialTheme.typography.labelSmall)
-                    } else {
-                        Text("Device Location Unknown. Move to triangulate.", style = MaterialTheme.typography.labelSmall)
-                    }
-                    Spacer(modifier = Modifier.height(76.dp)) // Placeholder height for arrow
+                    // No valid bearing yet
+                    Text("Acquiring Direction...", style = MaterialTheme.typography.labelSmall)
+                    Spacer(modifier = Modifier.height(150.dp)) // Placeholder
+                }
+
+                // GPS status only for map/distance context, not arrow
+                if (uiState.distanceToTarget != null) {
+                     Text("GPS Range Available", style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
