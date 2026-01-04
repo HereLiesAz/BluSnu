@@ -4,11 +4,13 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.CompassManager
+import com.hereliesaz.blusnu.data.CooperativeTriangulation
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.GeolocationModule
 import com.hereliesaz.blusnu.data.HardwareManager
 import com.hereliesaz.blusnu.data.HardwareState
 import com.hereliesaz.blusnu.data.LocationManager
+import com.hereliesaz.blusnu.data.TandemData
 import com.hereliesaz.blusnu.data.TandemManager
 import com.hereliesaz.blusnu.data.TargetDevice
 import kotlinx.coroutines.Job
@@ -21,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.math.abs
 
 data class Location(val latitude: Double, val longitude: Double)
 
@@ -35,7 +38,9 @@ data class FindUiState(
     val isMetric: Boolean = false,
     val rssiDistance: Double? = null,
     val isUsbConnected: Boolean = false,
-    val isTandemModeEnabled: Boolean = false
+    val isTandemModeEnabled: Boolean = false,
+    val peerLocation: Location? = null,
+    val cooperativeLocation: Location? = null
 )
 
 class FindViewModel(
@@ -56,8 +61,6 @@ class FindViewModel(
     private var locationJob: Job? = null
     private var compassJob: Job? = null
 
-    // RSSI Buckets for Direction Finding (36 buckets of 10 degrees each)
-    // Stores accumulated weight for each direction.
     private val rssiBuckets = FloatArray(36) { 0f }
 
     init {
@@ -67,13 +70,10 @@ class FindViewModel(
                 _uiState.value.selectedDevice?.let { selected ->
                     val updated = devices.find { it.macAddress == selected.macAddress }
                     if (updated != null) {
-                        // Reset state only if selecting a different device (different MAC)
-                        // If same device, update data and trigger RSSI logic without wipe
                         if (updated.macAddress == selected.macAddress) {
                             if (updated.rssi != selected.rssi) {
                                 onDeviceRssiUpdated(updated, updated.rssi)
                             }
-                            // Keep reference updated
                             _uiState.value = _uiState.value.copy(selectedDevice = updated)
                         } else {
                             selectDevice(updated)
@@ -92,19 +92,63 @@ class FindViewModel(
         tandemManager.tandemData
             .onEach { data ->
                 val selected = _uiState.value.selectedDevice
-                if (selected != null && data.deviceName == selected.name) { // Simple matching for simulation
-                    // Incorporate tandem RSSI into probability buckets
-                    updateDirectionProbability(data.rssi)
+                if (selected != null && data.targetMac == selected.macAddress) {
+                    val peerLoc = Location(data.latitude, data.longitude)
+
+                    _uiState.value = _uiState.value.copy(peerLocation = peerLoc)
+
+                    val myLoc = _uiState.value.userLocation
+                    val myDist = _uiState.value.rssiDistance
+
+                    if (myLoc != null && myDist != null) {
+                         val intersections = CooperativeTriangulation.calculateIntersections(
+                             CooperativeTriangulation.GeoLocation(myLoc.latitude, myLoc.longitude),
+                             myDist,
+                             CooperativeTriangulation.GeoLocation(data.latitude, data.longitude),
+                             data.distance
+                         )
+
+                         if (intersections.isNotEmpty()) {
+                             val best = if (intersections.size >= 2 && _uiState.value.estimatedBearing != null) {
+                                 val bearing = _uiState.value.estimatedBearing!!
+                                 val p1 = intersections[0]
+                                 val p2 = intersections[1]
+
+                                 val b1 = calculateBearing(myLoc.latitude, myLoc.longitude, p1.latitude, p1.longitude)
+                                 val b2 = calculateBearing(myLoc.latitude, myLoc.longitude, p2.latitude, p2.longitude)
+
+                                 val diff1 = abs(b1 - bearing).let { if (it > 180) 360 - it else it }
+                                 val diff2 = abs(b2 - bearing).let { if (it > 180) 360 - it else it }
+
+                                 if (diff1 < diff2) p1 else p2
+                             } else {
+                                 intersections.first()
+                             }
+
+                             _uiState.value = _uiState.value.copy(
+                                 cooperativeLocation = Location(best.latitude, best.longitude)
+                             )
+
+                             val updatedDevice = selected.copy(latitude = best.latitude, longitude = best.longitude)
+                             viewModelScope.launch {
+                                 deviceRepository.insert(updatedDevice)
+                             }
+                         }
+                    }
                 }
             }
             .launchIn(viewModelScope)
     }
 
     fun selectDevice(device: TargetDevice?) {
-        // Only wipe state if device actually changed
         if (device?.macAddress != _uiState.value.selectedDevice?.macAddress) {
-            _uiState.value = _uiState.value.copy(selectedDevice = device, rssiDistance = null, estimatedBearing = null)
-            // Reset buckets on new device
+            _uiState.value = _uiState.value.copy(
+                selectedDevice = device,
+                rssiDistance = null,
+                estimatedBearing = null,
+                peerLocation = null,
+                cooperativeLocation = null
+            )
             for (i in rssiBuckets.indices) rssiBuckets[i] = 0f
         } else {
             _uiState.value = _uiState.value.copy(selectedDevice = device)
@@ -139,6 +183,7 @@ class FindViewModel(
             .onEach { location ->
                 _uiState.value = _uiState.value.copy(userLocation = Location(location.latitude, location.longitude))
                 recalculateTargetData()
+                broadcastTandemData()
             }
             .launchIn(viewModelScope)
 
@@ -157,60 +202,24 @@ class FindViewModel(
         _uiState.value = _uiState.value.copy(isTracking = false)
     }
 
-    fun recordCurrentLocation() {
-        val userLocation = _uiState.value.userLocation
-        val selectedDevice = _uiState.value.selectedDevice ?: return
+    private fun broadcastTandemData() {
+        if (_uiState.value.isTandemModeEnabled) {
+            val userLoc = _uiState.value.userLocation
+            val target = _uiState.value.selectedDevice
+            val myDist = _uiState.value.rssiDistance
 
-        val rssi = selectedDevice.rssi
-
-        // Fetch secondary RSSI from hardware manager if connected
-        val usbRssi = if (_uiState.value.isUsbConnected) {
-            hardwareManager.getSecondaryRssi(selectedDevice.macAddress)
-        } else {
-            null
-        }
-
-        if (userLocation != null) {
-            val newPoint = LocationDataPoint(userLocation, rssi, usbRssi)
-            val currentList = _uiState.value.recordedLocations.toMutableList()
-            if (currentList.size < 3) {
-                currentList.add(newPoint)
-                _uiState.value = _uiState.value.copy(recordedLocations = currentList)
-
-                if (currentList.size == 3) {
-                    calculateTriangulation(currentList, selectedDevice)
-                }
+            if (userLoc != null && target != null && myDist != null) {
+                val data = TandemData(
+                    deviceName = android.os.Build.MODEL,
+                    targetMac = target.macAddress,
+                    rssi = target.rssi,
+                    latitude = userLoc.latitude,
+                    longitude = userLoc.longitude,
+                    distance = myDist
+                )
+                tandemManager.broadcastData(data)
             }
         }
-    }
-
-    fun clearRecordedLocations() {
-        _uiState.value = _uiState.value.copy(recordedLocations = emptyList())
-    }
-
-    private fun calculateTriangulation(points: List<LocationDataPoint>, device: TargetDevice) {
-         if (points.size != 3) return
-
-         val p1 = points[0]
-         val p2 = points[1]
-         val p3 = points[2]
-
-         // Use USB RSSI to refine distance if available (simple averaging for now)
-         val rssi1 = if (p1.usbRssi != null) (p1.rssi + p1.usbRssi) / 2.0 else p1.rssi.toDouble()
-         val rssi2 = if (p2.usbRssi != null) (p2.rssi + p2.usbRssi) / 2.0 else p2.rssi.toDouble()
-         val rssi3 = if (p3.usbRssi != null) (p3.rssi + p3.usbRssi) / 2.0 else p3.rssi.toDouble()
-
-         val d1 = geolocationModule.calculateDistance(rssi1)
-         val d2 = geolocationModule.calculateDistance(rssi2)
-         val d3 = geolocationModule.calculateDistance(rssi3)
-
-         val estimatedLocation = Trilateration.calculate(p1.location, d1, p2.location, d2, p3.location, d3)
-         if (estimatedLocation != null) {
-             val updatedDevice = device.copy(latitude = estimatedLocation.latitude, longitude = estimatedLocation.longitude)
-             viewModelScope.launch {
-                 deviceRepository.insert(updatedDevice)
-             }
-         }
     }
 
     private fun recalculateTargetData() {
@@ -228,7 +237,7 @@ class FindViewModel(
     }
 
     private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val R = 6371e3 // metres
+        val R = 6371e3
         val phi1 = Math.toRadians(lat1)
         val phi2 = Math.toRadians(lat2)
         val deltaPhi = Math.toRadians(lat2 - lat1)
@@ -242,31 +251,42 @@ class FindViewModel(
         return R * c
     }
 
+    private fun calculateBearing(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
+        val phi1 = Math.toRadians(lat1)
+        val phi2 = Math.toRadians(lat2)
+        val deltaLambda = Math.toRadians(lon2 - lon1)
+
+        val y = sin(deltaLambda) * cos(phi2)
+        val x = cos(phi1) * sin(phi2) -
+                sin(phi1) * cos(phi2) * cos(deltaLambda)
+        val theta = atan2(y, x)
+        return ((Math.toDegrees(theta) + 360) % 360).toFloat()
+    }
+
     fun onDeviceRssiUpdated(device: TargetDevice, rssi: Int) {
         val smoothedRssi = geolocationModule.smoothRssi(device.macAddress, rssi.toDouble())
         val distance = geolocationModule.calculateDistance(smoothedRssi)
 
-        // Always update RSSI distance for selected device, regardless of location fix
         if (_uiState.value.selectedDevice?.macAddress == device.macAddress) {
             val updatedDevice = _uiState.value.selectedDevice?.copy(rssi = rssi)
 
-            // Fetch secondary RSSI from hardware manager if connected
             val usbRssi = if (_uiState.value.isUsbConnected) {
                 hardwareManager.getSecondaryRssi(device.macAddress)
             } else {
                 null
             }
 
-            // Combine RSSI sources for direction finding weight
             val combinedRssi = if (usbRssi != null) (rssi + usbRssi) / 2 else rssi
 
-            // --- Direction Finding Logic (Fuzzy/Gradient) ---
             updateDirectionProbability(combinedRssi)
 
             _uiState.value = _uiState.value.copy(
                 rssiDistance = distance,
                 selectedDevice = updatedDevice
             )
+
+            // Broadcast update if tandem is active
+            broadcastTandemData()
         }
     }
 
@@ -277,25 +297,18 @@ class FindViewModel(
 
     private fun updateDirectionProbability(rssi: Int) {
         val currentAzimuth = _uiState.value.currentAzimuth
-        // Normalize RSSI (-100 to -30) to weight (0.0 to 1.0)
-        // We want stronger signal to have higher weight.
         val weight = ((rssi + 100).coerceIn(0, 70) / 70f)
 
-        // Decay all buckets slightly
         for (i in rssiBuckets.indices) {
             rssiBuckets[i] *= 0.95f
         }
 
-        // Add weight to current azimuth bucket
-        // Azimuth is 0-360. Bucket index = azimuth / 10.
-        // Ensure positive modulus for negative azimuths
         val positiveAzimuth = ((currentAzimuth % 360) + 360) % 360
         val index = (positiveAzimuth / 10).toInt().coerceIn(0, 35)
         rssiBuckets[index] += weight
 
-        // Determine max bucket
-        var maxIndex = 0
         var maxVal = 0f
+        var maxIndex = 0
         for (i in rssiBuckets.indices) {
             if (rssiBuckets[i] > maxVal) {
                 maxVal = rssiBuckets[i]
@@ -303,7 +316,6 @@ class FindViewModel(
             }
         }
 
-        // If we have enough signal data, update estimated bearing
         if (maxVal > 0.1f) {
             val estimatedBearing = maxIndex * 10f
             _uiState.value = _uiState.value.copy(estimatedBearing = estimatedBearing)
