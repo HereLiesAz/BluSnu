@@ -64,15 +64,7 @@ fun DeviceManagementScreen(
             },
             text = if (state.isScanning) "Stop Scan" else "Start Scan",
             shape = AzButtonShape.RECTANGLE,
-            // AzButton may not support Modifier as direct parameter in DSL,
-            // but we usually wrap it or it fills width by default in AzNavRail context?
-            // Wait, AzNavRail items are different from standalone AzButton.
-            // Standalone AzButton signature:
-            // fun AzButton(onClick: () -> Unit, text: String, modifier: Modifier = Modifier, ...)
-            // I'll assume it accepts modifier based on standard Compose practices.
-            // If previous errors didn't flag it, it's likely fine.
-            // But let's wrap in Box to be safe for padding if needed.
-            // The original had padding(16.dp).
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
         )
 
         Row(

@@ -157,6 +157,62 @@ class FindViewModel(
         _uiState.value = _uiState.value.copy(isTracking = false)
     }
 
+    fun recordCurrentLocation() {
+        val userLocation = _uiState.value.userLocation
+        val selectedDevice = _uiState.value.selectedDevice ?: return
+
+        val rssi = selectedDevice.rssi
+
+        // Fetch secondary RSSI from hardware manager if connected
+        val usbRssi = if (_uiState.value.isUsbConnected) {
+            hardwareManager.getSecondaryRssi(selectedDevice.macAddress)
+        } else {
+            null
+        }
+
+        if (userLocation != null) {
+            val newPoint = LocationDataPoint(userLocation, rssi, usbRssi)
+            val currentList = _uiState.value.recordedLocations.toMutableList()
+            if (currentList.size < 3) {
+                currentList.add(newPoint)
+                _uiState.value = _uiState.value.copy(recordedLocations = currentList)
+
+                if (currentList.size == 3) {
+                    calculateTriangulation(currentList, selectedDevice)
+                }
+            }
+        }
+    }
+
+    fun clearRecordedLocations() {
+        _uiState.value = _uiState.value.copy(recordedLocations = emptyList())
+    }
+
+    private fun calculateTriangulation(points: List<LocationDataPoint>, device: TargetDevice) {
+         if (points.size != 3) return
+
+         val p1 = points[0]
+         val p2 = points[1]
+         val p3 = points[2]
+
+         // Use USB RSSI to refine distance if available (simple averaging for now)
+         val rssi1 = if (p1.usbRssi != null) (p1.rssi + p1.usbRssi) / 2.0 else p1.rssi.toDouble()
+         val rssi2 = if (p2.usbRssi != null) (p2.rssi + p2.usbRssi) / 2.0 else p2.rssi.toDouble()
+         val rssi3 = if (p3.usbRssi != null) (p3.rssi + p3.usbRssi) / 2.0 else p3.rssi.toDouble()
+
+         val d1 = geolocationModule.calculateDistance(rssi1)
+         val d2 = geolocationModule.calculateDistance(rssi2)
+         val d3 = geolocationModule.calculateDistance(rssi3)
+
+         val estimatedLocation = Trilateration.calculate(p1.location, d1, p2.location, d2, p3.location, d3)
+         if (estimatedLocation != null) {
+             val updatedDevice = device.copy(latitude = estimatedLocation.latitude, longitude = estimatedLocation.longitude)
+             viewModelScope.launch {
+                 deviceRepository.insert(updatedDevice)
+             }
+         }
+    }
+
     private fun recalculateTargetData() {
         val userLoc = _uiState.value.userLocation
         val target = _uiState.value.selectedDevice
@@ -190,6 +246,7 @@ class FindViewModel(
         val smoothedRssi = geolocationModule.smoothRssi(device.macAddress, rssi.toDouble())
         val distance = geolocationModule.calculateDistance(smoothedRssi)
 
+        // Always update RSSI distance for selected device, regardless of location fix
         if (_uiState.value.selectedDevice?.macAddress == device.macAddress) {
             val updatedDevice = _uiState.value.selectedDevice?.copy(rssi = rssi)
 
