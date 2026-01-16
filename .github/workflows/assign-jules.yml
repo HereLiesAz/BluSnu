@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Invoke Jules
         uses: google-labs-code/jules-invoke@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           jules_api_key: ${{ secrets.JULES_API_KEY }}
           prompt: |
