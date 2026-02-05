@@ -170,7 +170,7 @@ class MainActivity : AppCompatActivity() {
      * Repository for managing discovered Bluetooth devices.
      * Acts as the single source of truth for device data across the app.
      */
-    private val deviceRepository by lazy { com.hereliesaz.blusnu.data.DeviceRepository(database.targetDeviceDao()) }
+    private val deviceRepository by lazy { DeviceRepository(database.targetDeviceDao()) }
 
     /**
      * Repository for persisting scan sessions for historical reporting.
