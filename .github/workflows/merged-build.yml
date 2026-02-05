@@ -84,7 +84,17 @@ jobs:
         env:
           KEYSTORE_PRIVATE: ${{ secrets.KEYSTORE_PRIVATE }}
         run: |
-          echo "$KEYSTORE_PRIVATE" | base64 --decode > app/release.keystore
+          if [ -n "$KEYSTORE_PRIVATE" ]; then
+            # Attempt to decode. Using -i to ignore garbage (e.g. newlines)
+            if echo "$KEYSTORE_PRIVATE" | base64 -d -i > app/release.keystore 2>/dev/null; then
+               echo "Keystore decoded successfully."
+            else
+               echo "Warning: Keystore decoding failed. Proceeding with unsigned build."
+               rm -f app/release.keystore
+            fi
+          else
+            echo "KEYSTORE_PRIVATE secret not found. Skipping."
+          fi
 
       - name: Build with Gradle
         id: gradle-build
