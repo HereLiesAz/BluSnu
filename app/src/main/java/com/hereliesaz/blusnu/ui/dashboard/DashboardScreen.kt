@@ -31,6 +31,15 @@ import com.hereliesaz.aznavrail.AzButton
 import com.hereliesaz.aznavrail.model.AzButtonShape
 import com.hereliesaz.blusnu.data.TargetDevice
 
+/**
+ * The main Dashboard screen providing an overview of the app's status.
+ *
+ * Displays:
+ * 1. Counts of discovered BLE and Classic devices.
+ * 2. A "Start Scan" quick action button.
+ * 3. A Heatmap visualization of device locations.
+ * 4. Lists of saved sessions and templates.
+ */
 @Composable
 fun DashboardScreen(
     modifier: Modifier = Modifier,
@@ -41,7 +50,9 @@ fun DashboardScreen(
     attackChainTemplates: List<com.hereliesaz.blusnu.data.AttackChainTemplate> = emptyList(),
     onStartScanClicked: () -> Unit = {}
 ) {
+    // Get screen height to calculate spacing.
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.TopEnd
@@ -50,13 +61,14 @@ fun DashboardScreen(
             modifier = Modifier.padding(16.dp).fillMaxSize(),
             horizontalAlignment = Alignment.End
         ) {
+            // Header Text.
             Text(
                 text = "Overview of detected devices and recent activity.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Device Counters
+            // Device Counters Card.
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -74,11 +86,12 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Quick Actions
+            // Quick Actions Row.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                 // Uses AzButton from the library for consistent styling.
                  AzButton(
                     onClick = onStartScanClicked,
                     text = "Start Scan",
@@ -89,10 +102,14 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Sections
+            // Dashboard Sections.
+
+            // Heatmap Section.
             DashboardSection(title = "Device Heatmap") {
                 Heatmap(devices = devicesWithLocation)
             }
+
+            // Saved Sessions Section.
             DashboardSection(title = "Saved Sessions") {
                 LazyRow {
                     items(savedSessions) { session ->
@@ -100,6 +117,8 @@ fun DashboardScreen(
                     }
                 }
             }
+
+            // Templates Section.
             DashboardSection(title = "Attack Chain Templates") {
                 LazyRow {
                     items(attackChainTemplates) { template ->
@@ -108,12 +127,17 @@ fun DashboardScreen(
                 }
             }
 
+            // Spacer to push content up and reserve bottom area.
             Spacer(modifier = Modifier.weight(1f))
+            // Bottom spacing for Navigation Rail alignment compatibility.
             Spacer(modifier = Modifier.fillMaxWidth().height(screenHeight * 0.1f))
         }
     }
 }
 
+/**
+ * Reusable Card component for Dashboard items.
+ */
 @Composable
 fun DashboardCard(title: String, description: String) {
     Card(
@@ -135,6 +159,9 @@ fun DashboardCard(title: String, description: String) {
     }
 }
 
+/**
+ * Simple counter widget.
+ */
 @Composable
 fun DeviceCounter(label: String, count: Int) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -150,6 +177,9 @@ fun DeviceCounter(label: String, count: Int) {
     }
 }
 
+/**
+ * Section wrapper with a title.
+ */
 @Composable
 fun DashboardSection(title: String, content: @Composable () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -166,28 +196,35 @@ fun DashboardSection(title: String, content: @Composable () -> Unit) {
 
 @Preview(showBackground = true)
 @Composable
-fun DashboardScreenPreview() {
+fun DashboardScreenPreviewInternal() {
     BluSnuTheme {
         DashboardScreen(bleDeviceCount = 5, classicDeviceCount = 2)
     }
 }
 
+/**
+ * Draws a simple heatmap of devices based on their lat/long.
+ * Normalizes coordinates to fit the canvas.
+ */
 @Composable
 fun Heatmap(devices: List<TargetDevice>) {
     val devicesWithLoc = devices.filter { it.latitude != null && it.longitude != null }
     if (devicesWithLoc.isEmpty()) return
 
+    // Find bounds.
     val minLat = devicesWithLoc.minOf { it.latitude!! }
     val maxLat = devicesWithLoc.maxOf { it.latitude!! }
     val minLon = devicesWithLoc.minOf { it.longitude!! }
     val maxLon = devicesWithLoc.maxOf { it.longitude!! }
 
-    val latRange = (maxLat - minLat).coerceAtLeast(0.0001) // Avoid divide by zero
+    // Avoid divide by zero if all points are the same.
+    val latRange = (maxLat - minLat).coerceAtLeast(0.0001)
     val lonRange = (maxLon - minLon).coerceAtLeast(0.0001)
 
     Canvas(modifier = Modifier.fillMaxWidth().height(200.dp)) {
         devicesWithLoc.forEach { device ->
-            // Invert Y because screen Y goes down, Latitude goes up (North)
+            // Normalize coordinates to 0..1.
+            // Invert Y because screen Y goes down, Latitude goes up (North).
             val normalizedLat = (device.latitude!! - minLat) / latRange
             val normalizedLon = (device.longitude!! - minLon) / lonRange
 

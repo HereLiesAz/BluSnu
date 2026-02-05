@@ -2,21 +2,36 @@ package com.hereliesaz.blusnu.data
 
 import kotlinx.coroutines.delay
 
+/**
+ * Module responsible for Spoofing the local Bluetooth Adapter's Identity.
+ *
+ * This includes changing the MAC address (BD_ADDR) and the device name.
+ * Changing the MAC address typically requires Root privileges and specific
+ * manufacturer commands (hciconfig, bccmd, or proprietary tools), as Android
+ * does not officially support MAC spoofing.
+ */
 class SpoofingModule {
 
     /**
      * Simulates the process of changing the Bluetooth adapter's MAC address.
-     * @param macAddress The new MAC address to apply.
-     * @return `true` if the simulated operation is successful, `false` otherwise.
+     *
+     * In a production environment with Root access, this would execute commands like:
+     * `su -c "hciconfig hci0 down"`
+     * `su -c "bdaddr -r -i hci0 $macAddress"`
+     * `su -c "hciconfig hci0 up"`
+     *
+     * @param macAddress The new MAC address to apply (format: XX:XX:XX:XX:XX:XX).
+     * @return `true` if the operation is successful, `false` otherwise.
      */
     suspend fun spoofMacAddress(macAddress: String): Boolean {
-        // Simulate the time it takes to change the MAC address.
+        // Simulate the delay of resetting the hardware interface.
         delay(1500)
 
-        // In a real implementation, this would involve complex, low-level operations
-        // requiring root access to interact with the Bluetooth driver or config files.
-        // For this simulation, we'll assume the operation is successful.
+        // Log the action for debugging/simulation feedback.
+        // Currently, this is a simulation.
         println("Simulating changing MAC address to: $macAddress")
+
+        // Return success to update the UI state.
         return true
     }
 }

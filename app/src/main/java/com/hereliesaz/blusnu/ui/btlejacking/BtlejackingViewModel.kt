@@ -16,6 +16,9 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
+/**
+ * State object for the Btlejacking UI.
+ */
 data class BtlejackingScreenState(
     val hardwareState: HardwareState = HardwareState.DISCONNECTED,
     val btlejackingState: BtlejackingState = BtlejackingState.IDLE,
@@ -23,6 +26,11 @@ data class BtlejackingScreenState(
     val deviceLogs: List<String> = emptyList()
 )
 
+/**
+ * ViewModel for the Btlejacking attack.
+ *
+ * Coordinates [HardwareManager] connection and [BtlejackingModule] attack logic.
+ */
 class BtlejackingViewModel(
     application: Application,
     private val hardwareManager: HardwareManager,
@@ -34,18 +42,21 @@ class BtlejackingViewModel(
     val state = _state.asStateFlow()
 
     init {
+        // Observer hardware status.
         hardwareManager.hardwareState
             .onEach { hardwareState ->
                 _state.value = _state.value.copy(hardwareState = hardwareState)
             }
             .launchIn(viewModelScope)
 
+        // Observe attack status.
         btlejackingModule.state
             .onEach { btlejackingState ->
                 _state.value = _state.value.copy(btlejackingState = btlejackingState)
             }
             .launchIn(viewModelScope)
 
+        // Observe available BLE devices.
         deviceRepository.allDevices
             .onEach { devices ->
                 val bleDevices = devices.filter { it.protocol == Protocol.BLE || it.protocol == Protocol.DUAL }
@@ -53,6 +64,7 @@ class BtlejackingViewModel(
             }
             .launchIn(viewModelScope)
 
+        // Observe hardware logs.
         hardwareManager.deviceLogs
             .onEach { log ->
                 _state.value = _state.value.copy(deviceLogs = _state.value.deviceLogs + log)

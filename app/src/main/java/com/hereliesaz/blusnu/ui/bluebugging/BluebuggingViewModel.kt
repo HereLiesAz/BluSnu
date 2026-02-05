@@ -19,6 +19,13 @@ import kotlinx.coroutines.withContext
 import java.io.DataOutputStream
 import java.io.InputStream
 
+/**
+ * ViewModel for the Bluebugging feature.
+ *
+ * This ViewModel handles the logic for connecting to a target via RFCOMM
+ * and executing shell commands (via `RootExecutor` or internal socket) to
+ * interact with the target's modem interface.
+ */
 class BluebuggingViewModel(application: Application, deviceRepository: DeviceRepository) : AndroidViewModel(application) {
 
     private val _selectedDevice = MutableStateFlow<TargetDevice?>(null)
@@ -36,7 +43,9 @@ class BluebuggingViewModel(application: Application, deviceRepository: DeviceRep
     private val bluetoothAdapter: BluetoothAdapter? = (application.getSystemService(BluetoothManager::class.java) as BluetoothManager).adapter
 
     var hasPermissions = false
+
     init {
+        // Collect Classic devices.
         viewModelScope.launch {
             deviceRepository.allDevices.collect { allDevices ->
                 _devices.value = allDevices.filter {
@@ -45,10 +54,16 @@ class BluebuggingViewModel(application: Application, deviceRepository: DeviceRep
             }
         }
     }
+
     fun onDeviceSelected(device: TargetDevice) {
         _selectedDevice.value = device
     }
 
+    /**
+     * Executes the Bluebugging attack.
+     * Note: This implementation uses `RootExecutor` to call the `rfcomm` command-line utility,
+     * assuming the Android device is rooted and has BlueZ tools installed.
+     */
     fun startAttack() {
         if (!hasPermissions) {
             _status.value = "Bluetooth connect permission is required"
@@ -71,8 +86,14 @@ class BluebuggingViewModel(application: Application, deviceRepository: DeviceRep
 
         viewModelScope.launch {
             _status.value = "Attempting attack..."
+
+            // Construct the shell command.
+            // rfcomm connect 0 <addr> 1 -> Connects RFCOMM channel 1 (often SPP/Headset) to /dev/rfcomm0.
             val command = "rfcomm connect 0 ${device.address} 1"
+
+            // Execute command as root.
             val result = RootExecutor.execute(command)
+
             _status.value = "Finished"
             _result.value = result
         }

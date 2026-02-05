@@ -17,26 +17,43 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * ViewModel for the Bluesnarfing feature.
+ *
+ * Manages the state of the attack screen and orchestrates the interaction
+ * between the UI and the underlying [BluesnarfingModule] data logic.
+ *
+ * @property application Application context for system services.
+ * @property deviceRepository Repository to fetch candidate targets.
+ */
 class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRepository) : AndroidViewModel(application) {
 
+    // Currently selected target.
     private val _selectedDevice = MutableStateFlow<TargetDevice?>(null)
     val selectedDevice: StateFlow<TargetDevice?> = _selectedDevice
 
+    // Status message (e.g., "Connecting...", "Failed").
     private val _status = MutableStateFlow("")
     val status: StateFlow<String> = _status
 
+    // The payload/result of the attack (e.g. Phonebook text).
     private val _result = MutableStateFlow("")
     val result: StateFlow<String> = _result
 
+    // Filtered list of candidate devices (Classic/Dual only).
     private val _devices = MutableStateFlow<List<TargetDevice>>(emptyList())
     val devices: StateFlow<List<TargetDevice>> = _devices.asStateFlow()
 
+    // The attack logic module.
     private val bluesnarfingModule = BluesnarfingModule()
+
+    // System adapter for creating remote device objects.
     private val bluetoothAdapter: BluetoothAdapter? = (application.getSystemService(BluetoothManager::class.java) as BluetoothManager).adapter
 
     private var hasPermissions = false
 
     init {
+        // Collect devices from repository and filter for valid targets (Classic).
         viewModelScope.launch {
             deviceRepository.allDevices.collect { allDevices ->
                 _devices.value = allDevices.filter {
@@ -45,14 +62,24 @@ class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRe
             }
         }
     }
+
+    /**
+     * Called by UI to update permission state.
+     */
     fun onPermissionsResult(hasPermissions: Boolean) {
         this.hasPermissions = hasPermissions
     }
 
+    /**
+     * Called when user picks a device from dropdown.
+     */
     fun onDeviceSelected(device: TargetDevice) {
         _selectedDevice.value = device
     }
 
+    /**
+     * Initiates the attack sequence.
+     */
     fun startAttack() {
         if (!hasPermissions) {
             _status.value = "Bluetooth connect permission is required"
@@ -60,6 +87,8 @@ class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRe
         }
 
         val selected = _selectedDevice.value ?: return
+
+        // Log start for audit report.
         ActionLogger.log("Bluesnarfing attack started against ${selected.macAddress}.")
 
         if (bluetoothAdapter == null) {
@@ -67,6 +96,7 @@ class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRe
             return
         }
 
+        // Get the Android BluetoothDevice object.
         val device = try {
             bluetoothAdapter.getRemoteDevice(selected.macAddress)
         } catch (e: IllegalArgumentException) {
@@ -74,12 +104,18 @@ class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRe
             return
         }
 
+        // Run the blocking IO operation in a coroutine.
         viewModelScope.launch {
             _status.value = "Connecting..."
+
+            // Switch to IO dispatcher for network operations.
             val result = withContext(Dispatchers.IO) {
                 bluesnarfingModule.getPhonebook(device)
             }
+
             _status.value = "Finished"
+
+            // Update UI with success data or error message.
             result.onSuccess {
                 _result.value = it
             }.onFailure {

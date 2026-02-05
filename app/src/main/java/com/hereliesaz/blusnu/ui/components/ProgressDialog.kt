@@ -15,6 +15,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 
+/**
+ * A modal dialog showing a loading spinner and a log of current actions.
+ *
+ * Used during long-running operations like "Connecting..." or "Executing Chain".
+ *
+ * @param onDismissRequest Callback when dialog is dismissed (e.g. back press).
+ * @param logMessages A list of strings to display as a progress log.
+ */
 @Composable
 fun ProgressDialog(
     onDismissRequest: () -> Unit,
@@ -26,11 +34,15 @@ fun ProgressDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                horizontalAlignment = Alignment.End,
+                horizontalAlignment = Alignment.End, // Right-align content? Unusual for progress, maybe specific design choice.
                 verticalArrangement = Arrangement.Center
             ) {
+                // Spinning loader.
                 CircularProgressIndicator()
+
                 Spacer(modifier = Modifier.height(16.dp))
+
+                // Display each log message.
                 logMessages.forEach {
                     Text(it)
                 }

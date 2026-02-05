@@ -31,6 +31,13 @@ import com.hereliesaz.blusnu.data.TargetDevice
 import com.hereliesaz.blusnu.ui.attackchaining.nodes.AttackNode
 import com.hereliesaz.blusnu.ui.attackchaining.nodes.NodeConnector
 
+/**
+ * Composable representing a single node in the graph.
+ *
+ * NOTE: This seems duplicative of `DraggableNode` in `AttackChainingScreen.kt`.
+ * However, since it exists in the codebase, I'm documenting it.
+ * It might be used as an internal component or legacy code.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Node(
@@ -45,6 +52,8 @@ fun Node(
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text = node.title)
         Spacer(modifier = Modifier.size(8.dp))
+
+        // Show device selector if input requires target.
         if(node.inputs.any { it.id == "target_mac" }) {
             ExposedDropdownMenuBox(
                 expanded = expanded,
@@ -76,7 +85,7 @@ fun Node(
             }
         }
         Row {
-            // Input Connectors
+            // Input Connectors.
             Column(horizontalAlignment = Alignment.Start) {
                 node.inputs.forEach { connector ->
                     Box(
@@ -92,7 +101,7 @@ fun Node(
                 }
             }
             Spacer(modifier = Modifier.size(100.dp))
-            // Output Connectors
+            // Output Connectors.
             Column(horizontalAlignment = Alignment.End) {
                 node.outputs.forEach { connector ->
                     Box(

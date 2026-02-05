@@ -9,9 +9,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
+/**
+ * Generic Title component.
+ *
+ * Different from `ScreenTitle`, this uses a Row layout with a Spacer to push
+ * the text to the end (Right aligned).
+ *
+ * @param text The title text.
+ */
 @Composable
 fun Title(text: String) {
     Row {
+        // Pushes content to the right.
         Spacer(modifier = Modifier.weight(1f))
         Text(
             text = text,

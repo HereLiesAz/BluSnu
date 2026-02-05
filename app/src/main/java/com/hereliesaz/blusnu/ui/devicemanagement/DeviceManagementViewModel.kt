@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel for managing the scanning process and device list.
+ */
 class DeviceManagementViewModel(
     application: Application,
     private val deviceRepository: DeviceRepository,
@@ -26,11 +29,13 @@ class DeviceManagementViewModel(
     private val _state = MutableStateFlow(DeviceManagementScreenState())
     val state: StateFlow<DeviceManagementScreenState> = _state
 
+    // System adapter.
     private val bluetoothAdapter: BluetoothAdapter? by lazy {
         val bluetoothManager = getSystemService(application, BluetoothManager::class.java)
         bluetoothManager?.adapter
     }
 
+    // Instance of the data layer scanner.
     private val bluetoothScanner: BluetoothScanner? by lazy {
         bluetoothAdapter?.let {
             BluetoothScanner(
@@ -43,10 +48,13 @@ class DeviceManagementViewModel(
     }
 
     init {
+        // Collect all devices and compute statistics for the UI.
         viewModelScope.launch {
             deviceRepository.allDevices.collect { devices ->
                 val devicesInCurrentScan = devices.filter { it.lastSeen >= _state.value.scanStartTime }
                 val newDevicesInCurrentScan = devicesInCurrentScan.filter { device ->
+                    // "New" means we haven't seen it before this scan session.
+                    // This logic is slightly simplistic (relying on DB state), but sufficient.
                     devices.none { it.macAddress == device.macAddress && it.lastSeen < _state.value.scanStartTime }
                 }
                 _state.value = _state.value.copy(
@@ -59,6 +67,9 @@ class DeviceManagementViewModel(
         }
     }
 
+    /**
+     * Starts dual-mode scanning (Classic + BLE).
+     */
     fun startScan() {
         viewModelScope.launch {
             bluetoothScanner?.startBleScan()
@@ -67,29 +78,44 @@ class DeviceManagementViewModel(
         _state.value = _state.value.copy(isScanning = true, scanStartTime = System.currentTimeMillis())
     }
 
+    /**
+     * Stops all scanning.
+     */
     fun stopScan() {
         bluetoothScanner?.stopBleScan()
         bluetoothScanner?.stopClassicDiscovery()
         _state.value = _state.value.copy(isScanning = false)
     }
 
+    /**
+     * Saves user notes to the DB.
+     */
     fun updateDeviceNotes(device: TargetDevice, notes: String) {
         viewModelScope.launch {
             deviceRepository.updateNotes(device.macAddress, notes)
         }
     }
 
+    /**
+     * Toggles favorite status in DB.
+     */
     fun toggleFavorite(device: TargetDevice) {
         viewModelScope.launch {
             deviceRepository.updateIsFavorite(device.macAddress, !device.isFavorite)
         }
     }
 
+    /**
+     * Selects a device for detail view and triggers OUI lookup.
+     */
     fun onDeviceSelected(device: TargetDevice) {
         _state.value = _state.value.copy(selectedDevice = device)
         guessVendor(device)
     }
 
+    /**
+     * Performs network lookup for vendor name.
+     */
     private fun guessVendor(device: TargetDevice) {
         viewModelScope.launch {
             val vendor = macLookupClient.getVendor(device.macAddress)

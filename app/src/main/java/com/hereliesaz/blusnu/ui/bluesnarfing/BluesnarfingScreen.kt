@@ -28,30 +28,50 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 
+/**
+ * Screen for executing the Bluesnarfing attack (OBEX Phonebook theft).
+ *
+ * This UI allows the user to:
+ * 1. Read an explanation of the attack.
+ * 2. Select a target from the list of discovered Classic Bluetooth devices.
+ * 3. Initiate the attack via the ViewModel.
+ * 4. View the status (Connecting/Downloading) and the result (The stolen phonebook content).
+ *
+ * @param viewModel The state holder for this screen.
+ * @param hasPermissions Boolean flag indicating if Bluetooth Connect permissions are granted.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BluesnarfingScreen(viewModel: BluesnarfingViewModel, hasPermissions: Boolean) {
+    // Collecting state from ViewModel Flow.
     val selectedDevice by viewModel.selectedDevice.collectAsState()
     val devices by viewModel.devices.collectAsState()
     val status by viewModel.status.collectAsState()
     val result by viewModel.result.collectAsState()
+
+    // Local state for dropdown menu visibility.
     var expanded by remember { mutableStateOf(false) }
 
+    // Notify ViewModel about permission changes to update UI capability.
     LaunchedEffect(hasPermissions) {
         viewModel.onPermissionsResult(hasPermissions)
     }
 
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.TopEnd
+        contentAlignment = Alignment.TopEnd // Content flows from top-right.
     ) {
         Column(horizontalAlignment = Alignment.End) {
+            // Educational text explaining the attack vector.
             Text(
                 text = "Bluesnarfing exploits OBEX (Object Exchange) over Bluetooth to steal contacts, calendar entries, and other data.\n\n" +
                        "This attack targets Classic Bluetooth. While effective on older feature phones and early smartphones, modern devices usually require explicit pairing or user confirmation for OBEX transfers.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(16.dp)
             )
+
+            // Dropdown menu for Target Selection.
+            // Filters only valid targets (Classic Protocol).
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }
@@ -68,8 +88,10 @@ fun BluesnarfingScreen(viewModel: BluesnarfingViewModel, hasPermissions: Boolean
                     onDismissRequest = { expanded = false }
                 ) {
                     devices.forEach { device ->
+                        // Visual cue: Primary color if device seen recently (< 1 min), else gray.
                         val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
                         val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
+
                         DropdownMenuItem(
                             text = { Text(device.name ?: "Unknown", color = textColor) },
                             onClick = {
@@ -80,13 +102,22 @@ fun BluesnarfingScreen(viewModel: BluesnarfingViewModel, hasPermissions: Boolean
                     }
                 }
             }
+
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Action button to trigger the attack logic.
             Button(onClick = { viewModel.startAttack() }, enabled = selectedDevice != null) {
                 Text("Start Attack")
             }
+
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Status Log.
             Text("Status: $status")
+
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Result Output (e.g., vCard content).
             Text("Result: $result")
         }
     }

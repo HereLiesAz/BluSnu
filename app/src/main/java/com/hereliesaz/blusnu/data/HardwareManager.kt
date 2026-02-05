@@ -11,52 +11,82 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * Enum representing the state of external hardware connections.
+ */
 enum class HardwareState {
-    DISCONNECTED,
-    CONNECTING,
-    CONNECTED_BTLEJACK,
-    CONNECTED_DUAL,
-    CONNECTION_FAILED
+    DISCONNECTED,       // No external hardware connected.
+    CONNECTING,         // Connection handshake in progress.
+    CONNECTED_BTLEJACK, // BtleJack-compatible device connected (e.g., Micro:Bit).
+    CONNECTED_DUAL,     // Secondary USB dongle connected (for dual-radio attacks).
+    CONNECTION_FAILED   // Connection attempt failed.
 }
 
 /**
- * A simulated class that manages a connection to an external hardware device,
- * such as a BtleJack or a secondary Bluetooth dongle.
+ * Manager class responsible for handling external hardware peripherals.
+ *
+ * Blu Snu uses external hardware (via USB OTG or Serial) to perform attacks
+ * that are impossible with standard Android Bluetooth chips (e.g., Sniffing, Jamming).
+ * This class abstracts the low-level serial communication with devices like
+ * BBC Micro:Bit (running BtleJack firmware) or generic CSR/Realtek USB dongles.
+ *
+ * NOTE: The current implementation contains simulation logic for demonstration purposes
+ * where actual USB hardware interaction code would reside.
  */
 class HardwareManager {
 
+    // Tracks the current connection state.
     private val _hardwareState = MutableStateFlow(HardwareState.DISCONNECTED)
     val hardwareState = _hardwareState.asStateFlow()
 
+    // Stream of log messages from the hardware device (e.g., debug output from firmware).
     private val _deviceLogs = MutableSharedFlow<String>()
     val deviceLogs = _deviceLogs.asSharedFlow()
 
+    // Scope for background I/O operations.
     private val scope = CoroutineScope(Dispatchers.IO + Job())
 
+    /**
+     * Initiates connection to the primary attack hardware (e.g., BtleJack).
+     */
     fun connect() {
         scope.launch {
             _hardwareState.value = HardwareState.CONNECTING
             log("Connecting to BtleJack...")
-            delay(2000) // Simulate connection delay
+
+            // Simulate the delay of USB enumeration and serial handshake.
+            delay(2000)
+
             _hardwareState.value = HardwareState.CONNECTED_BTLEJACK
             log("Connected to BtleJack MkII.")
             log("Firmware version: 1.3.3.7")
         }
     }
 
+    /**
+     * Initiates connection to a secondary USB dongle for Dual-Radio operations.
+     * Required for MitM attacks where one radio acts as Master and the other as Slave.
+     */
     fun connectDual() {
         scope.launch {
+            // Prerequisite: Primary hardware must be connected first (controller).
             if (_hardwareState.value != HardwareState.CONNECTED_BTLEJACK) {
                 log("BtleJack must be connected first.")
                 return@launch
             }
             log("Connecting secondary USB BLE dongle...")
+
+            // Simulate USB connection delay.
             delay(1500)
+
             _hardwareState.value = HardwareState.CONNECTED_DUAL
             log("Connected to Realtek RTL8761B.")
         }
     }
 
+    /**
+     * Disconnects all external hardware and releases resources.
+     */
     fun disconnect() {
         scope.launch {
             _hardwareState.value = HardwareState.DISCONNECTED
@@ -65,27 +95,35 @@ class HardwareManager {
     }
 
     /**
-     * Sends a command to the external hardware.
-     * @param command The command to send.
+     * Sends a command string to the connected hardware.
+     *
+     * @param command The command to execute (e.g., "sniff", "jam").
      */
     fun sendCommand(command: String) {
         log("CMD > $command")
-        // In a real implementation, this would send the command over USB serial.
+        // In a real implementation, this would write to the UsbSerialPort output stream.
     }
 
     /**
      * Reads the RSSI from the secondary hardware for a specific MAC address.
-     * In a real implementation, this would query the USB dongle.
-     * Here we simulate a reading that might differ slightly from the primary antenna due to placement/sensitivity.
+     *
+     * This is used for "Dual-Dongle Direction Finding". By comparing RSSI from
+     * the internal phone antenna and an external dongle, we can improve triangulation accuracy.
+     *
+     * @param macAddress The target device MAC.
+     * @return The RSSI value, or null if hardware is not ready/device not found.
      */
     fun getSecondaryRssi(macAddress: String): Int? {
         if (_hardwareState.value != HardwareState.CONNECTED_DUAL) return null
+
         // Simulate reading: In reality, this would be a blocking call or callback to the USB serial stream.
-        // For the purpose of this interface, we return a placeholder value derived from "physics" (randomness here for sim)
-        // or -1 if device not seen by dongle.
+        // We return a simulated RSSI value between -90 and -40 dBm.
         return ((-90..-40).random())
     }
 
+    /**
+     * Helper to log messages to the shared flow and system log.
+     */
     private fun log(message: String) {
         scope.launch {
             _deviceLogs.emit(message)

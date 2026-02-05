@@ -27,6 +27,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 
+/**
+ * Screen for the GATT Fuzzing attack.
+ *
+ * Allows selection of a BLE target device and initiation of the fuzzing process.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GattFuzzingScreen(viewModel: GattFuzzingViewModel) {
@@ -46,6 +51,8 @@ fun GattFuzzingScreen(viewModel: GattFuzzingViewModel) {
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(16.dp)
             )
+
+            // Device Selector.
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }
@@ -62,6 +69,7 @@ fun GattFuzzingScreen(viewModel: GattFuzzingViewModel) {
                     onDismissRequest = { expanded = false }
                 ) {
                     devices.forEach { device ->
+                        // Visual cue for availability.
                         val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
                         val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
                         DropdownMenuItem(
@@ -75,6 +83,8 @@ fun GattFuzzingScreen(viewModel: GattFuzzingViewModel) {
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Action Button.
             Button(
                 onClick = { viewModel.startAttack() },
                 enabled = selectedDevice != null
@@ -82,6 +92,8 @@ fun GattFuzzingScreen(viewModel: GattFuzzingViewModel) {
                 Text("Start Fuzzing")
             }
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Output.
             Text("Status: $status")
         }
     }

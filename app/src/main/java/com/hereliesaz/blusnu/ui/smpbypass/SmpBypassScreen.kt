@@ -34,6 +34,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 
+/**
+ * Screen for SMP (Security Manager Protocol) Bypass.
+ *
+ * Targets authentication bypass vulnerabilities in BLE pairing.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SmpBypassScreen(viewModel: SmpBypassViewModel) {
@@ -56,6 +61,7 @@ fun SmpBypassScreen(viewModel: SmpBypassViewModel) {
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Header.
             Text(
                 text = "Android SMP Bypass (CVE-2024-34722)",
                 style = MaterialTheme.typography.headlineSmall
@@ -66,7 +72,7 @@ fun SmpBypassScreen(viewModel: SmpBypassViewModel) {
                 color = MaterialTheme.colorScheme.error
             )
 
-            // Device Selection
+            // Device Selection.
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }
@@ -95,7 +101,7 @@ fun SmpBypassScreen(viewModel: SmpBypassViewModel) {
                 }
             }
 
-            // Logs
+            // Logs.
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -114,6 +120,7 @@ fun SmpBypassScreen(viewModel: SmpBypassViewModel) {
                 CircularProgressIndicator()
             }
 
+            // Action Button.
             Button(
                 onClick = { viewModel.startAttack() },
                 enabled = selectedDevice != null && !isRunning,
