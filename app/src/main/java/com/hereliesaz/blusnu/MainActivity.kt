@@ -193,10 +193,10 @@ class MainActivity : AppCompatActivity() {
     // They are instantiated here and passed to their respective ViewModels.
 
     private val btlejuiceModule by lazy { BtlejuiceModule(hardwareManager) }
-    private val bleSpamModule by lazy { com.hereliesaz.blusnu.data.BleSpamModule(applicationContext) }
-    private val bluffsModule by lazy { com.hereliesaz.blusnu.data.BluffsModule() }
-    private val brakToothModule by lazy { com.hereliesaz.blusnu.data.BrakToothModule() }
-    private val keystrokeInjectionModule by lazy { com.hereliesaz.blusnu.data.KeystrokeInjectionModule() }
+    private val bleSpamModule by lazy { BleSpamModule(applicationContext) }
+    private val bluffsModule by lazy { BluffsModule() }
+    private val brakToothModule by lazy { BrakToothModule() }
+    private val keystrokeInjectionModule by lazy { KeystrokeInjectionModule() }
 
     /**
      * Correlates discovered device OUI (MAC prefixes) and features with known CVEs.
