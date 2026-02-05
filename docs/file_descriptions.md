@@ -1,113 +1,71 @@
-# Blu Snu: File Descriptions
+# Blu Snu: File & Directory Guide
 
-This document provides an exhaustive description of every source file in the Blu Snu project.
+This document provides a detailed breakdown of the project structure, explaining the responsibility of each key file and directory.
 
-## Root Directory (`app/src/main/java/com/hereliesaz/blusnu/`)
+## Root Directory
 
-*   `MainActivity.kt`: The single Activity entry point for the application, hosting the Navigation component and global state initialization.
+*   `README.md`: The primary entry point. Contains installation instructions, feature lists, and the ethical disclaimer.
+*   `build.gradle.kts`: The root-level build script. Configures plugins and repositories for all modules.
+*   `settings.gradle.kts`: Defines the project name and included modules (currently just `:app`).
+*   `version.properties`: Stores the versioning metadata (Major, Minor, Patch, Build) used for CI/CD auto-incrementing.
+*   `docs/`: Contains all documentation files.
+*   `app/`: The main Android application module.
 
-## Data Layer (`app/src/main/java/com/hereliesaz/blusnu/data/`)
+## `app/src/main/java/com/hereliesaz/blusnu/`
 
-### Core Models & Database
-*   `ActiveTask.kt`: Represents a currently running background task (scan, attack) for UI status display.
-*   `ActionLogger.kt`: Handles logging of user actions and attack results for the final report.
-*   `AppDatabase.kt`: Room Database definition, defining entities and DAOs.
-*   `BluetoothLog.kt`: Data class representing a raw Bluetooth log entry (HCI/Logcat).
-*   `Converters.kt`: Type converters for Room database storage.
-*   `DatabaseUpdater.kt`: Utility for handling database migrations and updates.
-*   `DeviceRepository.kt`: Repository pattern implementation for accessing `TargetDevice` data.
-*   `TargetDevice.kt`: The central data entity representing a discovered Bluetooth device (Classic or BLE).
-*   `TargetDeviceDao.kt`: Data Access Object for `TargetDevice` database operations.
-*   `SavedSession.kt`: Entity representing a saved workspace/session.
-*   `SavedSessionDao.kt`: DAO for `SavedSession`.
-*   `SavedSessionRepository.kt`: Repository for session management.
+### **Core**
+*   `MainActivity.kt`: The application entry point. Handles:
+    *   Dependency Injection (ViewModelFactory).
+    *   Navigation Graph (NavHost).
+    *   Permission Requests.
+    *   Root/System Checks.
+    *   Global UI structure (Scaffold, AzNavRail).
 
-### Scanning & Reconnaissance
-*   `BluetoothScanner.kt`: Manages Bluetooth adapter scanning (Classic Discovery & BLE Scanning).
-*   `MacLookupClient.kt`: Client for resolving OUI/MAC addresses to vendor names.
-*   `VulnerabilityCorrelator.kt`: Logic to cross-reference discovered devices with known CVEs.
+### **`data/` (The Logic Layer)**
+This package contains the "Brain" of the application: Attack Modules, Repositories, and System Managers.
 
-### Attack Modules (Implementation)
-*   `BleSpamModule.kt`: Implements BLE advertisement spamming logic.
-*   `BlueSmackModule.kt`: Implements L2CAP Echo Request flooding (DoS).
-*   `BluebuggingModule.kt`: Implements AT command injection attacks.
-*   `BluesnarfingModule.kt`: Implements OBEX data exfiltration attacks.
-*   `BluffsModule.kt`: Implements the BLUFFS attack suite (CVE-2023-24023).
-*   `BrakToothModule.kt`: Implements BrakTooth crash vectors.
-*   `BtlejackingModule.kt`: Implements jamming and hijacking logic (requires hardware).
-*   `BtlejuiceModule.kt`: Implements GATT proxying and interception.
-*   `GattFuzzingModule.kt`: Implements automated fuzzing of GATT characteristics.
-*   `GattRelayModule.kt`: Implements relay attacks between devices.
-*   `KeystrokeInjectionModule.kt`: Implements HID keystroke injection (BlueDucky).
-*   `MitmAttack.kt`: Base logic or helper for Man-in-the-Middle attacks.
-*   `PerfektBlueModule.kt`: Implements specific exploit vectors (placeholder/specifics).
-*   `SmpBypassModule.kt`: Implements Security Manager Protocol bypass techniques.
-*   `SpoofingModule.kt`: Implements MAC and name spoofing using root commands.
+*   **Attack Modules:**
+    *   `BluffsModule.kt`: Implementation of the BLUFFS (CVE-2023-24023) attack logic.
+    *   `BrakToothModule.kt`: Implementation of BrakTooth crash vectors (LMP flooding, etc.).
+    *   `BluesnarfingModule.kt`: Logic for extracting phonebooks/data via OBEX.
+    *   `BluebuggingModule.kt`: Logic for unauthorized call control.
+    *   `BlueSmackModule.kt`: Logic for L2CAP packet flooding (DoS).
+    *   `BtlejuiceModule.kt`: Logic for BLE Man-in-the-Middle (Proxying GATT).
+    *   `BtlejackingModule.kt`: Logic for BLE connection hijacking.
+    *   `GattFuzzingModule.kt`: Logic for fuzzing GATT characteristics.
+    *   `GattRelayModule.kt`: Logic for relaying packets between two devices.
+    *   `KeystrokeInjectionModule.kt`: Logic for HID emulation and DuckyScript parsing.
+    *   `SpoofingModule.kt`: Logic for changing MAC addresses (requires Root).
+    *   `BleSpamModule.kt`: Logic for flooding advertising packets.
+    *   `SmpBypassModule.kt`: Logic for bypassing Security Manager Protocol.
+    *   `PerfektBlueModule.kt`: Logic for specific stack exploits.
 
-### Attack Chaining
-*   `AttackChainExecutor.kt`: Engine that executes a defined chain of attack nodes.
-*   `AttackChainRepository.kt`: Repository for managing active chains.
-*   `AttackChainTemplate.kt`: Entity representing a saved attack workflow template.
-*   `AttackChainTemplateDao.kt`: DAO for templates.
-*   `AttackChainTemplateRepository.kt`: Repository for accessing templates.
-*   `AttackChainTemplates.kt`: Pre-defined templates (factory/seeder).
-*   `AttackChainingCanvasModule.kt`: DI module or helper for the canvas logic.
+*   **Infrastructure & Data:**
+    *   `AppDatabase.kt`: The Room Database definition.
+    *   `BluetoothScanner.kt`: Wrapper for `BluetoothLeScanner`. Handles parsing scan results.
+    *   `DeviceRepository.kt`: Single source of truth for `TargetDevice` data.
+    *   `TargetDevice.kt`: Entity class representing a discovered Bluetooth device.
+    *   `BluetoothLog.kt`: A custom logging facility for HCI/Debug events.
+    *   `HardwareManager.kt`: Manages external USB/Serial hardware (if connected).
+    *   `LocationManager.kt`: Handles GPS/Location updates for device triangulation.
+    *   `VulnerabilityCorrelator.kt`: Matches discovered devices against CVE databases.
 
-### Managers & Geolocation
-*   `CloudBackup.kt`: Logic for backing up data to cloud storage (if implemented).
-*   `CompassManager.kt`: Manages device compass/orientation sensors for direction finding.
-*   `CooperativeTriangulation.kt`: Math logic for intersecting signals from multiple devices.
-*   `DeviceWithLocation.kt`: Helper model combining device data with location fixes.
-*   `GeolocationModule.kt`: Core logic for RSSI-based distance estimation and positioning.
-*   `HardwareManager.kt`: Manages external hardware (dongles, SDRs).
-*   `LocationManager.kt`: Wrapper around Android Location Services (GPS).
-*   `TandemManager.kt`: Manages p2p connection for cooperative attacks (Tandem Mode).
+### **`ui/` (The Presentation Layer)**
+Contains the Jetpack Compose Screens and ViewModels.
 
-### Utilities (Data)
-*   `DuckyScriptParser.kt`: Parses DuckyScript text into injectable key events.
+*   **Navigation:**
+    *   `NavigationMenu.kt`: Defines the menu structure (Categories: Recon, Impersonation, etc.) used by AzNavRail.
 
-## Utilities Layer (`app/src/main/java/com/hereliesaz/blusnu/utils/`)
+*   **Feature Packages:** (Each contains a `Screen` and a `ViewModel`)
+    *   `geolocation/`: The "Find" feature (Triangulation UI).
+    *   `dashboard/`: The main landing page stats.
+    *   `devicemanagement/`: The detailed list of devices.
+    *   `spoofing/`: The MAC Spoofing UI.
+    *   `bluffs/`, `braktooth/`, etc.: UIs for specific attacks.
 
-*   `RootExecutor.kt`: Singleton/Utility for executing shell commands as root.
-*   `Trilateration.kt`: Mathematical functions for 2D trilateration.
+## `app/src/main/assets/`
 
-## UI Layer (`app/src/main/java/com/hereliesaz/blusnu/ui/`)
+*   `leaflet/`: Contains the Leaflet.js library for offline maps.
+*   `leaflet_map.html`: The HTML entry point for the "Find" feature's map view.
+*   `vulnerabilities.json`: A local database of known Bluetooth OUI vulnerabilities.
 
-### Core UI
-*   `FilterProtocol.kt`: Enum/Logic for filtering devices by protocol (BLE/Classic).
-*   `NavigationMenu.kt`: Defines the app's navigation drawer structure and routes.
-*   `SortOption.kt`: Enum for device list sorting options.
-
-### Feature Packages
-*   `attackchaining/`:
-    *   `AttackChainingScreen.kt`: The visual node editor screen.
-    *   `AttackChainingViewModel.kt`: Logic for the editor.
-    *   `Node.kt`: UI model for a node.
-    *   `nodes/AttackNode.kt`: Specific node implementation for attacks.
-*   `blespam/`: `BleSpamScreen.kt`, `BleSpamViewModel.kt`.
-*   `bluebugging/`: `BluebuggingScreen.kt`, `BluebuggingViewModel.kt`.
-*   `bluesmack/`: `BlueSmackScreen.kt`, `BlueSmackViewModel.kt`.
-*   `bluesnarfing/`: `BluesnarfingScreen.kt`, `BluesnarfingViewModel.kt`.
-*   `bluetoothlog/`: `BluetoothLogScreen.kt`, `BluetoothLogViewModel.kt`.
-*   `bluffs/`: `BluffsScreen.kt`, `BluffsViewModel.kt`.
-*   `braktooth/`: `BrakToothScreen.kt`, `BrakToothViewModel.kt`.
-*   `btlejacking/`: `BtlejackingScreen.kt`, `BtlejackingViewModel.kt`.
-*   `btlejuice/`: `BtlejuiceScreen.kt`, `BtlejuiceViewModel.kt`.
-*   `btlejuicemitm/`: `BtlejuiceMitmScreen.kt`, `BtlejuiceMitmViewModel.kt`.
-*   `dashboard/`: `DashboardScreen.kt`, `DashboardState.kt`, `DashboardViewModel.kt`.
-*   `devicemanagement/`: `DeviceManagementScreen.kt`, `DeviceManagementViewModel.kt`.
-*   `gattfuzzing/`: `GattFuzzingScreen.kt`, `GattFuzzingViewModel.kt`.
-*   `gattrelay/`: `GattRelayScreen.kt`, `GattRelayViewModel.kt`.
-*   `geolocation/`: `FindScreen.kt`, `FindViewModel.kt`.
-*   `keystrokeinjection/`: `KeystrokeInjectionScreen.kt`, `KeystrokeInjectionViewModel.kt`.
-*   `magisk/`: `MagiskScreen.kt`, `MagiskViewModel.kt`.
-*   `perfektblue/`: `PerfektBlueScreen.kt`, `PerfektBlueViewModel.kt`.
-*   `rawcommands/`: `RawCommandsScreen.kt`, `RawCommandsViewModel.kt`.
-*   `report/`: `ReportScreen.kt`, `ReportViewModel.kt`.
-*   `settings/`: `SettingsScreen.kt`, `SettingsViewModel.kt`.
-*   `smpbypass/`: `SmpBypassScreen.kt`, `SmpBypassViewModel.kt`.
-*   `spoofing/`: `SpoofingScreen.kt`, `SpoofingViewModel.kt`.
-
-### Components & Theme
-*   `components/`: `DisclaimerDialog.kt`, `LeafletMapView.kt`, `ProgressDialog.kt`, `ScreenTitle.kt`, `SystemRequirementsDialog.kt`, `Title.kt`.
-*   `theme/`: `Color.kt`, `Theme.kt`, `Type.kt`.

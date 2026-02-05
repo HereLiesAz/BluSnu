@@ -3,35 +3,38 @@ package com.hereliesaz.blusnu.data
 import kotlinx.coroutines.delay
 
 /**
- * Module responsible for Spoofing the local Bluetooth Adapter's Identity.
+ * Module responsible for Identity Spoofing (MAC Address Randomization/Cloning).
  *
- * This includes changing the MAC address (BD_ADDR) and the device name.
- * Changing the MAC address typically requires Root privileges and specific
- * manufacturer commands (hciconfig, bccmd, or proprietary tools), as Android
- * does not officially support MAC spoofing.
+ * <p>
+ * MAC Spoofing is a critical component of impersonation attacks. By cloning a legitimate
+ * device's BD_ADDR, the attacker can bypass whitelists or trick a central into connecting.
+ * </p>
+ *
+ * <b>Root Requirement:</b> Changing the BD_ADDR is a privileged operation that typically
+ * requires modifying the controller's NVRAM or using vendor-specific HCI commands (e.g., via `hcitool` or `bdaddr`).
+ * Standard Android APIs do not permit this.
  */
 class SpoofingModule {
 
     /**
-     * Simulates the process of changing the Bluetooth adapter's MAC address.
+     * Attempts to change the Bluetooth Adapter's MAC address.
      *
-     * In a production environment with Root access, this would execute commands like:
-     * `su -c "hciconfig hci0 down"`
-     * `su -c "bdaddr -r -i hci0 $macAddress"`
-     * `su -c "hciconfig hci0 up"`
-     *
-     * @param macAddress The new MAC address to apply (format: XX:XX:XX:XX:XX:XX).
-     * @return `true` if the operation is successful, `false` otherwise.
+     * @param macAddress The target MAC address to spoof (e.g., "00:11:22:33:44:55").
+     * @return `true` if the operation was successful.
      */
     suspend fun spoofMacAddress(macAddress: String): Boolean {
-        // Simulate the delay of resetting the hardware interface.
+        // Simulate the latency of resetting the Bluetooth stack (down/up cycle)
         delay(1500)
 
-        // Log the action for debugging/simulation feedback.
-        // Currently, this is a simulation.
+        // TODO: Implement the actual Root execution logic.
+        // Expected Logic:
+        // 1. su -c "svc bluetooth disable"
+        // 2. su -c "bdaddr -i hci0 $macAddress" (or vendor specific tool)
+        // 3. su -c "svc bluetooth enable"
+
         println("Simulating changing MAC address to: $macAddress")
 
-        // Return success to update the UI state.
+        // For the purpose of the prototype, we return true to allow the UI to proceed.
         return true
     }
 }

@@ -21,20 +21,21 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
- * Core class responsible for discovering Bluetooth devices.
+ * A comprehensive wrapper for Android's Bluetooth scanning capabilities.
  *
- * This class unifies the scanning process for both Bluetooth Classic (BR/EDR) and
- * Bluetooth Low Energy (BLE). It handles:
- * 1. Managing the Classic discovery via BroadcastReceiver.
- * 2. Managing the BLE scanning via BluetoothLeScanner.
- * 3. Processing scan results and converting them into [TargetDevice] entities.
- * 4. Initiating service discovery (SDP/GATT) to populate device capabilities.
- * 5. Persisting results to the database via [DeviceRepository].
+ * <p>
+ * This class abstracts the complexity of handling two distinct scanning APIs:
+ * 1. <b>Bluetooth Classic (BR/EDR):</b> Uses [BluetoothAdapter.startDiscovery] and a [BroadcastReceiver] to listen for intents.
+ * 2. <b>Bluetooth Low Energy (BLE):</b> Uses [BluetoothLeScanner] with a [ScanCallback].
+ * </p>
  *
- * @property context The application context, required for registering receivers and connecting GATT.
- * @property deviceRepository The repository to store discovered devices.
- * @property bluetoothAdapter The system BluetoothAdapter.
- * @property bluetoothLog The logger for recording events.
+ * It is also responsible for Service Discovery (SDP/GATT) to enumerate features of discovered devices.
+ * All results are normalized into [TargetDevice] objects and persisted via the [DeviceRepository].
+ *
+ * @property context Application context for registering receivers and connecting GATT.
+ * @property deviceRepository Repository to persist discovered devices.
+ * @property bluetoothAdapter The system Bluetooth Adapter.
+ * @property bluetoothLog Logger for tracking scanning events.
  */
 class BluetoothScanner(
     private val context: Context,
@@ -43,28 +44,32 @@ class BluetoothScanner(
     private val bluetoothLog: BluetoothLog
 ) {
 
-    // Flag to track if the BroadcastReceiver for Classic discovery is currently registered.
-    // This prevents crashing by trying to unregister a receiver that wasn't registered.
+    /**
+     * Flag to track if the Classic discovery receiver is currently registered to avoid Leaks or Crashes.
+     */
     private var isClassicReceiverRegistered = false
 
-    // Lazy initialization of the BLE Scanner.
-    // This might be null if Bluetooth is turned off or not supported on the device.
+    /**
+     * Lazy initialization of the BLE Scanner. This can be null if Bluetooth is disabled.
+     */
     private val bleScanner: BluetoothLeScanner? by lazy {
         bluetoothAdapter.bluetoothLeScanner
     }
 
+    // ---------------------------------------------------------------------------------------------
+    // Bluetooth Classic Discovery Implementation
+    // ---------------------------------------------------------------------------------------------
+
     /**
-     * BroadcastReceiver to handle Bluetooth Classic discovery events.
-     * Android sends intents (ACTION_FOUND, ACTION_UUID) when devices are discovered
-     * or when their SDP records (UUIDs) are fetched.
+     * BroadcastReceiver that listens for Bluetooth Classic discovery events.
+     * Android transmits found devices via global broadcasts rather than callbacks for Classic.
      */
     private val classicDiscoveryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
-                // ACTION_FOUND: Fired when a device is discovered during a scan.
+                // Fired when a device is found during discovery.
                 BluetoothDevice.ACTION_FOUND -> {
-                    // Extract the BluetoothDevice object from the intent extras.
-                    // Handle API level differences for Parcelable extraction (Tiramisu/Android 13+ vs older).
+                    // Handle API level differences for getting Parcelables
                     val device: BluetoothDevice? =
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
@@ -73,14 +78,12 @@ class BluetoothScanner(
                             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                         }
 
-                    // If a valid device was found:
                     device?.let {
                         // Suppress MissingPermission because checking permissions here is redundant/handled upstream.
                         @SuppressLint("MissingPermission")
                         val targetDevice = TargetDevice(
-                            macAddress = it.address, // The hardware address.
-                            name = it.name, // The friendly name (e.g., "Galaxy S21").
-                            // RSSI is critical for distance estimation. Default to MIN_VALUE if missing.
+                            macAddress = it.address,
+                            name = it.name, // Name might be null if not cached
                             rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt(),
                             protocol = Protocol.CLASSIC, // Mark as Classic protocol.
                             lastSeen = System.currentTimeMillis() // Timestamp for "Last Seen".
@@ -88,18 +91,16 @@ class BluetoothScanner(
                         // Save the device to the database asynchronously.
                         insertDevice(targetDevice)
 
-                        // Log the discovery event.
+                        // Log finding for debug purposes
                         CoroutineScope(Dispatchers.IO).launch {
                             bluetoothLog.log("Found classic device: ${targetDevice.name} (${targetDevice.macAddress})")
                         }
                     }
                 }
 
-                // ACTION_UUID: Fired when SDP (Service Discovery Protocol) records are retrieved.
-                // This usually happens after a fetchUuidsWithSdp() call.
+                // Fired when SDP (Service Discovery Protocol) UUIDs are fetched.
                 BluetoothDevice.ACTION_UUID -> {
-                    // Extract the device object again to associate the UUIDs with the correct entity.
-                    val device: BluetoothDevice? =
+                     val device: BluetoothDevice? =
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
                         } else {
@@ -107,7 +108,6 @@ class BluetoothScanner(
                             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                         }
 
-                    // Extract the array of Parcelable UUIDs.
                     val uuidExtra = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID, Parcelable::class.java)
                     } else {
@@ -116,6 +116,7 @@ class BluetoothScanner(
                     }
 
                     device?.let {
+                        // Create a device entry updated with the list of supported Services (UUIDs)
                         @SuppressLint("MissingPermission")
                         val targetDevice = TargetDevice(
                             macAddress = it.address,
@@ -135,15 +136,19 @@ class BluetoothScanner(
         }
     }
 
+    // ---------------------------------------------------------------------------------------------
+    // Bluetooth Low Energy (BLE) Scanning Implementation
+    // ---------------------------------------------------------------------------------------------
+
     /**
-     * Callback for BLE scan results.
-     * This is invoked by the system whenever a BLE advertisement packet is received.
+     * Callback for handling BLE scan results.
      */
     private val bleScanCallback = object : ScanCallback() {
         @SuppressLint("MissingPermission")
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val device = result.device
-            // Create a TargetDevice from the scan result.
+            // BLE devices advertise data packets that can be parsed immediately.
+            // Currently we just extract the basic info.
             val targetDevice = TargetDevice(
                 macAddress = device.address,
                 name = device.name, // Often null in BLE advertisements; Name is usually in the scan record.
@@ -156,9 +161,13 @@ class BluetoothScanner(
         }
     }
 
+    // ---------------------------------------------------------------------------------------------
+    // Service Enumeration (GATT/SDP)
+    // ---------------------------------------------------------------------------------------------
+
     /**
-     * Callback for GATT (Generic Attribute Profile) operations.
-     * Used here specifically for service enumeration on BLE devices.
+     * GATT Callback for service discovery.
+     * When we connect to a BLE device to enumerate its services, these callbacks are fired.
      */
     private val gattCallback = object : BluetoothGattCallback() {
 
@@ -166,8 +175,7 @@ class BluetoothScanner(
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             // When the connection state changes to CONNECTED, we can start discovering services.
             if (newState == BluetoothProfile.STATE_CONNECTED) {
-                // Initiate service discovery. This is an asynchronous operation.
-                // Results will be delivered to onServicesDiscovered.
+                // Connected successfully, now request the list of services (Services, Characteristics)
                 gatt.discoverServices()
             }
         }
@@ -176,29 +184,29 @@ class BluetoothScanner(
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
             // If service discovery succeeded:
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                // Extract the UUIDs of all discovered services.
+                // Extract UUIDs
                 val services = gatt.services.map { it.uuid.toString() }
 
+                // Update the device record in the database with the discovered services
                 @SuppressLint("MissingPermission")
                 // Create/Update the TargetDevice with the new service list.
                 val targetDevice = TargetDevice(
                     macAddress = gatt.device.address,
                     name = gatt.device.name,
-                    rssi = 0, // We don't get RSSI from a GATT connection callback usually, so we leave it 0 (Repository handles merge).
+                    rssi = 0, // RSSI is not available during GATT connection events usually
                     protocol = Protocol.BLE,
                     services = services,
                     lastSeen = System.currentTimeMillis()
                 )
                 insertDevice(targetDevice)
             }
-            // Close the GATT connection to save battery and resources.
-            // We only connected to enumerate services.
+            // Always close the connection after discovery to save battery and free the connection slot
             gatt.close()
         }
     }
 
     /**
-     * Helper function to insert a device into the repository on a background thread.
+     * Helper to insert or update a device in the repository on a background thread.
      */
     fun insertDevice(device: TargetDevice) {
         CoroutineScope(Dispatchers.IO).launch {
@@ -206,8 +214,12 @@ class BluetoothScanner(
         }
     }
 
+    // ---------------------------------------------------------------------------------------------
+    // Public API
+    // ---------------------------------------------------------------------------------------------
+
     /**
-     * Starts the Classic Bluetooth discovery process.
+     * Starts the heavy Bluetooth Classic discovery process (approx 12 seconds).
      * Registers the BroadcastReceiver to listen for results.
      */
     @SuppressLint("MissingPermission")
@@ -225,8 +237,7 @@ class BluetoothScanner(
     }
 
     /**
-     * Stops the Classic Bluetooth discovery process.
-     * Unregisters the receiver.
+     * Stops Classic discovery and unregisters the receiver.
      */
     @SuppressLint("MissingPermission")
     fun stopClassicDiscovery() {
@@ -238,10 +249,9 @@ class BluetoothScanner(
     }
 
     /**
-     * Initiates detailed service discovery for a specific device.
-     * The method differs based on the protocol (Classic vs BLE).
-     *
-     * @param device The BluetoothDevice to probe.
+     * Initiates Service Discovery for a specific device.
+     * - For Classic: Triggers [BluetoothDevice.fetchUuidsWithSdp].
+     * - For BLE: Connects via GATT and calls [BluetoothGatt.discoverServices].
      */
     @SuppressLint("MissingPermission")
     fun discoverServices(device: BluetoothDevice) {
@@ -252,14 +262,13 @@ class BluetoothScanner(
         }
         // For BLE or Dual-mode devices, connect via GATT.
         if (device.type == BluetoothDevice.DEVICE_TYPE_LE || device.type == BluetoothDevice.DEVICE_TYPE_DUAL) {
-            // Connect to the GATT server.
-            // autoConnect = false for faster initial connection.
+            // autoConnect=false provides a faster initial connection attempt
             device.connectGatt(context, false, gattCallback)
         }
     }
 
     /**
-     * Starts the BLE scanning process.
+     * Starts the BLE Scanner.
      */
     @SuppressLint("MissingPermission")
     fun startBleScan() {
@@ -275,7 +284,7 @@ class BluetoothScanner(
     }
 
     /**
-     * Stops the BLE scanning process.
+     * Stops the BLE Scanner.
      */
     @SuppressLint("MissingPermission")
     fun stopBleScan() {

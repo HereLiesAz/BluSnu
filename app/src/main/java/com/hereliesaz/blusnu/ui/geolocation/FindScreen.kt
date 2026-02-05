@@ -27,20 +27,26 @@ import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.ui.components.LeafletMapView
 
 /**
- * Screen for the "Find" functionality (Geolocation).
+ * The main UI for the Geolocation (Find) feature.
  *
- * This feature helps locate a physical device using:
- * 1. RSSI-based distance estimation.
- * 2. Probabilistic Bearing estimation (Arrow).
- * 3. Map plotting (if GPS is available).
- * 4. Cooperative Triangulation (Tandem Mode).
+ * <p>
+ * <b>Layout Strategy:</b>
+ * The screen is vertically divided to accommodate both the directional guidance and the map context:
+ * 1. <b>Top 50% (Weight 0.5):</b> Contains the Directional Arrow, Distance Meter, and Device Selector.
+ * 2. <b>Bottom 40% (Weight 0.4):</b> Contains the [LeafletMapView] for GPS plotting.
+ * 3. <b>Bottom 10% (Weight 0.1):</b> Reserved clear space for the [AzNavRail] footer alignment.
+ * </p>
+ *
+ * @param viewModel The state holder for the screen logic.
+ * @param deviceRepository The repository instance (passed for preview/mocking purposes).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
+    // Collect UI State as a stable Compose State object
     val uiState by viewModel.uiState.collectAsState()
 
-    // Start tracking when screen opens, stop when closes.
+    // Manage Lifecycle: Start tracking sensors when screen enters, Stop when it leaves
     androidx.compose.runtime.DisposableEffect(Unit) {
         viewModel.startTracking()
         onDispose {
@@ -49,11 +55,13 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // --- Top Section: Arrow, Distance, Selector (50% Height) ---
+        // -----------------------------------------------------------------------------------------
+        // SECTION 1: Directional Guidance (Top 50%)
+        // -----------------------------------------------------------------------------------------
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(0.5f)
+                .weight(0.5f) // Takes half the screen height
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
@@ -64,11 +72,12 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Device Selector.
+            // Prepare list for the AzRoller dropdown
             val deviceOptions = uiState.devices.map { it.name ?: it.macAddress }
             val selectedOption = uiState.selectedDevice?.let { it.name ?: it.macAddress }
                                  ?: if (uiState.devices.isEmpty()) "No devices found" else "Select a target device"
 
+            // Custom Dropdown Component from AzNavRail library
             AzRoller(
                 options = deviceOptions,
                 selectedOption = selectedOption,
@@ -86,12 +95,13 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
             Spacer(modifier = Modifier.height(24.dp))
 
             if (uiState.selectedDevice != null) {
-                // Distance Display.
+                // --- Distance Display ---
                 val dist = uiState.rssiDistance
                 if (dist != null) {
                     val distanceText = if (uiState.isMetric) {
                         "%.2f m".format(dist)
                     } else {
+                        // Custom Imperial formatting
                         val feet = dist * 3.28084
                         val ft = feet.toInt()
                         val inches = ((feet - ft) * 12).toInt()
@@ -112,7 +122,7 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                // Instruction.
+                // User Instruction for fuzzy finding
                 Text(
                     text = "Wave device around to locate signal source.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -121,7 +131,7 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Hardware features (Dual Antenna).
+                // --- Hardware Connection Controls ---
                 if (!uiState.isUsbConnected) {
                     Button(onClick = { viewModel.connectUsbDongle() }) {
                         Text("Connect USB Dongle (Dual RSSI)")
@@ -132,7 +142,7 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Tandem Mode Toggle (Cooperative).
+                // --- Tandem Mode Controls ---
                 androidx.compose.foundation.layout.Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -148,8 +158,9 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Direction Arrow Logic.
-                // Combines Device Compass (Azimuth) with estimated Bearing of signal source.
+                // --- Directional Arrow ---
+                // Logic: Rotate arrow to point towards the highest probability bucket relative to North
+                // then subtract current phone azimuth to point relative to phone.
                 if (uiState.estimatedBearing != null) {
                     val rotation = uiState.estimatedBearing!! - uiState.currentAzimuth
 
@@ -168,19 +179,20 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
                         color = MaterialTheme.colorScheme.secondary
                     )
                 } else {
-                    // No valid bearing yet.
+                    // Placeholder while gathering data
                     Text("Acquiring Direction...", style = MaterialTheme.typography.labelSmall)
-                    Spacer(modifier = Modifier.height(150.dp)) // Placeholder space.
+                    Spacer(modifier = Modifier.height(150.dp))
                 }
 
-                // GPS status indicator.
                 if (uiState.distanceToTarget != null) {
                      Text("GPS Range Available", style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
 
-        // --- Map Section (40% Height) ---
+        // -----------------------------------------------------------------------------------------
+        // SECTION 2: Map Visualization (Bottom 40%)
+        // -----------------------------------------------------------------------------------------
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -193,7 +205,9 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
             )
         }
 
-        // --- Bottom Clear Zone (10% Height) ---
+        // -----------------------------------------------------------------------------------------
+        // SECTION 3: Navigation Reservation (Bottom 10%)
+        // -----------------------------------------------------------------------------------------
         Spacer(
             modifier = Modifier
                 .fillMaxWidth()
