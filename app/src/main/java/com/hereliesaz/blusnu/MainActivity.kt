@@ -178,12 +178,13 @@ class MainActivity : AppCompatActivity() {
     private val bluetoothLog by lazy { com.hereliesaz.blusnu.data.BluetoothLog() }
 
     // Central Scanner logic.
+    // System Bluetooth Adapter.
+    private val bluetoothAdapter by lazy { (getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter }
+
+    // Central Scanner logic.
     private val bluetoothScanner: com.hereliesaz.blusnu.data.BluetoothScanner by lazy {
         com.hereliesaz.blusnu.data.BluetoothScanner(applicationContext, deviceRepository, bluetoothAdapter, bluetoothLog)
     }
-
-    // System Bluetooth Adapter.
-    private val bluetoothAdapter by lazy { (getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter }
 
     /**
      * Custom ViewModelFactory to inject dependencies into ViewModels.
