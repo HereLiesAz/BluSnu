@@ -54,6 +54,7 @@ class BrakToothModule {
         emit("Target: ${targetDevice.name ?: targetDevice.macAddress}")
         emit("Vector: ${vector.name}")
 
+        // Attempt to connect to the external ESP32 dongle via Serial.
         delay(800)
         // In a real implementation, this would open a serial connection (UsbSerial) to the dongle
         emit("Connecting to ESP32 firmware via /dev/ttyUSB0...")
@@ -61,6 +62,7 @@ class BrakToothModule {
         delay(800)
         emit("ESP32: Firmware v1.0.4 (BrakTooth Patched) Ready.")
 
+        // Synchronize with the target's frequency hopping sequence.
         delay(1000)
         emit("Syncing with target clock (Page Scan)...")
 

@@ -58,10 +58,21 @@ import com.hereliesaz.aznavrail.AzRoller
 import com.hereliesaz.aznavrail.model.AzButtonShape
 import com.hereliesaz.blusnu.data.TargetDevice
 
+/**
+ * Screen for the visual Attack Chain Editor.
+ *
+ * This screen provides a canvas where users can:
+ * 1. Add nodes (Attack Modules or Logic).
+ * 2. Drag nodes to position them.
+ * 3. Connect nodes to define the execution flow.
+ * 4. Save/Load/Execute the workflow.
+ */
 @Composable
 fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
     val state by viewModel.uiState.collectAsState()
     var showAddNodeMenu by remember { mutableStateOf(false) }
+
+    // Tracks a connector that was clicked to start a link.
     var selectedConnector by remember { mutableStateOf<NodeConnector?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -71,11 +82,13 @@ fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
             modifier = Modifier.padding(16.dp)
         )
         Box(modifier = Modifier.weight(1f)) {
+            // Draw connections (Lines) between nodes.
             Canvas(modifier = Modifier.fillMaxSize()) {
                 state.connections.forEach { (from, to) ->
                     val fromNode = state.nodes[from.nodeId]
                     val toNode = state.nodes[to.nodeId]
                     if (fromNode != null && toNode != null) {
+                        // Calculate connector positions relative to node position.
                         val fromConnectorPos = fromNode.position + Offset(150f, 60f + fromNode.outputs.indexOf(from) * 40f)
                         val toConnectorPos = toNode.position + Offset(0f, 60f + toNode.inputs.indexOf(to) * 40f)
                         drawLine(
@@ -88,6 +101,7 @@ fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
                 }
             }
 
+            // Draw Nodes.
             state.nodes.values.forEach { node ->
                 DraggableNode(
                     node = node,
@@ -97,6 +111,7 @@ fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
                     },
                     onDelete = { viewModel.removeNode(node.id) },
                     onConnectorClick = { connector ->
+                        // Link creation logic.
                         selectedConnector?.let {
                             viewModel.addConnection(it, connector)
                             selectedConnector = null
@@ -110,6 +125,7 @@ fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
                 )
             }
 
+            // Execution Logs (Bottom Left).
             Column(modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)) {
                 LazyColumn(
                     modifier = Modifier
@@ -124,12 +140,16 @@ fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
                 }
             }
 
+            // Controls (Bottom Right).
             Column(modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
+                // Add Node FAB.
                 FloatingActionButton(
                     onClick = { showAddNodeMenu = true },
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = "Add Node")
                 }
+
+                // Add Node Menu.
                 DropdownMenu(
                     expanded = showAddNodeMenu,
                     onDismissRequest = { showAddNodeMenu = false }
@@ -160,6 +180,8 @@ fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
                     })
                 }
                 Spacer(modifier = Modifier.size(16.dp))
+
+                // Template Loader.
                 var showLoadTemplateMenu by remember { mutableStateOf(false) }
                 AzButton(onClick = { showLoadTemplateMenu = true }, text = "Load Template", shape = AzButtonShape.RECTANGLE)
                 DropdownMenu(
@@ -176,12 +198,17 @@ fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
                     })
                 }
                 Spacer(modifier = Modifier.size(16.dp))
+
+                // Run Button.
                 AzButton(onClick = { viewModel.executeChain() }, text = "Run", shape = AzButtonShape.RECTANGLE)
             }
         }
     }
 }
 
+/**
+ * A draggable card representing a single node in the graph.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DraggableNode(
@@ -207,6 +234,8 @@ fun DraggableNode(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(text = node.title)
             Spacer(modifier = Modifier.size(8.dp))
+
+            // If the node requires a target MAC input, show a selector.
             if(node.inputs.any { it.id == "target_mac" }) {
                 val deviceOptions = devices.map { it.name ?: it.macAddress }
                 val selectedOption = node.targetDevice?.let { it.name ?: it.macAddress }
@@ -225,8 +254,10 @@ fun DraggableNode(
                     enabled = devices.isNotEmpty()
                 )
             }
+
+            // Connectors (Inputs Left, Outputs Right).
             Row {
-                // Input Connectors
+                // Input Connectors.
                 Column(horizontalAlignment = Alignment.Start) {
                     node.inputs.forEach { connector ->
                         Box(
@@ -242,7 +273,7 @@ fun DraggableNode(
                     }
                 }
                 Spacer(modifier = Modifier.size(100.dp))
-                // Output Connectors
+                // Output Connectors.
                 Column(horizontalAlignment = Alignment.End) {
                     node.outputs.forEach { connector ->
                         Box(

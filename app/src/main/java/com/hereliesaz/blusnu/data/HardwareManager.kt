@@ -70,12 +70,16 @@ class HardwareManager {
      */
     fun connectDual() {
         scope.launch {
+            // Prerequisite: Primary hardware must be connected first (controller).
             if (_hardwareState.value != HardwareState.CONNECTED_BTLEJACK) {
                 log("BtleJack must be connected first.")
                 return@launch
             }
             log("Connecting secondary USB BLE dongle...")
+
+            // Simulate USB connection delay.
             delay(1500)
+
             _hardwareState.value = HardwareState.CONNECTED_DUAL
             log("Connected to Realtek RTL8761B.")
         }

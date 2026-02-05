@@ -16,13 +16,20 @@ import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
+/**
+ * ViewModel for generating reports and handling data IO.
+ */
 class ReportViewModel(
     application: Application,
-    private val deviceRepository: DeviceRepository? = null // Optional for now to keep backward compat if needed, but should be passed
+    private val deviceRepository: DeviceRepository? = null // Passed via factory in MainActivity
 ) : AndroidViewModel(application) {
 
+    // Subscribe to global action logs.
     val logs: StateFlow<List<LogEntry>> = ActionLogger.logs
 
+    /**
+     * Formats the current log history into a Markdown string.
+     */
     fun generateMarkdownReport(): String {
         val builder = StringBuilder()
         builder.append("# BluSnu Security Report\n\n")
@@ -33,6 +40,10 @@ class ReportViewModel(
         return builder.toString()
     }
 
+    /**
+     * Exports the entire device database to a JSON file.
+     * Uses ContentResolver to write to the user-selected Uri.
+     */
     fun exportData(uri: Uri) {
         if (deviceRepository == null) return
         viewModelScope.launch(Dispatchers.IO) {
@@ -44,6 +55,9 @@ class ReportViewModel(
         }
     }
 
+    /**
+     * Imports devices from a JSON file.
+     */
     fun importData(uri: Uri) {
         if (deviceRepository == null) return
         viewModelScope.launch(Dispatchers.IO) {

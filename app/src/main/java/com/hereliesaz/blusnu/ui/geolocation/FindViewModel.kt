@@ -148,6 +148,7 @@ class FindViewModel(
 
                     // If we have our own location and distance estimate, calculate intersection with peer
                     if (myLoc != null && myDist != null) {
+                         // Perform Circle-Circle intersection calculation.
                          val intersections = CooperativeTriangulation.calculateIntersections(
                              CooperativeTriangulation.GeoLocation(myLoc.latitude, myLoc.longitude),
                              myDist,
@@ -194,6 +195,7 @@ class FindViewModel(
      * Sets the target device for tracking. Resets tracking buckets.
      */
     fun selectDevice(device: TargetDevice?) {
+        // Reset state if selection changes.
         if (device?.macAddress != _uiState.value.selectedDevice?.macAddress) {
             // New device selected, clear previous tracking data
             _uiState.value = _uiState.value.copy(
@@ -236,6 +238,7 @@ class FindViewModel(
 
         _uiState.value = _uiState.value.copy(isTracking = true, isMetric = sharedPreferences.getBoolean("use_metric", false))
 
+        // Start location updates.
         locationJob = locationManager.locationFlow()
             .onEach { location ->
                 _uiState.value = _uiState.value.copy(userLocation = Location(location.latitude, location.longitude))
@@ -244,6 +247,7 @@ class FindViewModel(
             }
             .launchIn(viewModelScope)
 
+        // Start compass updates.
         compassJob = compassManager.azimuthFlow()
             .onEach { azimuth ->
                 _uiState.value = _uiState.value.copy(currentAzimuth = azimuth)
@@ -363,6 +367,7 @@ class FindViewModel(
                 null
             }
 
+            // Average them if available.
             val combinedRssi = if (usbRssi != null) (rssi + usbRssi) / 2 else rssi
 
             // Update the probability buckets for direction finding
@@ -373,7 +378,7 @@ class FindViewModel(
                 selectedDevice = updatedDevice
             )
 
-            // Broadcast update if tandem is active
+            // 5. Broadcast update if tandem is active.
             broadcastTandemData()
         }
     }

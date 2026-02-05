@@ -10,6 +10,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel for PerfektBlue.
+ *
+ * Interfaces with [PerfektBlueModule] to run auditing logic.
+ */
 class PerfektBlueViewModel(private val deviceRepository: DeviceRepository) : ViewModel() {
     private val perfektBlueModule = PerfektBlueModule()
 
@@ -28,7 +33,7 @@ class PerfektBlueViewModel(private val deviceRepository: DeviceRepository) : Vie
     init {
         viewModelScope.launch {
             deviceRepository.allDevices.collect { allDevices ->
-                // PerfektBlue targets Classic stack (IVI)
+                // PerfektBlue targets Classic stack (IVI systems usually use Classic profiles).
                 _devices.value = allDevices.filter {
                     it.protocol == Protocol.CLASSIC || it.protocol == Protocol.DUAL
                 }
@@ -40,6 +45,9 @@ class PerfektBlueViewModel(private val deviceRepository: DeviceRepository) : Vie
         _selectedDevice.value = device
     }
 
+    /**
+     * Starts the audit sequence.
+     */
     fun startAudit() {
         val device = _selectedDevice.value ?: return
         if (_isRunning.value) return

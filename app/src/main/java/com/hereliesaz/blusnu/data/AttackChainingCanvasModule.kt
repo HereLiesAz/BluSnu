@@ -8,6 +8,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * Sealed class representing simple attack nodes for the basic list-based chain editor (Legacy/Simpler version).
+ * Note: The full node editor uses `com.hereliesaz.blusnu.ui.attackchaining.nodes.AttackNode`.
+ */
 sealed class AttackNode {
     data class Scan(val protocol: Protocol) : AttackNode()
     data class Filter(val criteria: String) : AttackNode()
@@ -15,19 +19,22 @@ sealed class AttackNode {
 }
 
 /**
- * A placeholder for the Attack Chaining Canvas module.
+ * A basic module for managing a linear list of attack nodes.
  *
- * In a real implementation, this class would manage a graph of attack nodes
- * and execute them in sequence, passing the output of one node as the input
- * to the next.
+ * This seems to be a simplified alternative or precursor to the full `AttackChainExecutor`.
+ * It manages a list of nodes stored in a StateFlow and logs their simulated execution.
  */
 class AttackChainingCanvasModule {
 
+    // List of nodes in the chain.
     private val _nodes = MutableStateFlow<List<AttackNode>>(emptyList())
     val nodes = _nodes.asStateFlow()
 
     private val scope = CoroutineScope(Dispatchers.IO + Job())
 
+    /**
+     * Adds a node to the end of the list.
+     */
     fun addNode(node: AttackNode) {
         scope.launch {
             val currentNodes = _nodes.value.toMutableList()
@@ -36,6 +43,9 @@ class AttackChainingCanvasModule {
         }
     }
 
+    /**
+     * Removes a specific node instance from the list.
+     */
     fun removeNode(node: AttackNode) {
         scope.launch {
             val currentNodes = _nodes.value.toMutableList()
@@ -44,11 +54,14 @@ class AttackChainingCanvasModule {
         }
     }
 
+    /**
+     * Executes the chain sequentially by logging the steps.
+     */
     fun executeChain() {
         Log.d("AttackChaining", "Executing attack chain:")
         _nodes.value.forEachIndexed { index, node ->
             Log.d("AttackChaining", "Step ${index + 1}: ${node}")
         }
-        // In a real implementation, this would trigger the execution of each node.
+        // In a real implementation, this would trigger the actual logic for each node type.
     }
 }

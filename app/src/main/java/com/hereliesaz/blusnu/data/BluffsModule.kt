@@ -38,9 +38,12 @@ class BluffsModule {
      */
     fun checkRoot(): Boolean {
         return try {
+            // execute "su -c id" to check for superuser capabilities.
             val process = Runtime.getRuntime().exec("su -c id")
+            // waitFor() returns the exit value. 0 indicates success.
             process.waitFor() == 0
         } catch (e: Exception) {
+            // If an exception occurs (e.g., su binary not found), return false.
             false
         }
     }
@@ -53,15 +56,20 @@ class BluffsModule {
      * @return A Flow of status strings for the UI console.
      */
     fun startAttack(targetDevice: TargetDevice, mode: BluffsMode): Flow<String> = flow {
+        // Log the start of the attack.
         emit("Starting BLUFFS attack on ${targetDevice.name ?: targetDevice.macAddress} using mode $mode")
 
         // Root is strictly required for the actual packet injection.
         if (!checkRoot()) {
+            // Warn the user if root is missing.
+            // In a real scenario, this would likely halt execution, but here we proceed
+            // with a simulation path to demonstrate the UI flow.
             emit("WARNING: Root access not detected. Low-level LMP manipulation requires root/kernel patching.")
             // Currently, without a custom kernel driver, we cannot inject raw LMP frames.
             // This path falls back to a simulation to demonstrate the workflow.
             emit("Proceeding with simulation...")
         } else {
+            // Confirm root access.
             emit("Root access detected.")
             // TODO: Integrate with internal 'bluffs_injector' binary if present in /data/local/tmp
         }
@@ -74,11 +82,14 @@ class BluffsModule {
         // In a real attack, we would capture the ACL Connection Handle here
         emit("Connection established. Handle: 0x0001")
 
+        // The core of BLUFFS involves injecting modified Link Manager Protocol (LMP) packets.
+        // Specifically, LMP_au_rand packets are manipulated to influence key generation.
         delay(1000)
         // This is where the specific LMP_au_rand or LMP_enc_key_size_req packet would be sent
         emit("Injecting modified LMP_au_rand packet...")
 
         delay(1000)
+        // Log specific actions based on the selected mode.
         when (mode) {
             BluffsMode.A1 -> emit("Mode A1: Forcing minimum key size derivation...")
             BluffsMode.A2 -> emit("Mode A2: Manipulating key diversification...")
@@ -92,10 +103,12 @@ class BluffsModule {
         val success = (0..100).random() > 30
 
         if (success) {
+            // If successful, the session key entropy is reduced, making it trivial to brute-force.
             emit("VULNERABILITY CONFIRMED: Session key entropy reduced to 1 byte.")
             emit("Derived Session Key: 0x1A")
             emit("Attack Successful.")
         } else {
+            // If failed, the target likely enforced Secure Connections (SC) correctly.
             emit("Target rejected weak parameters. Attack Failed.")
         }
     }

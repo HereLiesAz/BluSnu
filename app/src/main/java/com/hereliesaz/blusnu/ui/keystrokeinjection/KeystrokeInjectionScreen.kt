@@ -29,6 +29,14 @@ import com.hereliesaz.aznavrail.AzRoller
 import com.hereliesaz.aznavrail.AzTextBox
 import com.hereliesaz.aznavrail.model.AzButtonShape
 
+/**
+ * Screen for the Keystroke Injection (BlueDucky) attack.
+ *
+ * Allows users to:
+ * 1. Select a target device.
+ * 2. Attempt "Just Works" pairing (impersonating a keyboard).
+ * 3. Send raw text or execute DuckyScript payloads once paired.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KeystrokeInjectionScreen(
@@ -52,6 +60,7 @@ fun KeystrokeInjectionScreen(
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // Explanation.
             Text(
                 text = "Keystroke Injection emulates a Bluetooth HID keyboard to send keystrokes to a target device.\n\n" +
                        "Requires the target to pair with this device. Once paired, arbitrary text can be injected, allowing for remote command execution.",
@@ -59,6 +68,7 @@ fun KeystrokeInjectionScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
+            // Device Selector (Roller).
             val deviceOptions = state.devices.map { it.name ?: it.macAddress }
             val selectedDeviceName = state.selectedDevice?.let { it.name ?: it.macAddress }
                                      ?: if (state.devices.isEmpty()) "No devices" else "Select a target device"
@@ -76,6 +86,7 @@ fun KeystrokeInjectionScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            // Pairing Button.
             AzButton(
                 onClick = onAttemptAttack,
                 enabled = !state.isPared && state.selectedDevice != null,
@@ -88,7 +99,9 @@ fun KeystrokeInjectionScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Input fields (visible only after pairing).
             if (state.isPared) {
+                // Simple Text Sender.
                 AzTextBox(
                     value = textToSend,
                     onValueChange = { textToSend = it },
@@ -100,6 +113,7 @@ fun KeystrokeInjectionScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // DuckyScript Editor/Runner.
                 AzTextBox(
                     value = duckyScript,
                     onValueChange = { duckyScript = it },
@@ -113,6 +127,7 @@ fun KeystrokeInjectionScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Logs.
             LazyColumn(modifier = Modifier.weight(1f)) {
                 items(state.logMessages) { log ->
                     Text(log)

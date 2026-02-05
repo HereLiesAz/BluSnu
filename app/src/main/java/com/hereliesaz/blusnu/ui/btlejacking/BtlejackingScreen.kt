@@ -44,6 +44,11 @@ import com.hereliesaz.blusnu.data.BtlejackingState
 import com.hereliesaz.blusnu.data.HardwareState
 import com.hereliesaz.blusnu.data.TargetDevice
 
+/**
+ * Screen for the Btlejacking attack.
+ *
+ * Allows users to hijack BLE connections using external Micro:bit hardware.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BtlejackingScreen(viewModel: BtlejackingViewModel, hasPermissions: Boolean) {
@@ -62,6 +67,7 @@ fun BtlejackingScreen(viewModel: BtlejackingViewModel, hasPermissions: Boolean) 
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // Description with link.
             val descriptionText = buildAnnotatedString {
                 append("Btlejacking provides capabilities to sniff, jam, and hijack Bluetooth Low Energy (BLE) connections using Btlejack software and compatible hardware.\n\n")
                 append("Requires a BBC Micro:bit v1.\n")
@@ -85,42 +91,51 @@ fun BtlejackingScreen(viewModel: BtlejackingViewModel, hasPermissions: Boolean) 
 
             // Hardware Status and Controls
             Text("Hardware Status: ${state.hardwareState}")
-        when (state.hardwareState) {
-            HardwareState.DISCONNECTED, HardwareState.CONNECTION_FAILED -> {
-                Button(onClick = { viewModel.connectHardware() }) {
-                    Text("Connect Hardware")
-                }
-            }
-            HardwareState.CONNECTING -> {
-                CircularProgressIndicator()
-            }
-            HardwareState.CONNECTED_BTLEJACK, HardwareState.CONNECTED_DUAL -> {
-                Button(onClick = { viewModel.disconnectHardware() }) {
-                    Text("Disconnect Hardware")
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Attack Status and Controls
-        if (state.hardwareState == HardwareState.CONNECTED_BTLEJACK || state.hardwareState == HardwareState.CONNECTED_DUAL) {
-            Text("Attack Status: ${state.btlejackingState}")
-
-            when (state.btlejackingState) {
-                BtlejackingState.IDLE -> {
-                    Button(
-                        onClick = { selectedTarget?.let { viewModel.startAttack(it) } },
-                        enabled = selectedTarget != null
-                    ) {
-                        Text("Start Attack on ${selectedTarget?.name ?: "..."}")
+            when (state.hardwareState) {
+                HardwareState.DISCONNECTED, HardwareState.CONNECTION_FAILED -> {
+                    Button(onClick = { viewModel.connectHardware() }) {
+                        Text("Connect Hardware")
                     }
                 }
-                BtlejackingState.SNIFFING, BtlejackingState.JAMMING, BtlejackingState.HIJACKING -> {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Attack in progress...")
+                HardwareState.CONNECTING -> {
+                    CircularProgressIndicator()
+                }
+                HardwareState.CONNECTED_BTLEJACK, HardwareState.CONNECTED_DUAL -> {
+                    Button(onClick = { viewModel.disconnectHardware() }) {
+                        Text("Disconnect Hardware")
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Attack Status and Controls
+            if (state.hardwareState == HardwareState.CONNECTED_BTLEJACK || state.hardwareState == HardwareState.CONNECTED_DUAL) {
+                Text("Attack Status: ${state.btlejackingState}")
+
+                when (state.btlejackingState) {
+                    BtlejackingState.IDLE -> {
+                        Button(
+                            onClick = { selectedTarget?.let { viewModel.startAttack(it) } },
+                            enabled = selectedTarget != null
+                        ) {
+                            Text("Start Attack on ${selectedTarget?.name ?: "..."}")
+                        }
+                    }
+                    BtlejackingState.SNIFFING, BtlejackingState.JAMMING, BtlejackingState.HIJACKING -> {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator()
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Attack in progress...")
+                            OutlinedButton(
+                                onClick = { viewModel.stopAttack() },
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text("Stop Attack")
+                            }
+                        }
+                    }
+                    BtlejackingState.CONNECTED -> {
                         OutlinedButton(
                             onClick = { viewModel.stopAttack() },
                             shape = RoundedCornerShape(4.dp)
@@ -129,58 +144,48 @@ fun BtlejackingScreen(viewModel: BtlejackingViewModel, hasPermissions: Boolean) 
                         }
                     }
                 }
-                BtlejackingState.CONNECTED -> {
-                    OutlinedButton(
-                        onClick = { viewModel.stopAttack() },
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text("Stop Attack")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Device List
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                TextField(
+                    value = selectedTarget?.name ?: "Select a target device",
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    state.discoveredDevices.forEach { device ->
+                        val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
+                        val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
+                        DropdownMenuItem(
+                            text = { Text(device.name ?: "Unknown", color = textColor) },
+                            onClick = {
+                                selectedTarget = device
+                                expanded = false
+                            }
+                        )
                     }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // Device List
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded }
-        ) {
-            TextField(
-                value = selectedTarget?.name ?: "Select a target device",
-                onValueChange = {},
-                readOnly = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
-            )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                state.discoveredDevices.forEach { device ->
-                    val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
-                    val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
-                    DropdownMenuItem(
-                        text = { Text(device.name ?: "Unknown", color = textColor) },
-                        onClick = {
-                            selectedTarget = device
-                            expanded = false
-                        }
-                    )
+            // Device Logs
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                items(state.deviceLogs) { log ->
+                    Text(log)
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Device Logs
-        LazyColumn(modifier = Modifier.weight(1f)) {
-            items(state.deviceLogs) { log ->
-                Text(log)
-            }
-        }
-    }
     }
 }
-

@@ -13,6 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 
+/**
+ * Informational screen guiding the user to install necessary Magisk modules.
+ *
+ * Since Android doesn't natively include tools like `hcitool`, `l2ping`, or `btmgmt`,
+ * users must install them (usually via a Magisk module that pushes binaries to /system/bin).
+ */
 @Composable
 fun MagiskScreen() {
     val uriHandler = LocalUriHandler.current
@@ -31,6 +37,8 @@ fun MagiskScreen() {
         Spacer(modifier = Modifier.height(8.dp))
         Text("To use the Raw Commands screen, you need to install the BlueZ tools on your device. This can be done with a Magisk module.")
         Spacer(modifier = Modifier.height(8.dp))
+
+        // Link to a common repo or the project's own module.
         Button(
             onClick = {
                 uriHandler.openUri("https://github.com/Fanker-C/bluez-android")
@@ -39,6 +47,8 @@ fun MagiskScreen() {
             Text("View Magisk Module")
         }
         Spacer(modifier = Modifier.height(16.dp))
+
+        // Manual Instructions.
         Text("Alternatively, you can manually build a module:")
         Text("1. Obtain precompiled binaries for the BlueZ tools (hcitool, btmgmt, etc.) for your device's architecture.")
         Text("2. Place the binaries in the `magisk/system/bin` directory in the root of this project.")

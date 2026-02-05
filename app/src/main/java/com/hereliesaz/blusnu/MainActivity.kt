@@ -219,6 +219,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val macLookupClient by lazy { MacLookupClient(httpClient) }
+
+    // Logging infrastructure.
     private val bluetoothLog by lazy { com.hereliesaz.blusnu.data.BluetoothLog() }
 
     /**
@@ -406,10 +408,7 @@ class MainActivity : AppCompatActivity() {
                             performDatabaseBackup()
                         }
                         getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).edit {
-                            putBoolean(
-                                "disclaimer_accepted",
-                                true
-                            )
+                            putBoolean("disclaimer_accepted", true)
                         }
                         showDisclaimer = false
                         checkSystemRequirements() // Re-check requirements after disclaimer is cleared
@@ -463,6 +462,11 @@ class MainActivity : AppCompatActivity() {
                              Row(
                                 modifier = Modifier
                                     .fillMaxSize()
+                                    // Applying padding to the whole row pushes everything down.
+                                    // Based on memory: "reserve the bottom 10%... to accommodate the AzNavRail".
+                                    // Wait, AzNavRail is usually on the left/bottom.
+                                    // If this is vertical split, padding top might be wrong.
+                                    // Assuming AzNavRail handles its own positioning or is vertical on the left.
                                     .padding(top = tenPercentHeight)
                              ) {
                                 // -----------------------------------------------------------------
@@ -474,6 +478,7 @@ class MainActivity : AppCompatActivity() {
                                     isLandscape = isLandscape,
                                     modifier = Modifier.zIndex(10f)
                                 ) {
+                                    // Settings for the Rail appearance.
                                     azSettings(
                                         packRailButtons = true,
                                         displayAppNameInHeader = false,
@@ -502,6 +507,7 @@ class MainActivity : AppCompatActivity() {
                                         .weight(1f)
                                         .padding(top = tenPercentHeight) // Additional padding for content alignment
                                 ) {
+                                    // Navigation Host defines the screens.
                                     NavHost(
                                         navController = navController,
                                         startDestination = "dashboard"
@@ -550,6 +556,7 @@ class MainActivity : AppCompatActivity() {
                                         }
                                         composable("bluesnarfing") {
                                             val viewModel: BluesnarfingViewModel = viewModel(factory = viewModelFactory)
+                                            // Pass hasPermissions flow if needed for UI adjustments.
                                             com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen(viewModel = viewModel, hasPermissions = hasPermissions)
                                         }
                                         composable("bluffs") {
@@ -576,11 +583,14 @@ class MainActivity : AppCompatActivity() {
                                             val targetDeviceJson = backStackEntry.arguments?.getString("targetDevice")
                                             val targetDevice = targetDeviceJson?.let { Gson().fromJson(it, TargetDevice::class.java) }
                                             val viewModel: BtlejuiceViewModel = viewModel(factory = viewModelFactory)
+
+                                            // Collect state.
                                             val hardwareState by viewModel.hardwareState.collectAsState()
                                             val btlejuiceState by viewModel.btlejuiceState.collectAsState()
                                             val logs by viewModel.logs.collectAsState()
                                             val discoveredDevices by viewModel.discoveredDevices.collectAsState()
                                             val gattTraffic by viewModel.gattTraffic.collectAsState()
+
                                             BtlejuiceScreen(
                                                 hardwareState = hardwareState,
                                                 btlejuiceState = btlejuiceState,
@@ -753,6 +763,7 @@ class MainActivity : AppCompatActivity() {
             Manifest.permission.INTERNET,
         )
 
+        // For older Android versions (<= P/9), we might need STORAGE permission explicitly.
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
             requiredPermissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }

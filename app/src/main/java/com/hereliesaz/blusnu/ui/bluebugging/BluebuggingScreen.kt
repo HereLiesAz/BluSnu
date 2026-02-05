@@ -27,6 +27,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 
+/**
+ * Screen for the Bluebugging attack (AT Command Injection).
+ *
+ * Provides interface to select a target and launch the exploit attempting to gain control
+ * of the device's modem via RFCOMM.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BluebuggingScreen(viewModel: BluebuggingViewModel) {
@@ -41,12 +47,15 @@ fun BluebuggingScreen(viewModel: BluebuggingViewModel) {
         contentAlignment = Alignment.TopEnd
     ) {
         Column(horizontalAlignment = Alignment.End) {
+            // Explanatory Text.
             Text(
                 text = "Bluebugging exploits older devices (typically pre-2005) to access phone commands, make calls, and send messages without the user's knowledge.\n\n" +
                        "This attack targets Bluetooth Classic devices. It is highly unlikely to work on modern smartphones, which have patched these vulnerabilities long ago.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(16.dp)
             )
+
+            // Device Selector.
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }
@@ -76,10 +85,14 @@ fun BluebuggingScreen(viewModel: BluebuggingViewModel) {
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Trigger Button.
             Button(onClick = { viewModel.startAttack() }, enabled = selectedDevice != null) {
                 Text("Start Attack")
             }
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Output areas.
             Text("Status: $status")
             Spacer(modifier = Modifier.height(8.dp))
             Text("Result: $result")

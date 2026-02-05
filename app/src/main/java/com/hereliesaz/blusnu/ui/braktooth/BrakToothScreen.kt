@@ -36,6 +36,14 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.BrakToothVector
 
+/**
+ * Screen for the BrakTooth Fuzzer.
+ *
+ * Allows users to:
+ * 1. Check for ESP32 hardware connection.
+ * 2. Select a target and a specific crash vector.
+ * 3. Execute the fuzzing/crash attempt.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BrakToothScreen(viewModel: BrakToothViewModel) {
@@ -71,7 +79,7 @@ fun BrakToothScreen(viewModel: BrakToothViewModel) {
                 color = MaterialTheme.colorScheme.secondary
             )
 
-            // Hardware Check
+            // Hardware Connection Status and Check Button.
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -89,7 +97,7 @@ fun BrakToothScreen(viewModel: BrakToothViewModel) {
                 }
             }
 
-            // Device Selection
+            // Device Selection (Classic/Dual only).
             ExposedDropdownMenuBox(
                 expanded = deviceExpanded,
                 onExpandedChange = { deviceExpanded = !deviceExpanded }
@@ -118,7 +126,7 @@ fun BrakToothScreen(viewModel: BrakToothViewModel) {
                 }
             }
 
-            // Vector Selection
+            // Vector Selection.
             ExposedDropdownMenuBox(
                 expanded = vectorExpanded,
                 onExpandedChange = { vectorExpanded = !vectorExpanded }
@@ -152,7 +160,7 @@ fun BrakToothScreen(viewModel: BrakToothViewModel) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            // Logs
+            // Logs.
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -171,6 +179,7 @@ fun BrakToothScreen(viewModel: BrakToothViewModel) {
                 CircularProgressIndicator()
             }
 
+            // Action Button.
             Button(
                 onClick = { viewModel.startFuzzing() },
                 enabled = selectedDevice != null && hardwareConnected && !isRunning,

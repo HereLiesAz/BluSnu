@@ -79,14 +79,16 @@ class BluetoothScanner(
                         }
 
                     device?.let {
+                        // Suppress MissingPermission because checking permissions here is redundant/handled upstream.
                         @SuppressLint("MissingPermission")
                         val targetDevice = TargetDevice(
                             macAddress = it.address,
                             name = it.name, // Name might be null if not cached
                             rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt(),
-                            protocol = Protocol.CLASSIC,
-                            lastSeen = System.currentTimeMillis()
+                            protocol = Protocol.CLASSIC, // Mark as Classic protocol.
+                            lastSeen = System.currentTimeMillis() // Timestamp for "Last Seen".
                         )
+                        // Save the device to the database asynchronously.
                         insertDevice(targetDevice)
 
                         // Log finding for debug purposes
@@ -121,9 +123,12 @@ class BluetoothScanner(
                             name = it.name,
                             rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt(),
                             protocol = Protocol.CLASSIC,
+                            // Convert the ParcelableUUIDs to a List of Strings.
+                            // If uuidExtra is null, use an empty list.
                             services = uuidExtra?.map { it.toString() } ?: emptyList(),
                             lastSeen = System.currentTimeMillis()
                         )
+                        // Update the device in the DB with the newly found services.
                         insertDevice(targetDevice)
                     }
                 }
@@ -146,11 +151,12 @@ class BluetoothScanner(
             // Currently we just extract the basic info.
             val targetDevice = TargetDevice(
                 macAddress = device.address,
-                name = device.name,
+                name = device.name, // Often null in BLE advertisements; Name is usually in the scan record.
                 rssi = result.rssi,
                 protocol = Protocol.BLE,
                 lastSeen = System.currentTimeMillis()
             )
+            // Save/Update the device.
             insertDevice(targetDevice)
         }
     }
@@ -164,8 +170,10 @@ class BluetoothScanner(
      * When we connect to a BLE device to enumerate its services, these callbacks are fired.
      */
     private val gattCallback = object : BluetoothGattCallback() {
+
         @SuppressLint("MissingPermission")
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+            // When the connection state changes to CONNECTED, we can start discovering services.
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 // Connected successfully, now request the list of services (Services, Characteristics)
                 gatt.discoverServices()
@@ -174,12 +182,14 @@ class BluetoothScanner(
 
         @SuppressLint("MissingPermission")
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+            // If service discovery succeeded:
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 // Extract UUIDs
                 val services = gatt.services.map { it.uuid.toString() }
 
                 // Update the device record in the database with the discovered services
                 @SuppressLint("MissingPermission")
+                // Create/Update the TargetDevice with the new service list.
                 val targetDevice = TargetDevice(
                     macAddress = gatt.device.address,
                     name = gatt.device.name,
@@ -214,12 +224,15 @@ class BluetoothScanner(
      */
     @SuppressLint("MissingPermission")
     fun startClassicDiscovery() {
+        // Only register if not already registered to avoid exceptions.
         if (!isClassicReceiverRegistered) {
             val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
+            // Also listen for UUID updates (SDP results).
             filter.addAction(BluetoothDevice.ACTION_UUID)
             context.registerReceiver(classicDiscoveryReceiver, filter)
             isClassicReceiverRegistered = true
         }
+        // Start the actual hardware discovery.
         bluetoothAdapter.startDiscovery()
     }
 
@@ -242,9 +255,12 @@ class BluetoothScanner(
      */
     @SuppressLint("MissingPermission")
     fun discoverServices(device: BluetoothDevice) {
+        // For Classic or Dual-mode devices, use SDP (Service Discovery Protocol).
         if (device.type == BluetoothDevice.DEVICE_TYPE_CLASSIC || device.type == BluetoothDevice.DEVICE_TYPE_DUAL) {
+            // Asynchronously fetches UUIDs. Result is broadcast via ACTION_UUID.
             device.fetchUuidsWithSdp()
         }
+        // For BLE or Dual-mode devices, connect via GATT.
         if (device.type == BluetoothDevice.DEVICE_TYPE_LE || device.type == BluetoothDevice.DEVICE_TYPE_DUAL) {
             // autoConnect=false provides a faster initial connection attempt
             device.connectGatt(context, false, gattCallback)
@@ -257,8 +273,10 @@ class BluetoothScanner(
     @SuppressLint("MissingPermission")
     fun startBleScan() {
         if (bleScanner != null) {
+            // Start scanning with the defined callback.
             bleScanner?.startScan(bleScanCallback)
         } else {
+            // Log an error if the scanner is unavailable (e.g., BT disabled).
             CoroutineScope(Dispatchers.IO).launch {
                 bluetoothLog.log("Error: Bluetooth LE Scanner not available (Bluetooth might be off)")
             }

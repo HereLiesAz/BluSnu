@@ -45,18 +45,18 @@ class BtlejuiceViewModel(
     }
 
     fun onConnectHardware() {
-        // TODO: Implement hardware connection logic
+        // Placeholder for hardware connection logic.
     }
 
     fun onConnectDual() {
-        // TODO: Implement dual connection logic
+        // Placeholder for dual dongle connection logic.
     }
 
     fun onStartProxy(targetDevice: TargetDevice?) {
-        // TODO: Implement proxy start logic
+        // Placeholder for starting the proxy.
     }
 
     fun onStopProxy() {
-        // TODO: Implement proxy stop logic
+        // Placeholder for stopping the proxy.
     }
 }

@@ -14,6 +14,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel for BrakTooth functionality.
+ *
+ * Interfaces with [BrakToothModule] to control the ESP32 hardware and execute attacks.
+ */
 class BrakToothViewModel(
     private val deviceRepository: DeviceRepository,
     private val brakToothModule: BrakToothModule
@@ -25,6 +30,7 @@ class BrakToothViewModel(
     private val _selectedDevice = MutableStateFlow<TargetDevice?>(null)
     val selectedDevice: StateFlow<TargetDevice?> = _selectedDevice
 
+    // Default to the most common vector (V1).
     private val _selectedVector = MutableStateFlow(BrakToothVector.V1_LMP_Feature_Response_Flooding)
     val selectedVector: StateFlow<BrakToothVector> = _selectedVector
 
@@ -40,7 +46,7 @@ class BrakToothViewModel(
     init {
         viewModelScope.launch {
             deviceRepository.allDevices.collect { allDevices ->
-                // BrakTooth targets Classic/BR/EDR stacks
+                // BrakTooth targets Classic/BR/EDR stacks.
                 _devices.value = allDevices.filter {
                     it.protocol == Protocol.CLASSIC || it.protocol == Protocol.DUAL
                 }
@@ -56,6 +62,9 @@ class BrakToothViewModel(
         _selectedVector.value = vector
     }
 
+    /**
+     * Attempts to handshake with the external hardware.
+     */
     fun checkHardware() {
         viewModelScope.launch {
             _logs.value = _logs.value + "Scanning for ESP32 (BrakTooth) Dongle..."
@@ -69,6 +78,9 @@ class BrakToothViewModel(
         }
     }
 
+    /**
+     * Initiates the selected fuzzing vector.
+     */
     fun startFuzzing() {
         val device = _selectedDevice.value ?: return
         if (_isRunning.value) return

@@ -33,6 +33,17 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Screen for viewing real-time system logs related to Bluetooth activity.
+ *
+ * Features:
+ * - Live log stream from `BluetoothLog`.
+ * - Text search/filtering (`AzTextBox`).
+ * - Log Level filtering via `AzRoller`.
+ * - Save to file functionality.
+ *
+ * @param viewModel The ViewModel providing log state and actions.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BluetoothLogScreen(viewModel: BluetoothLogViewModel) {
@@ -40,6 +51,7 @@ fun BluetoothLogScreen(viewModel: BluetoothLogViewModel) {
     val dateFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        // Description Header.
         Text(
             text = "View and filter real-time Bluetooth logs.",
             style = MaterialTheme.typography.bodyMedium,
@@ -48,7 +60,9 @@ fun BluetoothLogScreen(viewModel: BluetoothLogViewModel) {
         Text("Bluetooth Log", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Filters Row.
         Row(verticalAlignment = Alignment.CenterVertically) {
+            // Text Filter Input.
             AzTextBox(
                 value = state.filter,
                 onValueChange = { viewModel.onFilterChanged(it) },
@@ -59,6 +73,7 @@ fun BluetoothLogScreen(viewModel: BluetoothLogViewModel) {
 
             Spacer(modifier = Modifier.padding(horizontal = 8.dp))
 
+            // Log Level Selector (Roller).
             val levelOptions = LogLevel.values().map { it.name }
             AzRoller(
                 options = levelOptions,
@@ -75,15 +90,18 @@ fun BluetoothLogScreen(viewModel: BluetoothLogViewModel) {
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        // Log List Container.
         Card(
             modifier = Modifier.fillMaxWidth().weight(1f),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             LazyColumn(
                 modifier = Modifier.padding(16.dp),
-                reverseLayout = true
+                reverseLayout = true // Show newest items at the bottom/start of list physically.
             ) {
                 items(state.logs.reversed()) { logEntry ->
+                    // Color code logs based on severity.
                     val color = when (logEntry.level) {
                         LogLevel.ERROR -> MaterialTheme.colorScheme.error
                         LogLevel.WARN -> Color(0xFFFFA500) // Orange
@@ -99,7 +117,10 @@ fun BluetoothLogScreen(viewModel: BluetoothLogViewModel) {
                 }
             }
         }
+
         Spacer(modifier = Modifier.height(16.dp))
+
+        // Action Buttons.
         Row {
             AzButton(onClick = { viewModel.onSaveToNotes() }, text = "Save to Notes", shape = AzButtonShape.RECTANGLE, modifier = Modifier.weight(1f))
             Spacer(modifier = Modifier.padding(horizontal = 8.dp))

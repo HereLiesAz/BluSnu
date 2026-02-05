@@ -10,6 +10,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel for SMP Bypass functionality.
+ *
+ * Bridges the UI and the [SmpBypassModule].
+ */
 class SmpBypassViewModel(private val deviceRepository: DeviceRepository) : ViewModel() {
     private val smpBypassModule = SmpBypassModule()
 
@@ -28,7 +33,8 @@ class SmpBypassViewModel(private val deviceRepository: DeviceRepository) : ViewM
     init {
         viewModelScope.launch {
             deviceRepository.allDevices.collect { allDevices ->
-                // SMP Bypass targets Android devices (likely Classic/Dual or BLE)
+                // SMP Bypass targets Android devices (likely Classic/Dual or BLE).
+                // Assuming BLE SMP for now, but CVE context might imply Classic.
                 _devices.value = allDevices
             }
         }
@@ -38,6 +44,9 @@ class SmpBypassViewModel(private val deviceRepository: DeviceRepository) : ViewM
         _selectedDevice.value = device
     }
 
+    /**
+     * Executes the bypass attack.
+     */
     fun startAttack() {
         val device = _selectedDevice.value ?: return
         if (_isRunning.value) return

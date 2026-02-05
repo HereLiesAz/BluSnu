@@ -82,7 +82,7 @@ abstract class AppDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "blusnu_database"
+                    "blusnu_database" // The name of the SQLite database file on disk.
                 )
                 // Wipes the database if a migration path is missing (useful for dev/prototyping)
                 // TODO: Implement proper Migration strategies for production release
@@ -90,6 +90,7 @@ abstract class AppDatabase : RoomDatabase() {
                 .build()
 
                 INSTANCE = instance
+                // Return the instance.
                 instance
             }
         }

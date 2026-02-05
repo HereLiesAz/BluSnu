@@ -17,6 +17,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * ViewModel for the GATT Fuzzing feature.
+ *
+ * Handles target selection (BLE only) and triggers the [GattFuzzingModule] logic.
+ */
 class GattFuzzingViewModel(application: Application, deviceRepository: DeviceRepository) : AndroidViewModel(application) {
 
     private val _selectedDevice = MutableStateFlow<TargetDevice?>(null)
@@ -34,6 +39,7 @@ class GattFuzzingViewModel(application: Application, deviceRepository: DeviceRep
     var hasPermissions = false
 
     init {
+        // Collect BLE devices only.
         viewModelScope.launch {
             deviceRepository.allDevices.collect { allDevices ->
                 _devices.value = allDevices.filter {
@@ -42,10 +48,14 @@ class GattFuzzingViewModel(application: Application, deviceRepository: DeviceRep
             }
         }
     }
+
     fun onDeviceSelected(device: TargetDevice) {
         _selectedDevice.value = device
     }
 
+    /**
+     * Starts the fuzzing session.
+     */
     fun startAttack() {
         if (!hasPermissions) {
             _status.value = "Bluetooth connect permission is required"
@@ -69,6 +79,7 @@ class GattFuzzingViewModel(application: Application, deviceRepository: DeviceRep
 
         viewModelScope.launch {
             _status.value = "Starting attack..."
+            // Execute on IO thread.
             withContext(Dispatchers.IO) {
                 gattFuzzingModule.executeAttack(device)
             }

@@ -51,6 +51,8 @@ class GattRelayModule {
             // Logic for the device near the Car
             emit("Scanning for legitimate key fob...")
             delay(1000)
+
+            // In a real attack, we would scan for the car's advertisement.
             emit("Key Fob detected (RSSI: -50dBm)")
 
             // Simulation of the backchannel connection
@@ -62,8 +64,11 @@ class GattRelayModule {
             delay(2000)
 
             emit("Challenge response received from Node B.")
+
+            // Send the response to the car.
             emit("Relaying to Car...")
             delay(500)
+
             emit("Car Unlocked. Attack Successful.")
         } else {
             // Logic for the device near the Phone (Owner)
@@ -71,14 +76,20 @@ class GattRelayModule {
             delay(2000)
 
             emit("Connection request received from Node A.")
+
+            // Look for the victim's phone.
             emit("Scanning for Target Phone ($targetAddress)...")
             delay(1000)
 
             emit("Target Phone connected.")
+
+            // Act as the proxy.
             emit("Proxying GATT requests...")
             delay(2000)
 
             emit("Sent challenge to Phone.")
+
+            // Relay the phone's response back to Node A.
             emit("Received response. Forwarding to Node A...")
         }
     }
