@@ -16,6 +16,14 @@ import kotlinx.coroutines.launch
 
 import com.hereliesaz.blusnu.data.TargetDevice
 
+/**
+ * State for the Attack Chaining Canvas.
+ *
+ * @property nodes Map of NodeId to Node instance.
+ * @property connections List of links between connectors.
+ * @property logs Execution logs.
+ * @property devices List of available devices (for node configuration).
+ */
 data class AttackChainingState(
     val nodes: Map<NodeId, AttackNode> = emptyMap(),
     val connections: List<Pair<NodeConnector, NodeConnector>> = emptyList(),
@@ -23,6 +31,11 @@ data class AttackChainingState(
     val devices: List<TargetDevice> = emptyList()
 )
 
+/**
+ * ViewModel for the Attack Chaining feature.
+ *
+ * Manages the graph data structure (Nodes and Edges) and delegates execution to [AttackChainExecutor].
+ */
 class AttackChainingViewModel(
     application: Application,
     private val repository: AttackChainRepository,
@@ -34,15 +47,20 @@ class AttackChainingViewModel(
     val uiState: StateFlow<AttackChainingState> = _uiState.asStateFlow()
 
     init {
+        // Load default or blank state.
         loadAttackChain("default")
         if (_uiState.value.nodes.isEmpty()) {
             addNode(com.hereliesaz.blusnu.ui.attackchaining.nodes.StartNode(id = "start"))
         }
+
+        // Collect execution logs.
         viewModelScope.launch {
             executor.output.collect { log ->
                 _uiState.update { it.copy(logs = it.logs + log) }
             }
         }
+
+        // Collect devices for dropdowns.
         viewModelScope.launch {
             deviceRepository.allDevices.collect { devices ->
                 _uiState.update { it.copy(devices = devices) }
@@ -50,6 +68,9 @@ class AttackChainingViewModel(
         }
     }
 
+    /**
+     * Updates the target device for a specific node.
+     */
     fun updateNodeTarget(nodeId: NodeId, device: TargetDevice) {
         viewModelScope.launch {
             _uiState.update { currentState ->
@@ -65,6 +86,9 @@ class AttackChainingViewModel(
         }
     }
 
+    /**
+     * Adds a new node to the graph.
+     */
     fun addNode(node: AttackNode) {
         viewModelScope.launch {
             _uiState.update { currentState ->
@@ -75,12 +99,15 @@ class AttackChainingViewModel(
         }
     }
 
+    /**
+     * Removes a node and its connections.
+     */
     fun removeNode(nodeId: NodeId) {
         viewModelScope.launch {
             _uiState.update { currentState ->
                 val newNodes = currentState.nodes.toMutableMap()
                 newNodes.remove(nodeId)
-                // Also remove any connections associated with this node
+                // Also remove any connections associated with this node.
                 val newConnections = currentState.connections.filterNot {
                     it.first.nodeId == nodeId || it.second.nodeId == nodeId
                 }
@@ -89,8 +116,12 @@ class AttackChainingViewModel(
         }
     }
 
+    /**
+     * Adds a connection link.
+     */
     fun addConnection(from: NodeConnector, to: NodeConnector) {
         viewModelScope.launch {
+            // Prevent self-loops.
             if (from.nodeId != to.nodeId) {
                 _uiState.update { currentState ->
                     val newConnections = currentState.connections.toMutableList()
@@ -101,6 +132,9 @@ class AttackChainingViewModel(
         }
     }
 
+    /**
+     * Removes a connection link.
+     */
     fun removeConnection(connection: Pair<NodeConnector, NodeConnector>) {
         viewModelScope.launch {
             _uiState.update { currentState ->
@@ -111,6 +145,9 @@ class AttackChainingViewModel(
         }
     }
 
+    /**
+     * Updates the XY coordinates of a node (Drag and Drop).
+     */
     fun updateNodePosition(nodeId: NodeId, newPosition: androidx.compose.ui.geometry.Offset) {
         viewModelScope.launch {
             _uiState.update { currentState ->
@@ -137,6 +174,9 @@ class AttackChainingViewModel(
         }
     }
 
+    /**
+     * Loads a pre-defined template.
+     */
     fun loadTemplate(name: String) {
         val template = AttackChainTemplates.templates[name]
         if (template != null) {
@@ -144,6 +184,9 @@ class AttackChainingViewModel(
         }
     }
 
+    /**
+     * Runs the current graph.
+     */
     fun executeChain() {
         executor.execute(uiState.value, viewModelScope)
     }

@@ -24,6 +24,11 @@ import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceState
 import com.hereliesaz.blusnu.ui.btlejuice.GattTraffic
 import com.hereliesaz.blusnu.ui.components.ScreenTitle
 
+/**
+ * Screen for the Btlejuice MitM Proxy.
+ *
+ * Allows users to set up a BLE Proxy using dual radios.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BtlejuiceScreen(
@@ -55,11 +60,7 @@ fun BtlejuiceScreen(
                 }
                 pop()
             }
-            // Note: ClickableText is deprecated, replacing with Text + LinkAnnotation is better practice if needed,
-            // but for this task scope I focus on AzNavRail replacements. However, warning suggests replacing it.
-            // I'll keep it as is or replace if easy, but prioritize AzRoller/Button updates.
-            // Since I am already editing the file, I will leave ClickableText alone to minimize risk of breaking links unless it blocks build.
-            // Wait, the build log had warnings about it.
+            // Uses deprecated ClickableText for link handling.
             ClickableText(
                 text = descriptionText,
                 style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onBackground),

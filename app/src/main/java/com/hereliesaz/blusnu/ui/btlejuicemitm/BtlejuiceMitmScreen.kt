@@ -11,6 +11,10 @@ import com.hereliesaz.blusnu.data.TargetDevice
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 
+/**
+ * MitM specific screen for Btlejuice.
+ * Very similar to BtlejuiceScreen but potentially for a different workflow variation.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BtlejuiceMitmScreen(

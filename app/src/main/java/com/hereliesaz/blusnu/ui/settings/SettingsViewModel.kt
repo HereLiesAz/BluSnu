@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel for Settings.
+ */
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val databaseUpdater = DatabaseUpdater(application)
@@ -36,6 +39,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         checkRootAccess()
     }
 
+    /**
+     * Checks availability of SU binary.
+     */
     fun checkRootAccess() {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             _isRooted.value = isRootAvailable()
@@ -48,7 +54,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 .redirectErrorStream(true)
                 .start()
 
-            // We must consume the stream to prevent blocking
             process.inputStream.use { it.readBytes() }
 
             val exitCode = process.waitFor()
@@ -58,12 +63,18 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    /**
+     * Toggles measurement unit preference.
+     */
     fun toggleMetric() {
         val newValue = !_isMetric.value
         _isMetric.value = newValue
         sharedPreferences.edit().putBoolean("use_metric", newValue).apply()
     }
 
+    /**
+     * Checks for vulnerability DB updates.
+     */
     fun checkForUpdates() {
         viewModelScope.launch {
             _updateStatus.value = "Checking for updates..."
@@ -77,6 +88,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         sharedPreferences.edit().putString("backup_url", newUrl).apply()
     }
 
+    /**
+     * Refreshes permission status map.
+     */
     fun checkPermissions() {
         val permissions = mutableListOf(
             android.Manifest.permission.ACCESS_FINE_LOCATION,

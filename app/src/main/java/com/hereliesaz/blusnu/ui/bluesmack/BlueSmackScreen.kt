@@ -27,6 +27,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 
+/**
+ * Screen for the BlueSmack (L2CAP Ping Flood) Denial of Service attack.
+ *
+ * Allows selection of a target device and triggering the `l2ping` flood.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BlueSmackScreen(viewModel: BlueSmackViewModel) {
@@ -40,12 +45,15 @@ fun BlueSmackScreen(viewModel: BlueSmackViewModel) {
         contentAlignment = Alignment.TopEnd
     ) {
         Column(horizontalAlignment = Alignment.End) {
+            // Explanation.
             Text(
                 text = "BlueSmack is a Denial of Service (DoS) attack that uses L2CAP ping packets to overwhelm a target device.\n\n" +
                        "This attack mimics the 'Ping of Death' and targets Classic Bluetooth devices. Modern devices often have rate limiting or packet size checks that mitigate this attack.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(16.dp)
             )
+
+            // Device Selector (Classic Only).
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }
@@ -75,10 +83,15 @@ fun BlueSmackScreen(viewModel: BlueSmackViewModel) {
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Trigger Button.
             Button(onClick = { viewModel.startAttack() }, enabled = selectedDevice != null) {
                 Text("Start Attack")
             }
+
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Status Output.
             Text("Status: $status")
         }
     }

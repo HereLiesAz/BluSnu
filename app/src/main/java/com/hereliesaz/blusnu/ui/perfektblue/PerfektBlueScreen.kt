@@ -34,6 +34,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 
+/**
+ * Screen for the PerfektBlue audit module.
+ *
+ * PerfektBlue focuses on vulnerabilities in Bluetooth implementations of
+ * In-Vehicle Infotainment (IVI) systems, specifically targeting profiles like
+ * PBAP (Phonebook Access) and AVRCP (Media Control).
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PerfektBlueScreen(viewModel: PerfektBlueViewModel) {
@@ -56,6 +63,7 @@ fun PerfektBlueScreen(viewModel: PerfektBlueViewModel) {
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Header.
             Text(
                 text = "PerfektBlue (Automotive RCE)",
                 style = MaterialTheme.typography.headlineSmall
@@ -66,7 +74,7 @@ fun PerfektBlueScreen(viewModel: PerfektBlueViewModel) {
                 color = MaterialTheme.colorScheme.secondary
             )
 
-            // Device Selection
+            // Device Selector.
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }
@@ -95,7 +103,7 @@ fun PerfektBlueScreen(viewModel: PerfektBlueViewModel) {
                 }
             }
 
-            // Logs
+            // Audit Logs.
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -114,6 +122,7 @@ fun PerfektBlueScreen(viewModel: PerfektBlueViewModel) {
                 CircularProgressIndicator()
             }
 
+            // Action Button.
             Button(
                 onClick = { viewModel.startAudit() },
                 enabled = selectedDevice != null && !isRunning,

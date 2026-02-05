@@ -30,6 +30,12 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.RelayRole
 
+/**
+ * Screen for configuring and running a GATT Relay Attack.
+ *
+ * Users can choose which role this device plays (Node A near the peripheral,
+ * or Node B near the central) and initiate the relay connection.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GattRelayScreen(viewModel: GattRelayViewModel) {
@@ -50,6 +56,7 @@ fun GattRelayScreen(viewModel: GattRelayViewModel) {
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Header.
             Text(
                 text = "GATT Relay (PKES Attack)",
                 style = MaterialTheme.typography.headlineSmall
@@ -60,7 +67,7 @@ fun GattRelayScreen(viewModel: GattRelayViewModel) {
                 color = MaterialTheme.colorScheme.secondary
             )
 
-            // Role Selection
+            // Role Selection.
             Column {
                 Text("Select Node Role:", style = MaterialTheme.typography.titleSmall)
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -79,6 +86,7 @@ fun GattRelayScreen(viewModel: GattRelayViewModel) {
                 }
             }
 
+            // Target Input (Only needed for Node B to know which phone to connect to).
             if (selectedRole == RelayRole.NODE_B_PHONE_SIDE) {
                 TextField(
                     value = targetAddress,
@@ -88,7 +96,7 @@ fun GattRelayScreen(viewModel: GattRelayViewModel) {
                 )
             }
 
-            // Logs
+            // Logs output.
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -107,6 +115,7 @@ fun GattRelayScreen(viewModel: GattRelayViewModel) {
                 CircularProgressIndicator()
             }
 
+            // Action Button.
             Button(
                 onClick = { viewModel.startRelay() },
                 enabled = !isRunning,

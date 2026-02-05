@@ -20,6 +20,20 @@ import androidx.compose.ui.window.DialogProperties
 import com.hereliesaz.aznavrail.AzButton
 import com.hereliesaz.aznavrail.model.AzButtonShape
 
+/**
+ * Blocking dialog that forces the user to enable necessary system settings.
+ *
+ * It checks for Bluetooth, Location, and Developer Options (for ADB/Root).
+ * The dialog cannot be dismissed until requirements are met.
+ *
+ * @param isBluetoothEnabled State of Bluetooth adapter.
+ * @param isLocationEnabled State of Location services.
+ * @param isDeveloperOptionsEnabled State of Developer Mode.
+ * @param onEnableBluetooth Callback to enable Bluetooth.
+ * @param onEnableLocation Callback to open Location Settings.
+ * @param onEnableDeveloperOptions Callback to open Dev Settings.
+ * @param onDismiss Optional dismiss callback (usually ignored/no-op here).
+ */
 @Composable
 fun SystemRequirementsDialog(
     isBluetoothEnabled: Boolean,
@@ -33,8 +47,8 @@ fun SystemRequirementsDialog(
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
-            dismissOnBackPress = false,
-            dismissOnClickOutside = false
+            dismissOnBackPress = false, // User cannot back out.
+            dismissOnClickOutside = false // User cannot click away.
         )
     ) {
         Column(
@@ -58,6 +72,7 @@ fun SystemRequirementsDialog(
             )
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Show button only if requirement is missing.
             if (!isBluetoothEnabled) {
                 AzButton(
                     onClick = onEnableBluetooth,

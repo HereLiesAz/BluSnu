@@ -122,28 +122,47 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-
+/**
+ * The single Activity for the Blu Snu application.
+ *
+ * This Activity serves as the entry point and container for the entire UI.
+ * It manages:
+ * 1. Global state (Permissions, Bluetooth/Location/Root status).
+ * 2. Dependency Injection (initializing Repositories, Modules, and ViewModels).
+ * 3. Navigation (Jetpack Navigation Component + AzNavRail).
+ * 4. The main UI structure (NavRail + Content Area).
+ */
 class MainActivity : AppCompatActivity() {
 
+    // StateFlow to track if all required runtime permissions are granted.
     private val _hasPermissions = MutableStateFlow(false)
     val hasPermissions: StateFlow<Boolean> = _hasPermissions
 
+    // StateFlows for system service availability.
     private val _isBluetoothEnabled = MutableStateFlow(false)
     private val _isLocationEnabled = MutableStateFlow(false)
     private val _isDeveloperOptionsEnabled = MutableStateFlow(false)
     private val _isRooted = MutableStateFlow(false)
 
+    // --- Dependency Injection (Manual) ---
+    // Initialize Database and Repositories lazily to avoid startup blocking.
     private val database by lazy { AppDatabase.getDatabase(this) }
     private val deviceRepository by lazy { com.hereliesaz.blusnu.data.DeviceRepository(database.targetDeviceDao()) }
     private val savedSessionRepository by lazy { SavedSessionRepository(database.savedSessionDao()) }
     private val attackChainTemplateRepository by lazy { AttackChainTemplateRepository(database.attackChainTemplateDao()) }
+
+    // Initialize Hardware and Attack Modules.
     private val hardwareManager by lazy { HardwareManager() }
     private val btlejuiceModule by lazy { BtlejuiceModule(hardwareManager) }
     private val bleSpamModule by lazy { com.hereliesaz.blusnu.data.BleSpamModule(applicationContext) }
     private val bluffsModule by lazy { com.hereliesaz.blusnu.data.BluffsModule() }
     private val brakToothModule by lazy { com.hereliesaz.blusnu.data.BrakToothModule() }
     private val keystrokeInjectionModule by lazy { com.hereliesaz.blusnu.data.KeystrokeInjectionModule() }
+
+    // Helpers.
     private val vulnerabilityCorrelator by lazy { VulnerabilityCorrelator(applicationContext) }
+
+    // Ktor Client for network operations (MAC Lookup, Backup).
     private val httpClient by lazy {
         io.ktor.client.HttpClient(io.ktor.client.engine.android.Android) {
             install(ContentNegotiation) {
@@ -154,12 +173,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
     private val macLookupClient by lazy { MacLookupClient(httpClient) }
+
+    // Logging infrastructure.
     private val bluetoothLog by lazy { com.hereliesaz.blusnu.data.BluetoothLog() }
+
+    // Central Scanner logic.
+    // System Bluetooth Adapter.
+    private val bluetoothAdapter by lazy { (getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter }
+
+    // Central Scanner logic.
     private val bluetoothScanner: com.hereliesaz.blusnu.data.BluetoothScanner by lazy {
         com.hereliesaz.blusnu.data.BluetoothScanner(applicationContext, deviceRepository, bluetoothAdapter, bluetoothLog)
     }
-    private val bluetoothAdapter by lazy { (getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter }
 
+    /**
+     * Custom ViewModelFactory to inject dependencies into ViewModels.
+     * Since we aren't using Hilt/Dagger, we must construct ViewModels manually here.
+     */
     private val viewModelFactory by lazy {
         object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -243,11 +273,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Permission Launcher callback.
     private val requestPermissionsLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
             _hasPermissions.value = permissions.values.all { it }
         }
 
+    // BroadcastReceiver to listen for Bluetooth state changes (ON/OFF).
     private val bluetoothReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == BluetoothAdapter.ACTION_STATE_CHANGED) {
@@ -257,24 +289,30 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Handle the Splash Screen transition.
         installSplashScreen()
         super.onCreate(savedInstanceState)
+
+        // Hide standard ActionBar (we use our own UI).
         supportActionBar?.hide()
 
+        // Preload vulnerability database.
         vulnerabilityCorrelator.loadVulnerabilities()
 
+        // Initial checks.
         requestRequiredPermissions()
         checkBluetoothState()
         registerReceiver(bluetoothReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
 
         setContent {
+            // Collect system states as Compose State.
             val hasPermissions by hasPermissions.collectAsState()
             val isBluetoothEnabled by _isBluetoothEnabled.collectAsState()
             val isLocationEnabled by _isLocationEnabled.collectAsState()
             val isDeveloperOptionsEnabled by _isDeveloperOptionsEnabled.collectAsState()
             val isRooted by _isRooted.collectAsState()
 
-            // Poll for system settings changes that don't broadcast intent
+            // Observe Lifecycle to re-check requirements when app resumes (e.g. returning from Settings).
             val lifecycleOwner = LocalLifecycleOwner.current
             DisposableEffect(lifecycleOwner) {
                 val observer = LifecycleEventObserver { _, event ->
@@ -289,23 +327,23 @@ class MainActivity : AppCompatActivity() {
             }
 
             BluSnuTheme {
+                // Disclaimer Logic: Must agree once.
                 var showDisclaimer by remember { mutableStateOf(!getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).getBoolean("disclaimer_accepted", false)) }
 
                 if (showDisclaimer) {
                     DisclaimerDialog { agreed ->
                         if (agreed) {
+                            // On agreement, perform an initial backup if configured.
                             performDatabaseBackup()
                         }
                         getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).edit {
-                            putBoolean(
-                                "disclaimer_accepted",
-                                true
-                            )
+                            putBoolean("disclaimer_accepted", true)
                         }
                         showDisclaimer = false
-                        checkSystemRequirements() // Re-check after disclaimer
+                        checkSystemRequirements()
                     }
                 } else if (!isBluetoothEnabled || !isLocationEnabled || !isDeveloperOptionsEnabled) {
+                    // Block access if critical requirements are missing.
                     SystemRequirementsDialog(
                         isBluetoothEnabled = isBluetoothEnabled,
                         isLocationEnabled = isLocationEnabled,
@@ -326,14 +364,16 @@ class MainActivity : AppCompatActivity() {
                         }
                     )
                 } else {
+                    // Main App Content
                     val navController = rememberNavController()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
-                    // Normalize route so parameterized destinations like "btlejuice?targetDevice=..."
-                    // match base routes such as "btlejuice" in the navigation rail.
+
+                    // Route normalization for navigation rail highlighting.
                     val currentDestination = navBackStackEntry
                         ?.destination
                         ?.route
                         ?.substringBefore("?")
+
                     val configuration = LocalConfiguration.current
                     val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
 
@@ -342,25 +382,34 @@ class MainActivity : AppCompatActivity() {
                         color = MaterialTheme.colorScheme.background
                     ) {
                         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                             // Reserve bottom 10% height for the Rail/UI spacing if needed by specs.
                              val tenPercentHeight = maxHeight * 0.1f
 
                              Row(
                                 modifier = Modifier
                                     .fillMaxSize()
+                                    // Applying padding to the whole row pushes everything down.
+                                    // Based on memory: "reserve the bottom 10%... to accommodate the AzNavRail".
+                                    // Wait, AzNavRail is usually on the left/bottom.
+                                    // If this is vertical split, padding top might be wrong.
+                                    // Assuming AzNavRail handles its own positioning or is vertical on the left.
                                     .padding(top = tenPercentHeight)
                              ) {
+                                // The Navigation Rail (Side Menu).
                                 AzNavRail(
                                     navController = navController,
                                     currentDestination = currentDestination,
                                     isLandscape = isLandscape,
                                     modifier = Modifier.zIndex(10f)
                                 ) {
+                                    // Settings for the Rail appearance.
                                     azSettings(
                                         packRailButtons = true,
                                         displayAppNameInHeader = false,
                                         defaultShape = AzButtonShape.RECTANGLE
                                     )
 
+                                    // Generate menu items from the centralized configuration.
                                     MENU_CATEGORIES.forEach { category ->
                                         azRailHostItem(id = category.id, text = category.text, onClick = {})
                                         category.items.forEach { item ->
@@ -374,15 +423,19 @@ class MainActivity : AppCompatActivity() {
                                     }
                                 }
 
+                                // Main Content Area.
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .padding(top = tenPercentHeight) // 20% total padding for content (10% from Row + 10% here)
+                                        // Additional padding if needed.
+                                        .padding(top = tenPercentHeight)
                                 ) {
+                                    // Navigation Host defines the screens.
                                     NavHost(
                                         navController = navController,
                                         startDestination = "dashboard"
                                     ) {
+                                        // Dashboard
                                         composable("dashboard") {
                                             val viewModel: DashboardViewModel = viewModel(factory = viewModelFactory)
                                             val state by viewModel.state.collectAsState()
@@ -395,6 +448,8 @@ class MainActivity : AppCompatActivity() {
                                                 onStartScanClicked = { navController.navigate("targets?startScan=true") }
                                             )
                                         }
+
+                                        // Device Management (Targets)
                                         composable(
                                             "targets?startScan={startScan}",
                                             arguments = listOf(
@@ -407,17 +462,23 @@ class MainActivity : AppCompatActivity() {
                                             val startScan = backStackEntry.arguments?.getBoolean("startScan") ?: false
                                             val viewModel: DeviceManagementViewModel = viewModel(factory = viewModelFactory)
                                             DeviceManagementScreen(viewModel = viewModel, startScan = startScan) {
+                                                // On device click: pass to Btlejuice as example target (or could be generic detail view).
                                                 val targetDeviceJson = Gson().toJson(it)
                                                 navController.navigate("btlejuice?targetDevice=$targetDeviceJson")
                                             }
                                         }
+
+                                        // Settings
                                         composable("settings") { SettingsScreen() }
+
+                                        // Attack Modules
                                         composable("bluebugging") {
                                             val viewModel: BluebuggingViewModel = viewModel(factory = viewModelFactory)
                                             BluebuggingScreen(viewModel = viewModel)
                                         }
                                         composable("bluesnarfing") {
                                             val viewModel: BluesnarfingViewModel = viewModel(factory = viewModelFactory)
+                                            // Pass hasPermissions flow if needed for UI adjustments.
                                             com.hereliesaz.blusnu.ui.bluesnarfing.BluesnarfingScreen(viewModel = viewModel, hasPermissions = hasPermissions)
                                         }
                                         composable("bluffs") {
@@ -444,11 +505,14 @@ class MainActivity : AppCompatActivity() {
                                             val targetDeviceJson = backStackEntry.arguments?.getString("targetDevice")
                                             val targetDevice = targetDeviceJson?.let { Gson().fromJson(it, TargetDevice::class.java) }
                                             val viewModel: BtlejuiceViewModel = viewModel(factory = viewModelFactory)
+
+                                            // Collect state.
                                             val hardwareState by viewModel.hardwareState.collectAsState()
                                             val btlejuiceState by viewModel.btlejuiceState.collectAsState()
                                             val logs by viewModel.logs.collectAsState()
                                             val discoveredDevices by viewModel.discoveredDevices.collectAsState()
                                             val gattTraffic by viewModel.gattTraffic.collectAsState()
+
                                             BtlejuiceScreen(
                                                 hardwareState = hardwareState,
                                                 btlejuiceState = btlejuiceState,
@@ -554,6 +618,9 @@ class MainActivity : AppCompatActivity() {
         _isBluetoothEnabled.value = bluetoothAdapter?.isEnabled == true
     }
 
+    /**
+     * Checks if all system requirements (Bluetooth, Location, Dev Mode, Root) are met.
+     */
     private fun checkSystemRequirements() {
         checkBluetoothState()
 
@@ -570,19 +637,25 @@ class MainActivity : AppCompatActivity() {
         checkRootAccess()
     }
 
+    /**
+     * Asynchronously checks for root access.
+     */
     private fun checkRootAccess() {
         CoroutineScope(Dispatchers.IO).launch {
             _isRooted.value = isRootAvailable()
         }
     }
 
+    /**
+     * Tries to execute a root command to verify su binary availability.
+     */
     private fun isRootAvailable(): Boolean {
         return try {
             val process = ProcessBuilder("su", "-c", "id")
                 .redirectErrorStream(true)
                 .start()
 
-            // We must consume the stream to prevent blocking
+            // We must consume the stream to prevent blocking buffers.
             process.inputStream.use { it.readBytes() }
 
             val exitCode = process.waitFor()
@@ -592,6 +665,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Launches the permission request dialog for Bluetooth and Location permissions.
+     */
     private fun requestRequiredPermissions() {
         val requiredPermissions = mutableListOf(
             Manifest.permission.BLUETOOTH_SCAN,
@@ -601,6 +677,7 @@ class MainActivity : AppCompatActivity() {
             Manifest.permission.INTERNET,
         )
 
+        // For older Android versions (<= P/9), we might need STORAGE permission explicitly.
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
             requiredPermissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }
@@ -608,6 +685,9 @@ class MainActivity : AppCompatActivity() {
         requestPermissionsLauncher.launch(requiredPermissions.toTypedArray())
     }
 
+    /**
+     * Initiates a background backup of the database if configured.
+     */
     private fun performDatabaseBackup() {
         val prefs = getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE)
         val backupUrl = prefs.getString("backup_url", "https://example.com/backup") ?: return
@@ -616,7 +696,6 @@ class MainActivity : AppCompatActivity() {
             val cloudBackup = CloudBackup(applicationContext, httpClient)
             val success = cloudBackup.backupDatabase(backupUrl)
             if (success) {
-                // Ideally show a notification or toast on Main thread
                 println("Backup successful")
             } else {
                 println("Backup failed")

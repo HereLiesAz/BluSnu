@@ -21,12 +21,21 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hereliesaz.blusnu.ui.components.ScreenTitle
 
+/**
+ * Screen for generating reports and managing data export/import.
+ *
+ * Provides functionality to:
+ * 1. Generate a Markdown report of the session log.
+ * 2. Export the entire device database to JSON.
+ * 3. Import a device database from JSON.
+ * 4. View a simple list of current session logs.
+ */
 @Composable
 fun ReportScreen(viewModel: ReportViewModel = viewModel()) {
     val logs by viewModel.logs.collectAsState()
     val context = LocalContext.current
 
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    // Register activity results for File Creation/Selection.
     val createDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -76,6 +85,8 @@ fun ReportScreen(viewModel: ReportViewModel = viewModel()) {
                 style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
+
+            // Report Export.
             Button(onClick = {
                 val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
@@ -87,6 +98,8 @@ fun ReportScreen(viewModel: ReportViewModel = viewModel()) {
                 Text("Export Report (MD)")
             }
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Database Export.
             Button(onClick = {
                 val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
@@ -98,6 +111,8 @@ fun ReportScreen(viewModel: ReportViewModel = viewModel()) {
                 Text("Export Database (JSON)")
             }
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Database Import.
             Button(onClick = {
                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
@@ -108,11 +123,13 @@ fun ReportScreen(viewModel: ReportViewModel = viewModel()) {
                 Text("Import Database (JSON)")
             }
             Spacer(modifier = Modifier.height(16.dp))
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            items(logs) { log ->
-                Text("${log.timestamp}: ${log.message}")
+
+            // Log Preview.
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(logs) { log ->
+                    Text("${log.timestamp}: ${log.message}")
+                }
             }
         }
-    }
     }
 }

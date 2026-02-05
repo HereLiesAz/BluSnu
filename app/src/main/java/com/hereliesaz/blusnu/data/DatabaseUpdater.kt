@@ -6,20 +6,41 @@ import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.delay
 import java.io.InputStreamReader
 
+/**
+ * Utility to manage updates to the internal vulnerability database.
+ *
+ * @property context Application context.
+ */
 class DatabaseUpdater(private val context: Context) {
 
+    /**
+     * Checks for updates by comparing local assets with a (simulated) remote source.
+     *
+     * @return Status message string.
+     */
     suspend fun checkForUpdates(): String {
-        // Simulate network delay
+        // Simulate network delay for checking a remote server.
         delay(2000)
 
-        // Simulate fetching a "remote" database from assets
-        val remoteDbText = context.assets.open("vulnerabilities_updated.json").bufferedReader().use { it.readText() }
+        // For this demo, we simulate fetching a "remote" file by reading a different asset.
+        // In a real app, this would be an HTTP GET request.
+        val remoteDbText = try {
+            context.assets.open("vulnerabilities_updated.json").bufferedReader().use { it.readText() }
+        } catch (e: Exception) {
+            // Fallback if update file doesn't exist in assets.
+            return "Error checking for updates."
+        }
 
-        // Get the current local database
-        val localDbText = context.assets.open("vulnerabilities.json").bufferedReader().use { it.readText() }
+        // Get the current local database content.
+        val localDbText = try {
+            context.assets.open("vulnerabilities.json").bufferedReader().use { it.readText() }
+        } catch (e: Exception) {
+             return "Local database corrupted."
+        }
 
+        // Compare content. A hash check would be more efficient in production.
         return if (remoteDbText != localDbText) {
-            // In a real app, you would replace the local file here
+            // In a real app, you would download the file and overwrite the local cache here.
             "Update found and applied."
         } else {
             "No new updates available."

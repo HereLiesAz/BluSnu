@@ -8,6 +8,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel for the GATT Relay feature.
+ *
+ * Interfaces with [GattRelayModule] to manage the relay lifecycle.
+ */
 class GattRelayViewModel : ViewModel() {
     private val gattRelayModule = GattRelayModule()
 
@@ -31,6 +36,9 @@ class GattRelayViewModel : ViewModel() {
         _targetAddress.value = address
     }
 
+    /**
+     * Starts the relay logic.
+     */
     fun startRelay() {
         if (_isRunning.value) return
         _isRunning.value = true

@@ -1,74 +1,113 @@
 # Blu Snu: File Descriptions
 
-This document provides a description of the purpose of each file and directory in the Blu Snu project.
+This document provides an exhaustive description of every source file in the Blu Snu project.
 
-## Root Directory
+## Root Directory (`app/src/main/java/com/hereliesaz/blusnu/`)
 
-*   `README.md`: The main README file for the project, providing a high-level overview.
-*   `app/`: The main application module.
-*   `build.gradle.kts`: The main build script for the project.
-*   `docs/`: The project's documentation.
-*   `gradle/`: The Gradle wrapper files.
-*   `gradle.properties`: The Gradle configuration properties.
-*   `gradlew`: The Gradle wrapper script for Linux and macOS.
-*   `gradlew.bat`: The Gradle wrapper script for Windows.
-*   `settings.gradle.kts`: The Gradle settings script.
+*   `MainActivity.kt`: The single Activity entry point for the application, hosting the Navigation component and global state initialization.
 
-## `app/`
+## Data Layer (`app/src/main/java/com/hereliesaz/blusnu/data/`)
 
-*   `build.gradle.kts`: The build script for the `app` module.
-*   `proguard-rules.pro`: The ProGuard rules for the `app` module.
-*   `src/`: The source code for the `app` module.
+### Core Models & Database
+*   `ActiveTask.kt`: Represents a currently running background task (scan, attack) for UI status display.
+*   `ActionLogger.kt`: Handles logging of user actions and attack results for the final report.
+*   `AppDatabase.kt`: Room Database definition, defining entities and DAOs.
+*   `BluetoothLog.kt`: Data class representing a raw Bluetooth log entry (HCI/Logcat).
+*   `Converters.kt`: Type converters for Room database storage.
+*   `DatabaseUpdater.kt`: Utility for handling database migrations and updates.
+*   `DeviceRepository.kt`: Repository pattern implementation for accessing `TargetDevice` data.
+*   `TargetDevice.kt`: The central data entity representing a discovered Bluetooth device (Classic or BLE).
+*   `TargetDeviceDao.kt`: Data Access Object for `TargetDevice` database operations.
+*   `SavedSession.kt`: Entity representing a saved workspace/session.
+*   `SavedSessionDao.kt`: DAO for `SavedSession`.
+*   `SavedSessionRepository.kt`: Repository for session management.
 
-## `app/src/main/`
+### Scanning & Reconnaissance
+*   `BluetoothScanner.kt`: Manages Bluetooth adapter scanning (Classic Discovery & BLE Scanning).
+*   `MacLookupClient.kt`: Client for resolving OUI/MAC addresses to vendor names.
+*   `VulnerabilityCorrelator.kt`: Logic to cross-reference discovered devices with known CVEs.
 
-*   `AndroidManifest.xml`: The Android manifest file.
-*   `assets/`: The application's assets.
-*   `java/`: The Java source code.
-*   `res/`: The application's resources.
+### Attack Modules (Implementation)
+*   `BleSpamModule.kt`: Implements BLE advertisement spamming logic.
+*   `BlueSmackModule.kt`: Implements L2CAP Echo Request flooding (DoS).
+*   `BluebuggingModule.kt`: Implements AT command injection attacks.
+*   `BluesnarfingModule.kt`: Implements OBEX data exfiltration attacks.
+*   `BluffsModule.kt`: Implements the BLUFFS attack suite (CVE-2023-24023).
+*   `BrakToothModule.kt`: Implements BrakTooth crash vectors.
+*   `BtlejackingModule.kt`: Implements jamming and hijacking logic (requires hardware).
+*   `BtlejuiceModule.kt`: Implements GATT proxying and interception.
+*   `GattFuzzingModule.kt`: Implements automated fuzzing of GATT characteristics.
+*   `GattRelayModule.kt`: Implements relay attacks between devices.
+*   `KeystrokeInjectionModule.kt`: Implements HID keystroke injection (BlueDucky).
+*   `MitmAttack.kt`: Base logic or helper for Man-in-the-Middle attacks.
+*   `PerfektBlueModule.kt`: Implements specific exploit vectors (placeholder/specifics).
+*   `SmpBypassModule.kt`: Implements Security Manager Protocol bypass techniques.
+*   `SpoofingModule.kt`: Implements MAC and name spoofing using root commands.
 
-## `app/src/main/java/com/hereliesaz/blusnu/`
+### Attack Chaining
+*   `AttackChainExecutor.kt`: Engine that executes a defined chain of attack nodes.
+*   `AttackChainRepository.kt`: Repository for managing active chains.
+*   `AttackChainTemplate.kt`: Entity representing a saved attack workflow template.
+*   `AttackChainTemplateDao.kt`: DAO for templates.
+*   `AttackChainTemplateRepository.kt`: Repository for accessing templates.
+*   `AttackChainTemplates.kt`: Pre-defined templates (factory/seeder).
+*   `AttackChainingCanvasModule.kt`: DI module or helper for the canvas logic.
 
-*   `MainActivity.kt`: The main activity for the application.
-*   `data/`: The data layer for the application.
-*   `ui/`: The UI layer for the application.
-*   `utils/`: The utility classes for the application.
+### Managers & Geolocation
+*   `CloudBackup.kt`: Logic for backing up data to cloud storage (if implemented).
+*   `CompassManager.kt`: Manages device compass/orientation sensors for direction finding.
+*   `CooperativeTriangulation.kt`: Math logic for intersecting signals from multiple devices.
+*   `DeviceWithLocation.kt`: Helper model combining device data with location fixes.
+*   `GeolocationModule.kt`: Core logic for RSSI-based distance estimation and positioning.
+*   `HardwareManager.kt`: Manages external hardware (dongles, SDRs).
+*   `LocationManager.kt`: Wrapper around Android Location Services (GPS).
+*   `TandemManager.kt`: Manages p2p connection for cooperative attacks (Tandem Mode).
 
-## `app/src/main/java/com/hereliesaz/blusnu/data/`
+### Utilities (Data)
+*   `DuckyScriptParser.kt`: Parses DuckyScript text into injectable key events.
 
-*   `AppDatabase.kt`: The Room database for the application.
-*   `BluetoothScanner.kt`: The class responsible for scanning for Bluetooth devices.
-*   `DeviceRepository.kt`: The repository for managing `TargetDevice` data.
-*   `TargetDevice.kt`: The data class for representing a Bluetooth device.
-*   `VulnerabilityCorrelator.kt`: The class responsible for correlating discovered devices with known vulnerabilities.
+## Utilities Layer (`app/src/main/java/com/hereliesaz/blusnu/utils/`)
 
-## `app/src/main/java/com/hereliesaz/blusnu/ui/`
+*   `RootExecutor.kt`: Singleton/Utility for executing shell commands as root.
+*   `Trilateration.kt`: Mathematical functions for 2D trilateration.
 
-*   `dashboard/`: The dashboard screen.
-*   `devicemanagement/`: The device management screen.
-*   `attackchaining/`: The attack chaining screen.
-*   `bluesnarfing/`: The Bluesnarfing screen.
-*   `...`: Other UI screens and components.
+## UI Layer (`app/src/main/java/com/hereliesaz/blusnu/ui/`)
 
-## `docs/`
+### Core UI
+*   `FilterProtocol.kt`: Enum/Logic for filtering devices by protocol (BLE/Classic).
+*   `NavigationMenu.kt`: Defines the app's navigation drawer structure and routes.
+*   `SortOption.kt`: Enum for device list sorting options.
 
-*   `Bluetooth Hacking App Blueprint.md`: A detailed blueprint for the Blu Snu application.
-*   `INDEX.md`: The main entry point for the documentation.
-*   `TODO.md`: The project's task list.
-*   `UI_UX.md`: A description of the application's UI/UX design.
-*   `auth.md`: A description of the application's authentication and authorization mechanisms.
-*   `conduct.md`: The code of conduct for contributors.
-*   `data_layer.md`: A description of the application's data layer.
-*   `fauxpas.md`: A list of common mistakes and anti-patterns to avoid.
-*   `file_descriptions.md`: A description of the purpose of each file in the project.
-*   `misc.md`: Miscellaneous documentation.
-*   `performance.md`: A discussion of performance considerations.
-*   `screens.md`: A detailed description of each screen in the application.
-*   `task_flow.md`: A description of the typical workflow for a user of the application.
-*   `testing.md`: A description of the testing strategy for the project.
-*   `workflow.md`: A description of the development workflow for contributors.
+### Feature Packages
+*   `attackchaining/`:
+    *   `AttackChainingScreen.kt`: The visual node editor screen.
+    *   `AttackChainingViewModel.kt`: Logic for the editor.
+    *   `Node.kt`: UI model for a node.
+    *   `nodes/AttackNode.kt`: Specific node implementation for attacks.
+*   `blespam/`: `BleSpamScreen.kt`, `BleSpamViewModel.kt`.
+*   `bluebugging/`: `BluebuggingScreen.kt`, `BluebuggingViewModel.kt`.
+*   `bluesmack/`: `BlueSmackScreen.kt`, `BlueSmackViewModel.kt`.
+*   `bluesnarfing/`: `BluesnarfingScreen.kt`, `BluesnarfingViewModel.kt`.
+*   `bluetoothlog/`: `BluetoothLogScreen.kt`, `BluetoothLogViewModel.kt`.
+*   `bluffs/`: `BluffsScreen.kt`, `BluffsViewModel.kt`.
+*   `braktooth/`: `BrakToothScreen.kt`, `BrakToothViewModel.kt`.
+*   `btlejacking/`: `BtlejackingScreen.kt`, `BtlejackingViewModel.kt`.
+*   `btlejuice/`: `BtlejuiceScreen.kt`, `BtlejuiceViewModel.kt`.
+*   `btlejuicemitm/`: `BtlejuiceMitmScreen.kt`, `BtlejuiceMitmViewModel.kt`.
+*   `dashboard/`: `DashboardScreen.kt`, `DashboardState.kt`, `DashboardViewModel.kt`.
+*   `devicemanagement/`: `DeviceManagementScreen.kt`, `DeviceManagementViewModel.kt`.
+*   `gattfuzzing/`: `GattFuzzingScreen.kt`, `GattFuzzingViewModel.kt`.
+*   `gattrelay/`: `GattRelayScreen.kt`, `GattRelayViewModel.kt`.
+*   `geolocation/`: `FindScreen.kt`, `FindViewModel.kt`.
+*   `keystrokeinjection/`: `KeystrokeInjectionScreen.kt`, `KeystrokeInjectionViewModel.kt`.
+*   `magisk/`: `MagiskScreen.kt`, `MagiskViewModel.kt`.
+*   `perfektblue/`: `PerfektBlueScreen.kt`, `PerfektBlueViewModel.kt`.
+*   `rawcommands/`: `RawCommandsScreen.kt`, `RawCommandsViewModel.kt`.
+*   `report/`: `ReportScreen.kt`, `ReportViewModel.kt`.
+*   `settings/`: `SettingsScreen.kt`, `SettingsViewModel.kt`.
+*   `smpbypass/`: `SmpBypassScreen.kt`, `SmpBypassViewModel.kt`.
+*   `spoofing/`: `SpoofingScreen.kt`, `SpoofingViewModel.kt`.
 
-## `gradle/`
-
-*   `libs.versions.toml`: The version catalog for the project's dependencies.
-*   `wrapper/`: The Gradle wrapper files.
+### Components & Theme
+*   `components/`: `DisclaimerDialog.kt`, `LeafletMapView.kt`, `ProgressDialog.kt`, `ScreenTitle.kt`, `SystemRequirementsDialog.kt`, `Title.kt`.
+*   `theme/`: `Color.kt`, `Theme.kt`, `Type.kt`.

@@ -35,6 +35,14 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.BluffsMode
 
+/**
+ * Screen for the BLUFFS attack (Bluetooth Forward and Future Secrecy).
+ *
+ * Allows configuration and execution of the 6 attack modes defined in the CVE.
+ * Requires Root access.
+ *
+ * @param viewModel State holder for BLUFFS logic.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BluffsScreen(viewModel: BluffsViewModel) {
@@ -59,6 +67,7 @@ fun BluffsScreen(viewModel: BluffsViewModel) {
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Header.
             Text(
                 text = "BLUFFS (CVE-2023-24023) Attack",
                 style = MaterialTheme.typography.headlineSmall
@@ -69,7 +78,7 @@ fun BluffsScreen(viewModel: BluffsViewModel) {
                 color = MaterialTheme.colorScheme.error
             )
 
-            // Device Selection
+            // Device Selection Dropdown.
             ExposedDropdownMenuBox(
                 expanded = deviceExpanded,
                 onExpandedChange = { deviceExpanded = !deviceExpanded }
@@ -98,7 +107,7 @@ fun BluffsScreen(viewModel: BluffsViewModel) {
                 }
             }
 
-            // Mode Selection
+            // Attack Mode Selection Dropdown.
             ExposedDropdownMenuBox(
                 expanded = modeExpanded,
                 onExpandedChange = { modeExpanded = !modeExpanded }
@@ -127,7 +136,7 @@ fun BluffsScreen(viewModel: BluffsViewModel) {
                 }
             }
 
-            // Logs
+            // Terminal-style Log Output.
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -146,6 +155,7 @@ fun BluffsScreen(viewModel: BluffsViewModel) {
                 CircularProgressIndicator()
             }
 
+            // Execute Button.
             Button(
                 onClick = { viewModel.startAttack() },
                 enabled = selectedDevice != null && !isRunning,
@@ -155,6 +165,7 @@ fun BluffsScreen(viewModel: BluffsViewModel) {
                 Text(if (isRunning) "ATTACK IN PROGRESS..." else "EXECUTE ATTACK")
             }
 
+            // Bottom Padding.
             Spacer(modifier = Modifier.fillMaxWidth().height(screenHeight * 0.1f))
         }
     }

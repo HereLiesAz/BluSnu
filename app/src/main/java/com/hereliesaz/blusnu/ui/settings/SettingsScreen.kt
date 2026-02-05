@@ -23,6 +23,15 @@ import com.hereliesaz.aznavrail.AzToggle
 import com.hereliesaz.aznavrail.model.AzButtonShape
 import com.hereliesaz.blusnu.ui.components.ScreenTitle
 
+/**
+ * Settings Screen for application configuration.
+ *
+ * Allows configuration of:
+ * - Metric/Imperial units.
+ * - Cloud Backup URL.
+ * - Checking permissions and root status.
+ * - Manually checking for vulnerability DB updates.
+ */
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
     val updateStatus by viewModel.updateStatus.collectAsState()
@@ -51,7 +60,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Permissions Status
+            // Permissions Status List.
             Text("Permissions Status:", style = androidx.compose.material3.MaterialTheme.typography.titleSmall)
             permissionsStatus.forEach { (permission, isGranted) ->
                 val color = if (isGranted) androidx.compose.ui.graphics.Color.Green else androidx.compose.ui.graphics.Color.Red
@@ -59,6 +68,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                 Text(text = "$text: ${if (isGranted) "Granted" else "Denied"}", color = color)
             }
 
+            // Root Status.
             val rootColor = if (isRooted) androidx.compose.ui.graphics.Color.Green else androidx.compose.ui.graphics.Color.Red
             Text(text = "Root Access: ${if (isRooted) "Granted" else "Denied"}", color = rootColor)
             if (!isRooted) {
@@ -71,6 +81,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             }
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Units Toggle.
             androidx.compose.foundation.layout.Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -86,6 +97,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             }
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Backup URL Config.
             AzTextBox(
                 value = backupUrl,
                 onValueChange = { viewModel.updateBackupUrl(it) },
@@ -95,6 +107,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             )
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Update Check.
             AzButton(
                 onClick = { viewModel.checkForUpdates() },
                 text = "Check for Database Updates",
