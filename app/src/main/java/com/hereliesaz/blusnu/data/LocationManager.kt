@@ -19,10 +19,10 @@ class LocationManager(context: Context) {
         LocationServices.getFusedLocationProviderClient(context)
 
     @SuppressLint("MissingPermission")
-    fun locationFlow(): Flow<android.location.Location> = callbackFlow {
+    fun locationFlow(intervalMs: Long = 5000L): Flow<android.location.Location> = callbackFlow {
         val locationRequest = LocationRequest.Builder(
             Priority.PRIORITY_HIGH_ACCURACY,
-            5000L
+            intervalMs
         ).build()
 
         val locationCallback = object : LocationCallback() {

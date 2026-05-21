@@ -1,7 +1,5 @@
 package com.hereliesaz.blusnu.ui.spoofing
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,22 +13,19 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -46,130 +41,133 @@ fun SpoofingScreen(
     onStartMitmAttack: () -> Unit = {}
 ) {
     var macAddress by remember { mutableStateOf("") }
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     var expanded by remember { mutableStateOf(false) }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = screenHeight * 0.2f),
-        contentAlignment = Alignment.TopEnd
+            .padding(16.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.End
+        Text("MAC Spoofing", style = MaterialTheme.typography.headlineSmall)
+        Text(
+            "Change the Bluetooth adapter's MAC address to impersonate another device. Requires root.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Device picker
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it }
         ) {
-            ExposedDropdownMenuBox(
+            OutlinedTextField(
+                value = state.selectedDevice?.let { it.name ?: it.macAddress } ?: "Select a device to spoof",
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Target Device") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                    .fillMaxWidth()
+            )
+            ExposedDropdownMenu(
                 expanded = expanded,
-                onExpandedChange = { expanded = !expanded }
+                onDismissRequest = { expanded = false }
             ) {
-                TextField(
-                    value = state.selectedDevice?.name ?: "Select a device to spoof",
-                    onValueChange = {},
-                    readOnly = true,
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    state.devices.forEach { device ->
-                        val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
-                        val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
-                        DropdownMenuItem(
-                            text = { Text(device.name ?: "Unknown", color = textColor) },
-                            onClick = {
-                                onDeviceSelected(device)
-                                macAddress = device.macAddress
-                                onMacAddressChanged(device.macAddress)
-                                expanded = false
-                            }
-                        )
-                    }
+                state.devices.forEach { device ->
+                    DropdownMenuItem(
+                        text = { Text(device.name ?: device.macAddress) },
+                        onClick = {
+                            onDeviceSelected(device)
+                            macAddress = device.macAddress
+                            onMacAddressChanged(device.macAddress)
+                            expanded = false
+                        }
+                    )
+                }
+                if (state.devices.isEmpty()) {
+                    DropdownMenuItem(
+                        text = { Text("No devices found - run a scan first") },
+                        onClick = { expanded = false },
+                        enabled = false
+                    )
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = macAddress,
-                onValueChange = {
-                    macAddress = it
-                    onMacAddressChanged(it)
-                },
-                label = { Text("New MAC Address") },
-                modifier = Modifier.fillMaxWidth(),
-                isError = state.isError
-            )
+        }
 
-            Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-            Button(
-                onClick = onApplyClicked,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !state.isError
-            ) {
-                Text("Apply")
-            }
+        OutlinedTextField(
+            value = macAddress,
+            onValueChange = {
+                macAddress = it
+                onMacAddressChanged(it)
+            },
+            label = { Text("New MAC Address") },
+            modifier = Modifier.fillMaxWidth(),
+            isError = state.isError
+        )
 
-            Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-            // Status Log
-            Text(
-                "Status Log",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                LazyColumn(
-                    modifier = Modifier.padding(16.dp),
-                    reverseLayout = true
-                ) {
-                    items(state.logMessages.reversed()) { message ->
+        Button(
+            onClick = onApplyClicked,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !state.isError && macAddress.isNotBlank()
+        ) {
+            Text("Apply MAC Address")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = onStartMitmAttack,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Start MITM Attack")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Combined log
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            LazyColumn(modifier = Modifier.padding(12.dp)) {
+                if (state.logMessages.isNotEmpty()) {
+                    item {
+                        Text("Status Log", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                    items(state.logMessages) { message ->
                         Text(message, style = MaterialTheme.typography.bodySmall)
                     }
                 }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = { onStartMitmAttack() },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Start MITM Attack")
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                "MITM Log",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                LazyColumn(
-                    modifier = Modifier.padding(16.dp),
-                ) {
+                if (state.mitmDevices.isNotEmpty()) {
+                    item {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        Text("MITM Log", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
                     items(state.mitmDevices) { device ->
-                        Text(device.name ?: device.macAddress, fontWeight = FontWeight.Bold)
+                        Text(device.name ?: device.macAddress, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                         state.mitmLogs[device.macAddress]?.forEach { log ->
-                            Text(log, style = MaterialTheme.typography.bodySmall)
+                            Text(log, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                }
+                if (state.logMessages.isEmpty() && state.mitmDevices.isEmpty()) {
+                    item {
+                        Text(
+                            "No activity yet.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }

@@ -5,28 +5,32 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.hereliesaz.blusnu.ui.components.ScreenTitle
 
 @Composable
 fun ReportingScreen(viewModel: ReportingViewModel = viewModel()) {
     val logs by viewModel.logs.collectAsState()
     val context = LocalContext.current
 
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val createDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -40,32 +44,59 @@ fun ReportingScreen(viewModel: ReportingViewModel = viewModel()) {
             }
         }
     }
-    Box(
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = screenHeight * 0.2f),
-        contentAlignment = Alignment.TopEnd
+            .padding(16.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.End
-        ) {
-            Button(onClick = {
+        Text("Reporting", style = MaterialTheme.typography.headlineSmall)
+        Text(
+            "View logged actions and export a Markdown report.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = {
                 val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-                addCategory(Intent.CATEGORY_OPENABLE)
-                type = "text/markdown"
-                putExtra(Intent.EXTRA_TITLE, "blusnu_report.md")
-            }
-            createDocumentLauncher.launch(intent)
-        }) {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "text/markdown"
+                    putExtra(Intent.EXTRA_TITLE, "blusnu_report.md")
+                }
+                createDocumentLauncher.launch(intent)
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Export Report")
         }
+
         Spacer(modifier = Modifier.height(16.dp))
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            items(logs) { log ->
-                Text("${log.timestamp}: ${log.message}")
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            if (logs.isEmpty()) {
+                Text(
+                    "No actions logged yet. Actions from attack modules will appear here.",
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                LazyColumn(modifier = Modifier.padding(12.dp)) {
+                    items(logs) { log ->
+                        Text(
+                            "${log.timestamp}: ${log.message}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
             }
         }
-    }
     }
 }

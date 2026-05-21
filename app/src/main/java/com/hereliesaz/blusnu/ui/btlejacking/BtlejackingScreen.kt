@@ -1,9 +1,7 @@
 package com.hereliesaz.blusnu.ui.btlejacking
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,9 +11,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -23,17 +29,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.TextField
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.BtlejackingState
 import com.hereliesaz.blusnu.data.HardwareState
@@ -41,122 +38,165 @@ import com.hereliesaz.blusnu.data.TargetDevice
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BtlejackingScreen(viewModel: BtlejackingViewModel, hasPermissions: Boolean) {
+fun BtlejackingScreen(viewModel: BtlejackingViewModel) {
     val state by viewModel.state.collectAsState()
     var selectedTarget by remember { mutableStateOf<TargetDevice?>(null) }
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     var expanded by remember { mutableStateOf(false) }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = screenHeight * 0.2f),
-        contentAlignment = Alignment.TopEnd
+            .padding(16.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp),
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Hardware Status and Controls
-            Text("Hardware Status: ${state.hardwareState}")
-        when (state.hardwareState) {
-            HardwareState.DISCONNECTED, HardwareState.CONNECTION_FAILED -> {
-                Button(onClick = { viewModel.connectHardware() }) {
-                    Text("Connect Hardware")
-                }
-            }
-            HardwareState.CONNECTING -> {
-                CircularProgressIndicator()
-            }
-            HardwareState.CONNECTED_BTLEJACK, HardwareState.CONNECTED_DUAL -> {
-                Button(onClick = { viewModel.disconnectHardware() }) {
-                    Text("Disconnect Hardware")
-                }
-            }
-        }
-
+        Text("BtleJacking", style = MaterialTheme.typography.headlineSmall)
+        Text(
+            "Sniff, jam, and hijack BLE connections. Requires external Btlejack hardware (nRF51-based sniffer).",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Attack Status and Controls
-        if (state.hardwareState == HardwareState.CONNECTED_BTLEJACK || state.hardwareState == HardwareState.CONNECTED_DUAL) {
-            Text("Attack Status: ${state.btlejackingState}")
-
-            when (state.btlejackingState) {
-                BtlejackingState.IDLE -> {
-                    Button(
-                        onClick = { selectedTarget?.let { viewModel.startAttack(it) } },
-                        enabled = selectedTarget != null
-                    ) {
-                        Text("Start Attack on ${selectedTarget?.name ?: "..."}")
-                    }
-                }
-                BtlejackingState.SNIFFING, BtlejackingState.JAMMING, BtlejackingState.HIJACKING -> {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Attack in progress...")
-                        OutlinedButton(
-                            onClick = { viewModel.stopAttack() },
-                            shape = RoundedCornerShape(4.dp)
+        // Hardware status
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text("Hardware: ${state.hardwareState}", style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.height(8.dp))
+                when (state.hardwareState) {
+                    HardwareState.DISCONNECTED, HardwareState.CONNECTION_FAILED -> {
+                        Button(
+                            onClick = { viewModel.connectHardware() },
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Stop Attack")
+                            Text("Connect Hardware")
+                        }
+                    }
+                    HardwareState.CONNECTING -> {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                    }
+                    HardwareState.CONNECTED_BTLEJACK, HardwareState.CONNECTED_DUAL -> {
+                        Button(
+                            onClick = { viewModel.disconnectHardware() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Disconnect Hardware")
                         }
                     }
                 }
-                BtlejackingState.CONNECTED -> {
-                    OutlinedButton(
-                        onClick = { viewModel.stopAttack() },
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text("Stop Attack")
-                    }
-                }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // Device List
+        // Device picker
         ExposedDropdownMenuBox(
             expanded = expanded,
-            onExpandedChange = { expanded = !expanded }
+            onExpandedChange = { expanded = it }
         ) {
-            TextField(
-                value = selectedTarget?.name ?: "Select a target device",
+            OutlinedTextField(
+                value = selectedTarget?.let { it.name ?: it.macAddress } ?: "Select a target device",
                 onValueChange = {},
                 readOnly = true,
+                label = { Text("Target Device") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
+                modifier = Modifier
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                    .fillMaxWidth()
             )
             ExposedDropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
                 state.discoveredDevices.forEach { device ->
-                    val isAvailable = System.currentTimeMillis() - device.lastSeen < 60000
-                    val textColor = if (isAvailable) MaterialTheme.colorScheme.primary else Color.Unspecified
                     DropdownMenuItem(
-                        text = { Text(device.name ?: "Unknown", color = textColor) },
+                        text = { Text(device.name ?: device.macAddress) },
                         onClick = {
                             selectedTarget = device
                             expanded = false
                         }
                     )
                 }
+                if (state.discoveredDevices.isEmpty()) {
+                    DropdownMenuItem(
+                        text = { Text("No devices found - run a scan first") },
+                        onClick = { expanded = false },
+                        enabled = false
+                    )
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // Device Logs
-        LazyColumn(modifier = Modifier.weight(1f)) {
-            items(state.deviceLogs) { log ->
-                Text(log)
+        // Attack controls
+        if (state.hardwareState == HardwareState.CONNECTED_BTLEJACK || state.hardwareState == HardwareState.CONNECTED_DUAL) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text("Attack: ${state.btlejackingState}", style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    when (state.btlejackingState) {
+                        BtlejackingState.IDLE -> {
+                            Button(
+                                onClick = { selectedTarget?.let { viewModel.startAttack(it) } },
+                                enabled = selectedTarget != null,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Start Attack")
+                            }
+                        }
+                        BtlejackingState.SNIFFING, BtlejackingState.JAMMING, BtlejackingState.HIJACKING -> {
+                            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedButton(
+                                onClick = { viewModel.stopAttack() },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Stop Attack")
+                            }
+                        }
+                        BtlejackingState.CONNECTED -> {
+                            OutlinedButton(
+                                onClick = { viewModel.stopAttack() },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Disconnect")
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // Logs
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(8.dp)) {
+                Text("Log", style = MaterialTheme.typography.labelMedium)
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(state.deviceLogs) { log ->
+                        Text(log, style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (state.deviceLogs.isEmpty()) {
+                        item {
+                            Text(
+                                "No activity yet.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
             }
         }
-    }
     }
 }
-

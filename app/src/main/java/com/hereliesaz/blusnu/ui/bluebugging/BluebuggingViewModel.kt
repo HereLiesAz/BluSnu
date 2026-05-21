@@ -34,7 +34,6 @@ class BluebuggingViewModel(application: Application, deviceRepository: DeviceRep
 
     private val bluetoothAdapter: BluetoothAdapter? = (application.getSystemService(BluetoothManager::class.java) as BluetoothManager).adapter
 
-    var hasPermissions = false
     init {
         viewModelScope.launch {
             deviceRepository.allDevices.collect {
@@ -47,11 +46,6 @@ class BluebuggingViewModel(application: Application, deviceRepository: DeviceRep
     }
 
     fun startAttack() {
-        if (!hasPermissions) {
-            _status.value = "Bluetooth connect permission is required"
-            return
-        }
-
         if (bluetoothAdapter == null) {
             _status.value = "Bluetooth is not supported on this device"
             return
@@ -67,11 +61,11 @@ class BluebuggingViewModel(application: Application, deviceRepository: DeviceRep
         } ?: return
 
         viewModelScope.launch {
-            _status.value = "Attempting attack..."
+            _status.value = "Opening RFCOMM channel to ${device.address}... (requires root)"
             val command = "rfcomm connect 0 ${device.address} 1"
             val result = RootExecutor.execute(command)
             _status.value = "Finished"
-            _result.value = result
+            _result.value = if (result.isBlank()) "No output (connection may have failed)" else result.take(500)
         }
     }
 }

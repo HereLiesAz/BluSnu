@@ -1,44 +1,57 @@
 package com.hereliesaz.blusnu.ui.settings
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.hereliesaz.blusnu.ui.components.ScreenTitle
 
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
     val updateStatus by viewModel.updateStatus.collectAsState()
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = screenHeight * 0.2f),
-        contentAlignment = Alignment.TopEnd
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState())
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.End
-        ) {
-            Button(onClick = { viewModel.checkForUpdates() }) {
-                Text("Check for Database Updates")
-            }
+        Text("Settings", style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(16.dp))
-        Text(updateStatus)
-    }
+
+        Button(
+            onClick = { viewModel.checkForUpdates() },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Check for Database Updates")
+        }
+
+        if (updateStatus.isNotBlank()) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Text(
+                    text = updateStatus,
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
     }
 }

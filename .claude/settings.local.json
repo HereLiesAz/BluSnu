@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(du:*)",
+      "Bash(xargs wc:*)",
+      "WebSearch",
+      "Bash(xargs grep:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:jitpack.io)",
+      "Bash(rm:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(./gradlew assembleDebug:*)"
+    ]
+  }
+}

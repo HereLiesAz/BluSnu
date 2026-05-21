@@ -40,7 +40,7 @@ class BluetoothLogViewModel(
     fun onFilterChanged(newFilter: String) {
         _state.update { it.copy(filter = newFilter) }
         if (_state.value.isFiltered) {
-            val filteredLogs = _state.value.logs.filter { it.contains(newFilter, ignoreCase = true) }
+            val filteredLogs = _state.value.originalLogs.filter { it.contains(newFilter, ignoreCase = true) }
             _state.update { it.copy(logs = filteredLogs) }
         }
     }

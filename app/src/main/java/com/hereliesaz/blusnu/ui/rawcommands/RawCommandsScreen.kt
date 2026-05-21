@@ -1,8 +1,20 @@
 package com.hereliesaz.blusnu.ui.rawcommands
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -15,32 +27,51 @@ fun RawCommandsScreen(viewModel: RawCommandsViewModel) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("Raw BlueZ Commands")
-        Text("Execute raw BlueZ commands with root privileges.")
-
+        Text("Raw Commands", style = MaterialTheme.typography.headlineSmall)
+        Text(
+            "Execute raw BlueZ commands with root privileges. Requires Magisk + BlueZ tools.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Spacer(modifier = Modifier.height(16.dp))
 
-        TextField(
+        OutlinedTextField(
             value = state.command,
             onValueChange = { viewModel.onCommandChanged(it) },
             label = { Text("Command") },
-            modifier = Modifier.fillMaxWidth()
+            placeholder = { Text("e.g. hcitool scan") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        Button(onClick = { viewModel.onExecuteClicked() }) {
+        Button(
+            onClick = { viewModel.onExecuteClicked() },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = state.command.isNotBlank()
+        ) {
             Text("Execute")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        TextField(
-            value = state.output,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Output") },
-            modifier = Modifier.fillMaxSize()
-        )
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text("Output", style = MaterialTheme.typography.labelMedium)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = state.output.ifBlank { "No output yet." },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (state.output.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant
+                    else MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
     }
 }

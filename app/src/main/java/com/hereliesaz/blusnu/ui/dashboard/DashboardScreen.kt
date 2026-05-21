@@ -11,24 +11,26 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.BluetoothSearching
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
-import androidx.compose.foundation.Canvas
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import com.hereliesaz.blusnu.data.TargetDevice
+import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 
 @Composable
 fun DashboardScreen(
@@ -40,63 +42,92 @@ fun DashboardScreen(
     attackChainTemplates: List<com.hereliesaz.blusnu.data.AttackChainTemplate> = emptyList(),
     onStartScanClicked: () -> Unit = {}
 ) {
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-    Box(
+    Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(top = screenHeight * 0.2f),
-        contentAlignment = Alignment.TopEnd
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState())
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.End
+        Text("Dashboard", style = MaterialTheme.typography.headlineSmall)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Device Counters
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Device Counters
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceAround
-                ) {
-                    DeviceCounter("BLE Devices", bleDeviceCount)
-                    DeviceCounter("Classic Devices", classicDeviceCount)
+            DeviceCountCard(
+                label = "BLE Devices",
+                count = bleDeviceCount,
+                modifier = Modifier.weight(1f)
+            )
+            DeviceCountCard(
+                label = "Classic Devices",
+                count = classicDeviceCount,
+                modifier = Modifier.weight(1f)
+            )
+            DeviceCountCard(
+                label = "Total",
+                count = bleDeviceCount + classicDeviceCount,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Scan button
+        Button(
+            onClick = onStartScanClicked,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Default.BluetoothSearching, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Start Scan")
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Geolocated devices
+        if (devicesWithLocation.isNotEmpty()) {
+            DashboardSection(title = "Devices with Location (${devicesWithLocation.size})") {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(devicesWithLocation) { device ->
+                        DashboardCard(
+                            title = device.name ?: "Unknown",
+                            description = device.macAddress
+                        )
+                    }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Quick Actions
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Button(
-                    onClick = onStartScanClicked,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Start Scan")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Sections
-            DashboardSection(title = "Device Heatmap") {
-                Heatmap(devices = devicesWithLocation)
-            }
-            DashboardSection(title = "Saved Sessions") {
-                LazyRow {
+        // Saved Sessions
+        DashboardSection(title = "Saved Sessions") {
+            if (savedSessions.isEmpty()) {
+                Text(
+                    "No saved sessions yet.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(savedSessions) { session ->
                         DashboardCard(title = session.name, description = session.date)
                     }
                 }
             }
-            DashboardSection(title = "Attack Chain Templates") {
-                LazyRow {
+        }
+
+        // Attack Chain Templates
+        DashboardSection(title = "Attack Chain Templates") {
+            if (attackChainTemplates.isEmpty()) {
+                Text(
+                    "No templates saved yet.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(attackChainTemplates) { template ->
                         DashboardCard(title = template.name, description = template.description)
                     }
@@ -107,38 +138,46 @@ fun DashboardScreen(
 }
 
 @Composable
-fun DashboardCard(title: String, description: String) {
+private fun DeviceCountCard(label: String, count: Int, modifier: Modifier = Modifier) {
     Card(
-        modifier = Modifier
-            .width(200.dp)
-            .height(100.dp)
-            .padding(end = 16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(title, fontWeight = FontWeight.Bold)
-            Text(description, style = MaterialTheme.typography.bodySmall)
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }
 
 @Composable
-fun DeviceCounter(label: String, count: Int) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = count.toString(),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium
-        )
+fun DashboardCard(title: String, description: String) {
+    Card(
+        modifier = Modifier
+            .width(180.dp)
+            .height(80.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+            Text(description, style = MaterialTheme.typography.bodySmall)
+        }
     }
 }
 
@@ -147,7 +186,7 @@ fun DashboardSection(title: String, content: @Composable () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -161,23 +200,5 @@ fun DashboardSection(title: String, content: @Composable () -> Unit) {
 fun DashboardScreenPreview() {
     BluSnuTheme {
         DashboardScreen(bleDeviceCount = 5, classicDeviceCount = 2)
-    }
-}
-
-@Composable
-fun Heatmap(devices: List<TargetDevice>) {
-    Canvas(modifier = Modifier.fillMaxWidth().height(200.dp)) {
-        devices.forEach { device ->
-            if (device.latitude != null && device.longitude != null) {
-                drawCircle(
-                    color = Color.Red,
-                    center = Offset(
-                        x = size.width * (device.latitude.toFloat() / 180f),
-                        y = size.height * (device.longitude.toFloat() / 180f)
-                    ),
-                    radius = 10f
-                )
-            }
-        }
     }
 }

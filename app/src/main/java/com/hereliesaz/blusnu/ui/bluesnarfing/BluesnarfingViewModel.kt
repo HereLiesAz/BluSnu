@@ -33,8 +33,6 @@ class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRe
     private val bluesnarfingModule = BluesnarfingModule()
     private val bluetoothAdapter: BluetoothAdapter? = (application.getSystemService(BluetoothManager::class.java) as BluetoothManager).adapter
 
-    private var hasPermissions = false
-
     init {
         viewModelScope.launch {
             deviceRepository.allDevices.collect {
@@ -42,20 +40,12 @@ class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRe
             }
         }
     }
-    fun onPermissionsResult(hasPermissions: Boolean) {
-        this.hasPermissions = hasPermissions
-    }
 
     fun onDeviceSelected(device: TargetDevice) {
         _selectedDevice.value = device
     }
 
     fun startAttack() {
-        if (!hasPermissions) {
-            _status.value = "Bluetooth connect permission is required"
-            return
-        }
-
         val selected = _selectedDevice.value ?: return
         ActionLogger.log("Bluesnarfing attack started against ${selected.macAddress}.")
 

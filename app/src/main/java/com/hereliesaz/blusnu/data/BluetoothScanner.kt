@@ -18,7 +18,11 @@ import android.os.Parcelable
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
+
+data class RssiReading(val macAddress: String, val rssi: Int, val timestamp: Long)
 
 class BluetoothScanner(
     private val context: Context,
@@ -26,6 +30,9 @@ class BluetoothScanner(
     private val bluetoothAdapter: BluetoothAdapter,
     private val bluetoothLog: BluetoothLog
 ) {
+
+    private val _rssiFlow = MutableSharedFlow<RssiReading>(extraBufferCapacity = 256)
+    val rssiFlow: SharedFlow<RssiReading> = _rssiFlow
 
     private var isClassicReceiverRegistered = false
     private val bleScanner: BluetoothLeScanner by lazy {
@@ -101,6 +108,7 @@ class BluetoothScanner(
                 lastSeen = System.currentTimeMillis()
             )
             insertDevice(targetDevice)
+            _rssiFlow.tryEmit(RssiReading(device.address, result.rssi, System.currentTimeMillis()))
         }
     }
 

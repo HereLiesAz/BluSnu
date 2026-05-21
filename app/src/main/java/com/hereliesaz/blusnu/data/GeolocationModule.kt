@@ -1,5 +1,7 @@
 package com.hereliesaz.blusnu.data
 
+import com.hereliesaz.blusnu.ui.geolocation.Location
+import kotlin.math.abs
 import kotlin.math.pow
 
 /**
@@ -31,6 +33,49 @@ class GeolocationModule {
     fun smoothRssi(macAddress: String, rssi: Double): Double {
         val kalmanFilter = kalmanFilters.getOrPut(macAddress) { KalmanFilter() }
         return kalmanFilter.filter(rssi)
+    }
+
+    /**
+     * Measures how well-distributed observation points are using convex hull area.
+     * Returns 0.0 if collinear, larger values = better geometry for trilateration.
+     * Points should be in local meter coordinates.
+     */
+    fun spatialSpread(points: List<Pair<Double, Double>>): Double {
+        if (points.size < 3) return 0.0
+
+        // Convex hull via Graham scan
+        val sorted = points.sortedWith(compareBy({ it.second }, { it.first }))
+        val lower = mutableListOf<Pair<Double, Double>>()
+        for (p in sorted) {
+            while (lower.size >= 2 && cross(lower[lower.size - 2], lower[lower.size - 1], p) <= 0) {
+                lower.removeAt(lower.size - 1)
+            }
+            lower.add(p)
+        }
+        val upper = mutableListOf<Pair<Double, Double>>()
+        for (p in sorted.reversed()) {
+            while (upper.size >= 2 && cross(upper[upper.size - 2], upper[upper.size - 1], p) <= 0) {
+                upper.removeAt(upper.size - 1)
+            }
+            upper.add(p)
+        }
+        lower.removeAt(lower.size - 1)
+        upper.removeAt(upper.size - 1)
+        val hull = lower + upper
+        if (hull.size < 3) return 0.0
+
+        // Shoelace area
+        var area = 0.0
+        for (i in hull.indices) {
+            val j = (i + 1) % hull.size
+            area += hull[i].first * hull[j].second
+            area -= hull[j].first * hull[i].second
+        }
+        return abs(area) / 2.0
+    }
+
+    private fun cross(o: Pair<Double, Double>, a: Pair<Double, Double>, b: Pair<Double, Double>): Double {
+        return (a.first - o.first) * (b.second - o.second) - (a.second - o.second) * (b.first - o.first)
     }
 }
 

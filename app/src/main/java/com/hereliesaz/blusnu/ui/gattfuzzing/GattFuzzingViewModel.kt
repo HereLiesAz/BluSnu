@@ -24,13 +24,20 @@ class GattFuzzingViewModel(application: Application, deviceRepository: DeviceRep
     private val _status = MutableStateFlow("")
     val status: StateFlow<String> = _status
 
+    private val _result = MutableStateFlow("")
+    val result: StateFlow<String> = _result
+
+    private val _logMessages = MutableStateFlow<List<String>>(emptyList())
+    val logMessages: StateFlow<List<String>> = _logMessages.asStateFlow()
+
     private val _devices = MutableStateFlow<List<TargetDevice>>(emptyList())
     val devices: StateFlow<List<TargetDevice>> = _devices.asStateFlow()
 
+    private val _isRunning = MutableStateFlow(false)
+    val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
+
     private val gattFuzzingModule = GattFuzzingModule()
     private val bluetoothAdapter: BluetoothAdapter? = (application.getSystemService(BluetoothManager::class.java) as BluetoothManager).adapter
-
-    var hasPermissions = false
 
     init {
         viewModelScope.launch {
@@ -38,17 +45,19 @@ class GattFuzzingViewModel(application: Application, deviceRepository: DeviceRep
                 _devices.value = it
             }
         }
+        // Collect log messages from the module
+        viewModelScope.launch {
+            gattFuzzingModule.log.collect { msg ->
+                _logMessages.value = _logMessages.value + msg
+            }
+        }
     }
+
     fun onDeviceSelected(device: TargetDevice) {
         _selectedDevice.value = device
     }
 
     fun startAttack() {
-        if (!hasPermissions) {
-            _status.value = "Bluetooth connect permission is required"
-            return
-        }
-
         val selected = _selectedDevice.value ?: return
         ActionLogger.log("GATT Fuzzing attack started against ${selected.macAddress}.")
 
@@ -64,12 +73,18 @@ class GattFuzzingViewModel(application: Application, deviceRepository: DeviceRep
             return
         }
 
+        _isRunning.value = true
+        _logMessages.value = emptyList()
+        _result.value = ""
+
         viewModelScope.launch {
-            _status.value = "Starting attack..."
-            withContext(Dispatchers.IO) {
-                gattFuzzingModule.executeAttack(device)
+            _status.value = "Connecting to GATT server on ${device.address}..."
+            val result = withContext(Dispatchers.IO) {
+                gattFuzzingModule.executeAttack(getApplication(), device)
             }
-            _status.value = "Attack finished."
+            _result.value = result
+            _status.value = "GATT fuzzing finished."
+            _isRunning.value = false
         }
     }
 }

@@ -47,11 +47,9 @@ import com.hereliesaz.blusnu.ui.attackchaining.nodes.LoopNode
 import com.hereliesaz.blusnu.ui.attackchaining.nodes.NodeConnector
 import com.hereliesaz.blusnu.ui.attackchaining.nodes.ScanBleNode
 import com.hereliesaz.blusnu.ui.attackchaining.nodes.WaitNode
-import com.hereliesaz.blusnu.ui.components.ScreenTitle
 import java.util.UUID
 import kotlin.math.roundToInt
 
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -65,10 +63,13 @@ fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
     val state by viewModel.uiState.collectAsState()
     var showAddNodeMenu by remember { mutableStateOf(false) }
     var selectedConnector by remember { mutableStateOf<NodeConnector?>(null) }
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        Spacer(modifier = Modifier.height(screenHeight * 0.2f))
+    Column(modifier = Modifier.fillMaxSize().padding(top = 16.dp)) {
+        Text(
+            "Attack Chaining",
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
         Box(modifier = Modifier.weight(1f)) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 state.connections.forEach { (from, to) ->

@@ -1,0 +1,213 @@
+package com.hereliesaz.blusnu.ui.hid
+
+import android.app.Application
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
+import android.content.Context
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.hereliesaz.blusnu.data.BleHidController
+import com.hereliesaz.blusnu.data.HidConnectionState
+import com.hereliesaz.blusnu.data.HidController
+import com.hereliesaz.blusnu.data.HidKeyMap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+enum class HidMode { CLASSIC, BLE }
+enum class HidTab { KEYBOARD, TOUCHPAD }
+
+data class HidUiState(
+    val mode: HidMode = HidMode.BLE,
+    val tab: HidTab = HidTab.KEYBOARD,
+    val connectionState: HidConnectionState = HidConnectionState.DISCONNECTED,
+    val statusMessages: List<String> = emptyList(),
+    val pairedDevices: List<BluetoothDevice> = emptyList(),
+    val selectedDevice: BluetoothDevice? = null,
+    val classicSupported: Boolean = false,
+    val bleSupported: Boolean = false
+)
+
+class HidViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val classicController = HidController(application)
+    private val bleController = BleHidController(application)
+
+    private val _mode = MutableStateFlow(HidMode.BLE)
+    private val _tab = MutableStateFlow(HidTab.KEYBOARD)
+    private val _statusMessages = MutableStateFlow<List<String>>(emptyList())
+    private val _pairedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
+    private val _selectedDevice = MutableStateFlow<BluetoothDevice?>(null)
+
+    val state: StateFlow<HidUiState> = combine(
+        _mode,
+        _tab,
+        _statusMessages,
+        _pairedDevices,
+        _selectedDevice
+    ) { mode, tab, messages, paired, selected ->
+        val connectionState = when (mode) {
+            HidMode.CLASSIC -> classicController.connectionState.value
+            HidMode.BLE -> bleController.connectionState.value
+        }
+        HidUiState(
+            mode = mode,
+            tab = tab,
+            connectionState = connectionState,
+            statusMessages = messages,
+            pairedDevices = paired,
+            selectedDevice = selected,
+            classicSupported = classicController.isSupported(),
+            bleSupported = bleController.isSupported()
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HidUiState())
+
+    init {
+        collectStatusMessages()
+        collectConnectionStates()
+        loadPairedDevices()
+    }
+
+    private fun collectStatusMessages() {
+        viewModelScope.launch {
+            classicController.statusMessage.collect { msg ->
+                appendStatus("[Classic] $msg")
+            }
+        }
+        viewModelScope.launch {
+            bleController.statusMessage.collect { msg ->
+                appendStatus("[BLE] $msg")
+            }
+        }
+    }
+
+    private fun collectConnectionStates() {
+        viewModelScope.launch {
+            classicController.connectionState.collect {
+                // Trigger recomposition by updating a dummy flow
+                _mode.value = _mode.value
+            }
+        }
+        viewModelScope.launch {
+            bleController.connectionState.collect {
+                _mode.value = _mode.value
+            }
+        }
+    }
+
+    @Suppress("MissingPermission")
+    private fun loadPairedDevices() {
+        try {
+            val manager = getApplication<Application>()
+                .getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+            val bonded = manager?.adapter?.bondedDevices?.toList() ?: emptyList()
+            _pairedDevices.value = bonded
+        } catch (_: SecurityException) {
+            appendStatus("Permission denied: cannot list paired devices.")
+        }
+    }
+
+    private fun appendStatus(message: String) {
+        val current = _statusMessages.value
+        _statusMessages.value = (current + message).takeLast(50)
+    }
+
+    fun setMode(mode: HidMode) {
+        _mode.value = mode
+    }
+
+    fun setTab(tab: HidTab) {
+        _tab.value = tab
+    }
+
+    fun selectDevice(device: BluetoothDevice) {
+        _selectedDevice.value = device
+    }
+
+    fun initialize() {
+        when (_mode.value) {
+            HidMode.CLASSIC -> classicController.initialize()
+            HidMode.BLE -> bleController.initialize()
+        }
+    }
+
+    fun connect() {
+        val device = _selectedDevice.value
+        if (device == null) {
+            appendStatus("No device selected.")
+            return
+        }
+
+        when (_mode.value) {
+            HidMode.CLASSIC -> classicController.connectToHost(device)
+            HidMode.BLE -> bleController.startAdvertising()
+        }
+    }
+
+    fun disconnect() {
+        when (_mode.value) {
+            HidMode.CLASSIC -> classicController.disconnect()
+            HidMode.BLE -> {
+                bleController.stopAdvertising()
+                bleController.cleanup()
+            }
+        }
+    }
+
+    fun typeText(text: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            when (_mode.value) {
+                HidMode.CLASSIC -> classicController.typeString(text)
+                HidMode.BLE -> bleController.typeString(text)
+            }
+        }
+    }
+
+    fun sendSpecialKey(keyCode: Byte, modifiers: Byte = HidKeyMap.MOD_NONE) {
+        when (_mode.value) {
+            HidMode.CLASSIC -> {
+                classicController.sendKeyPress(keyCode, modifiers)
+                classicController.sendKeyRelease()
+            }
+            HidMode.BLE -> {
+                bleController.sendKeyPress(keyCode, modifiers)
+                bleController.sendKeyRelease()
+            }
+        }
+    }
+
+    fun sendMouseMove(dx: Int, dy: Int) {
+        when (_mode.value) {
+            HidMode.CLASSIC -> classicController.sendMouseMove(dx, dy)
+            HidMode.BLE -> bleController.sendMouseMove(dx, dy)
+        }
+    }
+
+    fun sendMouseClick(button: Byte = HidKeyMap.MOUSE_BUTTON_LEFT) {
+        when (_mode.value) {
+            HidMode.CLASSIC -> classicController.sendMouseClick(button)
+            HidMode.BLE -> bleController.sendMouseClick(button)
+        }
+    }
+
+    fun sendMouseScroll(delta: Int) {
+        when (_mode.value) {
+            HidMode.CLASSIC -> classicController.sendMouseScroll(delta)
+            HidMode.BLE -> bleController.sendMouseScroll(delta)
+        }
+    }
+
+    fun refreshPairedDevices() {
+        loadPairedDevices()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        classicController.cleanup()
+        bleController.cleanup()
+    }
+}
