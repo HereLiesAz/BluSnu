@@ -26,11 +26,6 @@ import kotlin.math.sin
 import kotlin.math.abs
 
 /**
- * Simple data class representing a geolocation coordinate.
- */
-data class Location(val latitude: Double, val longitude: Double)
-
-/**
  * UI State for the Find (Geolocation) screen.
  *
  * @property devices List of available devices to track.

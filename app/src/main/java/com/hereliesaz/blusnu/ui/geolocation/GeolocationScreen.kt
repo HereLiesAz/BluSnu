@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -30,14 +29,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
-import org.osmdroid.views.overlay.TilesOverlay
+import com.hereliesaz.blusnu.ui.components.LeafletMapView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -132,7 +125,6 @@ fun GeolocationScreen(viewModel: GeolocationViewModel) {
 
                     if (uiState.isTracking) {
                         Spacer(modifier = Modifier.height(4.dp))
-                        // Progress bar: fills toward ~20 readings
                         LinearProgressIndicator(
                             progress = { (uiState.observationCount / 20f).coerceAtMost(1f) },
                             modifier = Modifier.fillMaxWidth()
@@ -172,63 +164,10 @@ fun GeolocationScreen(viewModel: GeolocationViewModel) {
                 .fillMaxWidth()
                 .weight(1f)
         ) {
-            AndroidView(
+            LeafletMapView(
                 modifier = Modifier.fillMaxSize(),
-                factory = { context ->
-                    MapView(context).apply {
-                        setTileSource(TileSourceFactory.MAPNIK)
-                        setMultiTouchControls(true)
-                        controller.setZoom(18.0)
-                        overlayManager.tilesOverlay.setColorFilter(TilesOverlay.INVERT_COLORS)
-                    }
-                },
-                update = { mapView ->
-                    mapView.overlays.clear()
-
-                    // User position marker
-                    uiState.userLocation?.let {
-                        val userMarker = Marker(mapView)
-                        userMarker.position = GeoPoint(it.latitude, it.longitude)
-                        userMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                        userMarker.title = "Your Location"
-                        mapView.overlays.add(userMarker)
-                        mapView.controller.setCenter(userMarker.position)
-                    }
-
-                    // Observation position dots (small markers)
-                    uiState.observationPositions.forEach { pos ->
-                        val dot = Marker(mapView)
-                        dot.position = GeoPoint(pos.latitude, pos.longitude)
-                        dot.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                        dot.icon = null
-                        dot.setTextIcon("\u2022") // bullet dot
-                        mapView.overlays.add(dot)
-                    }
-
-                    // Estimated device position
-                    uiState.estimatedDeviceLocation?.let { loc ->
-                        val deviceMarker = Marker(mapView)
-                        deviceMarker.position = GeoPoint(loc.latitude, loc.longitude)
-                        deviceMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                        deviceMarker.title = uiState.selectedDevice?.name ?: "Target"
-                        mapView.overlays.add(deviceMarker)
-                    }
-
-                    // Also show any previously located devices
-                    uiState.devices.forEach { device ->
-                        if (device.latitude != null && device.longitude != null &&
-                            device.macAddress != uiState.selectedDevice?.macAddress
-                        ) {
-                            val marker = Marker(mapView)
-                            marker.position = GeoPoint(device.latitude, device.longitude)
-                            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                            marker.title = device.name ?: device.macAddress
-                            mapView.overlays.add(marker)
-                        }
-                    }
-
-                    mapView.invalidate()
-                }
+                userLocation = uiState.userLocation?.let { it.latitude to it.longitude },
+                devices = uiState.devices
             )
         }
     }

@@ -26,6 +26,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.google.gson.Gson
 import com.hereliesaz.aznavrail.*
+import com.hereliesaz.aznavrail.model.AzDockingSide
 import com.hereliesaz.blusnu.data.AppDatabase
 import com.hereliesaz.blusnu.data.AttackChainTemplateRepository
 import com.hereliesaz.blusnu.data.BtlejackingModule
@@ -58,6 +59,8 @@ import com.hereliesaz.blusnu.ui.devicemanagement.DeviceManagementScreen
 import com.hereliesaz.blusnu.ui.devicemanagement.DeviceManagementViewModel
 import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingScreen
 import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingViewModel
+import com.hereliesaz.blusnu.ui.geolocation.FindScreen
+import com.hereliesaz.blusnu.ui.geolocation.FindViewModel
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationScreen
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationViewModel
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
@@ -132,10 +135,13 @@ class MainActivity : ComponentActivity() {
                         BtlejackingViewModel(application, hardwareManager, btlejackingModule, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BtlejuiceViewModel::class.java) -> {
-                        BtlejuiceViewModel(application) as T
+                        BtlejuiceViewModel(application, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(GeolocationViewModel::class.java) -> {
                         GeolocationViewModel(application, deviceRepository, bluetoothScanner) as T
+                    }
+                    modelClass.isAssignableFrom(FindViewModel::class.java) -> {
+                        FindViewModel(application, deviceRepository, hardwareManager) as T
                     }
                     modelClass.isAssignableFrom(KeystrokeInjectionViewModel::class.java) -> {
                         KeystrokeInjectionViewModel(application, keystrokeInjectionModule, deviceRepository) as T
@@ -212,6 +218,7 @@ class MainActivity : ComponentActivity() {
                     }
                 } else {
                     val navController = rememberNavController()
+                    val primaryColor = MaterialTheme.colorScheme.primary
                     AzHostActivityLayout(
                         navController = navController,
                         initiallyExpanded = false
@@ -221,7 +228,7 @@ class MainActivity : ComponentActivity() {
                             dockingSide = AzDockingSide.LEFT,
                             displayAppName = false
                         )
-                        azTheme(activeColor = MaterialTheme.colorScheme.primary)
+                        azTheme(activeColor = primaryColor)
 
                         azRailItem(id = "dashboard", text = "Dashboard", route = "dashboard")
                         azRailItem(id = "targets", text = "Targets", route = "targets")
@@ -234,6 +241,7 @@ class MainActivity : ComponentActivity() {
                         azRailItem(id = "btlejacking", text = "Jacking", route = "btlejacking")
                         azRailItem(id = "btlejuice", text = "Juice", route = "btlejuice")
                         azRailItem(id = "geolocation", text = "Location", route = "geolocation")
+                        azRailItem(id = "find", text = "Find", route = "find")
                         azRailItem(id = "attack_chaining", text = "Chaining", route = "attack_chaining")
                         azRailItem(id = "raw_commands", text = "Commands", route = "raw_commands")
                         azRailItem(id = "magisk", text = "Magisk", route = "magisk")
@@ -312,6 +320,10 @@ class MainActivity : ComponentActivity() {
                                 composable("geolocation") {
                                     val viewModel: GeolocationViewModel = viewModel(factory = viewModelFactory)
                                     GeolocationScreen(viewModel = viewModel)
+                                }
+                                composable("find") {
+                                    val viewModel: FindViewModel = viewModel(factory = viewModelFactory)
+                                    FindScreen(viewModel = viewModel)
                                 }
                                 composable("keystroke_injection") {
                                     val viewModel: KeystrokeInjectionViewModel = viewModel(factory = viewModelFactory)
@@ -400,7 +412,7 @@ class MainActivity : ComponentActivity() {
         // In a real app, this would connect to a cloud service and upload the database.
         // For now, we'll just log a message.
         CoroutineScope(Dispatchers.IO).launch {
-            CloudBackup().backupDatabase()
+            CloudBackup(applicationContext, httpClient).backupDatabase("https://example.com/backup")
         }
     }
 }

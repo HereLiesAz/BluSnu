@@ -10,7 +10,13 @@
       "WebFetch(domain:jitpack.io)",
       "Bash(rm:*)",
       "WebFetch(domain:github.com)",
-      "Bash(./gradlew assembleDebug:*)"
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(unzip:*)",
+      "Bash(do echo:*)",
+      "Bash(echo exit: $?:*)",
+      "Bash(python3:*)",
+      "Bash(py:*)",
+      "Bash(python:*)"
     ]
   }
 }

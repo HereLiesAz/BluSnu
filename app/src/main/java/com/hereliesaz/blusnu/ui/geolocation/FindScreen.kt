@@ -23,7 +23,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.aznavrail.AzRoller
-import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.ui.components.LeafletMapView
 
 /**
@@ -38,11 +37,10 @@ import com.hereliesaz.blusnu.ui.components.LeafletMapView
  * </p>
  *
  * @param viewModel The state holder for the screen logic.
- * @param deviceRepository The repository instance (passed for preview/mocking purposes).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
+fun FindScreen(viewModel: FindViewModel) {
     // Collect UI State as a stable Compose State object
     val uiState by viewModel.uiState.collectAsState()
 
@@ -88,8 +86,7 @@ fun FindScreen(viewModel: FindViewModel, deviceRepository: DeviceRepository) {
                     }
                 },
                 hint = "Select a target device",
-                enabled = uiState.devices.isNotEmpty(),
-                modifier = Modifier.fillMaxWidth()
+                enabled = uiState.devices.isNotEmpty()
             )
 
             Spacer(modifier = Modifier.height(24.dp))

@@ -126,7 +126,7 @@ fun HidScreen(viewModel: HidViewModel) {
         Spacer(modifier = Modifier.height(8.dp))
 
         // Status log
-        StatusLog(messages = state.statusMessages)
+        StatusLog(messages = state.statusMessages, modifier = Modifier.weight(1f))
     }
 }
 
@@ -473,7 +473,7 @@ private fun TouchpadTab(viewModel: HidViewModel, enabled: Boolean) {
 }
 
 @Composable
-private fun StatusLog(messages: List<String>) {
+private fun StatusLog(messages: List<String>, modifier: Modifier = Modifier) {
     val listState = rememberLazyListState()
 
     LaunchedEffect(messages.size) {
@@ -483,9 +483,7 @@ private fun StatusLog(messages: List<String>) {
     }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .weight(1f),
+        modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(8.dp)) {

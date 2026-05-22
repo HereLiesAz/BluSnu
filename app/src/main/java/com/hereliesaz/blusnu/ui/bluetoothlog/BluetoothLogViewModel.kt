@@ -28,10 +28,11 @@ class BluetoothLogViewModel(
 
     init {
         viewModelScope.launch {
-            bluetoothLog.logs.collect { log ->
+            bluetoothLog.logs.collect { entry ->
+                val formatted = "[${entry.level}] ${entry.message}"
                 _state.update { it.copy(
-                    logs = it.logs + log,
-                    originalLogs = it.originalLogs + log
+                    logs = it.logs + formatted,
+                    originalLogs = it.originalLogs + formatted
                 ) }
             }
         }
