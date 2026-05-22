@@ -13,16 +13,39 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.hereliesaz.aznavrail.AzButton
+import com.hereliesaz.aznavrail.AzTextBox
+import com.hereliesaz.aznavrail.model.AzButtonShape
 import com.hereliesaz.blusnu.data.TargetDevice
 
+/**
+ * Screen for managing discovered Bluetooth devices (Targets).
+ *
+ * Features:
+ * - Scan for new devices (BLE + Classic).
+ * - List view of results with real-time updates.
+ * - Long-press to favorite/bookmark.
+ * - Click to view details and add notes.
+ * - Integration with external MAC lookup API.
+ * - Integration with Vulnerability Correlation engine.
+ */
 @Composable
 fun DeviceManagementScreen(
     viewModel: DeviceManagementViewModel,
+    startScan: Boolean = false,
     onNavigateToBtlejuice: (TargetDevice) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     var selectedDevice by remember { mutableStateOf<TargetDevice?>(null) }
 
+    // Auto-start scan if argument provided (e.g. from Dashboard shortcut).
+    LaunchedEffect(startScan) {
+        if (startScan && !state.isScanning) {
+            viewModel.startScan()
+        }
+    }
+
+    // Modal dialog for detailed device view.
     if (selectedDevice != null) {
         DeviceDetailsDialog(
             device = selectedDevice!!,
@@ -38,7 +61,15 @@ fun DeviceManagementScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Button(
+        // Description.
+        Text(
+            text = "Manage and scan for Bluetooth devices.",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(16.dp)
+        )
+
+        // Scan Control Button.
+        AzButton(
             onClick = {
                 if (state.isScanning) {
                     viewModel.stopScan()
@@ -46,13 +77,12 @@ fun DeviceManagementScreen(
                     viewModel.startScan()
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(if (state.isScanning) "Stop Scan" else "Start Scan")
-        }
+            text = if (state.isScanning) "Stop Scan" else "Start Scan",
+            shape = AzButtonShape.RECTANGLE,
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        )
 
+        // Statistics Row.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -64,6 +94,7 @@ fun DeviceManagementScreen(
             Text("Total: ${state.totalDevicesInDb}")
         }
 
+        // Device List.
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
@@ -72,6 +103,7 @@ fun DeviceManagementScreen(
             items(state.devices) { device ->
                 DeviceRow(
                     device = device,
+                    // Highlight devices seen since scan started.
                     isNew = device.lastSeen > state.scanStartTime,
                     onClick = {
                         selectedDevice = device
@@ -86,6 +118,9 @@ fun DeviceManagementScreen(
     }
 }
 
+/**
+ * List Item for a Target Device.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DeviceRow(device: TargetDevice, isNew: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
@@ -117,6 +152,7 @@ fun DeviceRow(device: TargetDevice, isNew: Boolean, onClick: () -> Unit, onLongC
                     color = textColor
                 )
             }
+            // Favorite indicator.
             if (device.isFavorite) {
                 Icon(
                     imageVector = Icons.Default.Star,
@@ -128,6 +164,9 @@ fun DeviceRow(device: TargetDevice, isNew: Boolean, onClick: () -> Unit, onLongC
     }
 }
 
+/**
+ * Detailed view of a device.
+ */
 @Composable
 fun DeviceDetailsDialog(
     device: TargetDevice,
@@ -149,26 +188,24 @@ fun DeviceDetailsDialog(
                 Text("Protocol: ${device.protocol}")
                 Text("Last Seen: ${device.lastSeen}")
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
+                // Editable notes field.
+                AzTextBox(
                     value = notes,
                     onValueChange = {
                         notes = it
                         onNotesChanged(it)
                     },
-                    label = { Text("Notes") },
+                    hint = "Notes",
+                    onSubmit = {}, // Notes update live on change
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss) {
-                Text("Close")
-            }
+            AzButton(onClick = onDismiss, text = "Close", shape = AzButtonShape.RECTANGLE)
         },
         dismissButton = {
-            Button(onClick = onBtlejuiceClick) {
-                Text("Btlejuice")
-            }
+            AzButton(onClick = onBtlejuiceClick, text = "Btlejuice", shape = AzButtonShape.RECTANGLE)
         }
     )
 }

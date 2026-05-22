@@ -11,6 +11,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/**
+ * Standardized Title component for Screens.
+ *
+ * Displays a large, bold title at the top of the screen content area.
+ * Aligned to the End (Right) side, consistent with the app's RTL-ish or specific design language.
+ *
+ * @param title The text to display.
+ */
 @Composable
 fun ScreenTitle(title: String) {
     Text(

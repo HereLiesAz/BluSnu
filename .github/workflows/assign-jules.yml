@@ -1,0 +1,31 @@
+name: Assign Jules to Issues
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  jules-issue-handler:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+    steps:
+      - name: Invoke Jules
+        uses: google-labs-code/jules-invoke@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        with:
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          prompt: |
+            You are an expert software engineer. Please resolve the following issue:
+
+            Title: ${{ github.event.issue.title }}
+
+            Description:
+            ${{ github.event.issue.body }}
+
+            Instructions:
+            1. Analyze the issue and the codebase.
+            2. Implement the necessary changes to resolve the issue.
+            3. When creating your Pull Request, ensure the description includes the text "Closes #${{ github.event.issue.number }}" so that the issue is automatically closed when the PR is merged.
