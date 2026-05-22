@@ -18,32 +18,27 @@ import androidx.core.view.WindowCompat
 
 // Dark Theme Color Scheme.
 // Uses Black background for OLED efficiency and "Hacker" aesthetic.
+// All surface variants are explicitly set to ensure consistency.
 private val DarkColorScheme = darkColorScheme(
     primary = BluSnuBlue,
     secondary = BluSnuBlue,
     tertiary = BluSnuBlue,
     background = Color.Black,
     surface = Color.Black,
+    surfaceVariant = Color(0xFF1A1A1A),
+    surfaceContainerLowest = Color.Black,
+    surfaceContainerLow = Color(0xFF0F0F0F),
+    surfaceContainer = Color(0xFF141414),
+    surfaceContainerHigh = Color(0xFF1A1A1A),
+    surfaceContainerHighest = Color(0xFF222222),
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
     onBackground = Color.White,
-    onSurface = Color.White
-)
-
-// Light Theme Color Scheme (less used, but good for accessibility).
-private val LightColorScheme = lightColorScheme(
-    primary = BluSnuBlue,
-    secondary = BluSnuBlue,
-    tertiary = BluSnuBlue,
-    background = Color.Black,
-    surface = Color.Black, // Keeping dark-ish theme even in light mode? No, this overrides to Black.
-                           // This suggests a "Dark Mode by Default" design choice.
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color.White,
-    onSurface = Color.White
+    onSurface = Color.White,
+    onSurfaceVariant = Color.White,
+    outline = Color(0xFF444444),
+    outlineVariant = Color(0xFF333333)
 )
 
 /**
@@ -57,15 +52,8 @@ fun BluSnuTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    // Always use dark theme — the app is designed with a dark/OLED aesthetic.
+    val colorScheme = DarkColorScheme
 
     // Set status bar appearance.
     val view = LocalView.current

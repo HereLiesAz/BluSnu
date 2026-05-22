@@ -16,7 +16,16 @@
       "Bash(echo exit: $?:*)",
       "Bash(python3:*)",
       "Bash(py:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(adb devices:*)",
+      "Bash(adb install:*)",
+      "Bash(adb shell:*)",
+      "Bash(adb:*)",
+      "Bash(adb pull:*)",
+      "Bash(jar tf:*)",
+      "Bash(jar xf:*)",
+      "Bash(mkdir:*)",
+      "Bash(javap:*)"
     ]
   }
 }

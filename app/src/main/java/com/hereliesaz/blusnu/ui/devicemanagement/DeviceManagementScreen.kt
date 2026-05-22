@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import android.util.Log
 import com.hereliesaz.aznavrail.AzButton
 import com.hereliesaz.aznavrail.AzTextBox
 import com.hereliesaz.aznavrail.model.AzButtonShape
@@ -69,18 +70,19 @@ fun DeviceManagementScreen(
         )
 
         // Scan Control Button.
-        AzButton(
+        Button(
             onClick = {
+                Log.d("BLUSNU", "SCAN BUTTON CLICKED - isScanning=${state.isScanning}")
                 if (state.isScanning) {
                     viewModel.stopScan()
                 } else {
                     viewModel.startScan()
                 }
             },
-            text = if (state.isScanning) "Stop Scan" else "Start Scan",
-            shape = AzButtonShape.RECTANGLE,
             modifier = Modifier.fillMaxWidth().padding(16.dp)
-        )
+        ) {
+            Text(if (state.isScanning) "Stop Scan" else "Start Scan")
+        }
 
         // Statistics Row.
         Row(

@@ -4,17 +4,27 @@ import android.Manifest
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
@@ -22,6 +32,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.google.gson.Gson
@@ -193,6 +204,7 @@ class MainActivity : ComponentActivity() {
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         vulnerabilityCorrelator.loadVulnerabilities()
@@ -218,9 +230,12 @@ class MainActivity : ComponentActivity() {
                     }
                 } else {
                     val navController = rememberNavController()
+                    val currentDestination by navController.currentBackStackEntryAsState()
                     val primaryColor = MaterialTheme.colorScheme.primary
                     AzHostActivityLayout(
                         navController = navController,
+                        modifier = Modifier.fillMaxSize(),
+                        currentDestination = currentDestination?.destination?.route,
                         initiallyExpanded = false
                     ) {
                         azConfig(
@@ -251,10 +266,9 @@ class MainActivity : ComponentActivity() {
                         azRailItem(id = "hid", text = "HID", route = "hid")
                         azRailItem(id = "file_transfer", text = "Files", route = "file_transfer")
 
-                        onscreen {
+                        onscreen(Alignment.TopStart) {
                             AzNavHost(
-                                startDestination = "dashboard",
-                                navController = navController
+                                startDestination = "dashboard"
                             ) {
                                 composable("dashboard") {
                                     val viewModel: DashboardViewModel = viewModel(factory = viewModelFactory)
