@@ -1,58 +1,76 @@
 package com.hereliesaz.blusnu.data
 
 import android.content.Context
-import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
+import com.google.gson.JsonSerializationContext
+import com.google.gson.JsonSerializer
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingState
+import com.hereliesaz.blusnu.ui.attackchaining.nodes.*
+import java.lang.reflect.Type
 
 /**
  * Repository for managing saved Attack Chains (Workflows) using Shared Preferences.
- *
- * Unlike the AttackChainTemplateRepository which stores immutable templates in Room,
- * this repository stores user-created/saved workflows as JSON strings.
- * This allows for flexible serialization of the complex node graph structure.
  *
  * @property context The application context.
  */
 class AttackChainRepository(context: Context) {
 
-    // Access Shared Preferences file "attack_chains".
     private val sharedPreferences = context.getSharedPreferences("attack_chains", Context.MODE_PRIVATE)
 
-    // Gson instance for JSON serialization/deserialization.
-    private val gson = Gson()
+    private val gson = GsonBuilder()
+        .registerTypeAdapter(AttackNode::class.java, AttackNodeAdapter())
+        .create()
 
-    /**
-     * Saves a current workflow state to disk.
-     *
-     * @param name The unique name for the saved chain.
-     * @param state The AttackChainingState object representing the graph.
-     */
     fun saveAttackChain(name: String, state: AttackChainingState) {
-        // Serialize the state object to JSON.
         val json = gson.toJson(state)
-        // Write to SharedPreferences synchronously (apply() is async in background).
         sharedPreferences.edit().putString(name, json).apply()
     }
 
-    /**
-     * Loads a saved workflow from disk.
-     *
-     * @param name The name of the chain to load.
-     * @return The restored AttackChainingState, or null if not found.
-     */
     fun loadAttackChain(name: String): AttackChainingState? {
-        // Retrieve the JSON string.
-        val json = sharedPreferences.getString(name, null)
-        // Deserialize back to object.
-        return gson.fromJson(json, AttackChainingState::class.java)
+        val json = sharedPreferences.getString(name, null) ?: return null
+        return try {
+            gson.fromJson(json, AttackChainingState::class.java)
+        } catch (e: Exception) {
+            null
+        }
     }
 
-    /**
-     * Retrieves a list of all saved chain names.
-     *
-     * @return A Set of strings (keys in the SP file).
-     */
     fun getAllAttackChainNames(): Set<String> {
         return sharedPreferences.all.keys
+    }
+}
+
+private class AttackNodeAdapter : JsonSerializer<AttackNode>, JsonDeserializer<AttackNode> {
+
+    companion object {
+        private const val TYPE_KEY = "_type"
+        private val nodeTypes = mapOf(
+            "StartNode" to StartNode::class.java,
+            "IfElseNode" to IfElseNode::class.java,
+            "WaitNode" to WaitNode::class.java,
+            "LoopNode" to LoopNode::class.java,
+            "ScanBleNode" to ScanBleNode::class.java,
+            "BluesnarfNode" to BluesnarfNode::class.java,
+            "KeystrokeInjectionNode" to KeystrokeInjectionNode::class.java
+        )
+    }
+
+    override fun serialize(src: AttackNode, typeOfSrc: Type, context: JsonSerializationContext): JsonElement {
+        val jsonObject = context.serialize(src, src::class.java).asJsonObject
+        jsonObject.addProperty(TYPE_KEY, src::class.java.simpleName)
+        return jsonObject
+    }
+
+    override fun deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): AttackNode {
+        val jsonObject = json.asJsonObject
+        val typeName = jsonObject.get(TYPE_KEY)?.asString
+            ?: throw IllegalArgumentException("Missing $TYPE_KEY in serialized AttackNode")
+        val clazz = nodeTypes[typeName]
+            ?: throw IllegalArgumentException("Unknown AttackNode type: $typeName")
+        return context.deserialize(jsonObject, clazz)
     }
 }

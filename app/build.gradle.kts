@@ -46,9 +46,11 @@ val patchOffset = versionProps.getProperty("patchOffset", "0").toInt()
 val currentGitCount = getGitCommitCount()
 val vPatch = (currentGitCount - patchOffset).coerceAtLeast(0)
 
-// Calculate version code and name
 // VersionCode: Major(2) Minor(2) Patch(2) Build(3) -> XX XX XX XXX
-val buildCode = vMajor * 10000000 + vMinor * 100000 + vPatch * 1000 + buildNum
+// Android versionCode is a signed 32-bit int (max 2,147,483,647).
+val buildCode = (vMajor.toLong() * 10_000_000 + vMinor * 100_000 + vPatch * 1_000 + buildNum).also {
+    require(it <= Int.MAX_VALUE) { "versionCode $it overflows 32-bit signed int" }
+}.toInt()
 val buildName = "$vMajor.$vMinor.$vPatch.$buildNum"
 
 println("Configuring Build: Name=$buildName, Code=$buildCode")
@@ -65,6 +67,11 @@ android {
         versionName = buildName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val mapsApiKey = project.findProperty("MAPS_API_KEY")?.toString()
+            ?: System.getenv("MAPS_API_KEY")
+            ?: ""
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
 
         // Expose version details to code if needed
         buildConfigField("int", "VERSION_MAJOR", "$vMajor")
@@ -87,7 +94,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

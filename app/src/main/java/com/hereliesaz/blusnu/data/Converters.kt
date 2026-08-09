@@ -1,6 +1,8 @@
 package com.hereliesaz.blusnu.data
 
 import androidx.room.TypeConverter
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 /**
  * Type Converters for Room Database.
@@ -10,22 +12,23 @@ import androidx.room.TypeConverter
  */
 class Converters {
 
-    /**
-     * Converts a comma-separated String from the DB back into a List of Strings.
-     */
+    private val gson = Gson()
+    private val listType = object : TypeToken<List<String>>() {}.type
+
     @TypeConverter
     fun fromString(value: String): List<String> {
-        // Handle empty string case to avoid list with one empty string.
         if (value.isEmpty()) return emptyList()
+        // Handle both JSON array format and legacy comma-separated format
+        if (value.startsWith("[")) {
+            return gson.fromJson<List<String>>(value, listType) ?: emptyList()
+        }
         return value.split(",").map { it.trim() }
     }
 
-    /**
-     * Converts a List of Strings into a comma-separated String for storage.
-     */
     @TypeConverter
     fun fromList(list: List<String>): String {
-        return list.joinToString(",")
+        if (list.isEmpty()) return ""
+        return gson.toJson(list)
     }
 
     /**

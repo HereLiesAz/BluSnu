@@ -2,6 +2,7 @@ package com.hereliesaz.blusnu.data
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -51,10 +52,7 @@ object ActionLogger {
         // Create a new LogEntry object with the formatted timestamp and the provided message.
         val newEntry = LogEntry(timestamp, message)
 
-        // Update the MutableStateFlow's value.
-        // We create a new list by adding the new entry to the existing list (`_logs.value + newEntry`).
-        // This triggers emission to all collectors of the `logs` StateFlow.
-        _logs.value = _logs.value + newEntry
+        _logs.update { it + newEntry }
     }
 
     /**
