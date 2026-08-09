@@ -3,6 +3,7 @@ package com.hereliesaz.blusnu.ui.dashboard
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.blusnu.data.ActiveTask
 import com.hereliesaz.blusnu.data.AttackChainTemplate
 import com.hereliesaz.blusnu.data.AttackChainTemplateRepository
 import com.hereliesaz.blusnu.data.DeviceRepository
@@ -10,6 +11,7 @@ import com.hereliesaz.blusnu.data.DeviceWithLocation
 import com.hereliesaz.blusnu.data.Location
 import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.SavedSession
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -38,11 +40,33 @@ class DashboardViewModel(
      * 2. Saved Sessions -> for the recent activity list.
      * 3. Attack Templates -> for the quick action cards.
      */
+    /**
+     * Currently running background tasks. Exposed as a flow so future work (scans, attacks,
+     * file transfers) can push [ActiveTask] entries here; for now it starts empty but the
+     * plumbing to the dashboard is in place.
+     */
+    private val _activeTasks = MutableStateFlow<List<ActiveTask>>(emptyList())
+
+    /**
+     * Registers a running background task so it appears on the dashboard.
+     */
+    fun addActiveTask(task: ActiveTask) {
+        _activeTasks.value = _activeTasks.value + task
+    }
+
+    /**
+     * Removes a completed/cancelled task from the dashboard by id.
+     */
+    fun removeActiveTask(taskId: String) {
+        _activeTasks.value = _activeTasks.value.filterNot { it.id == taskId }
+    }
+
     val state: StateFlow<DashboardState> = combine(
         deviceRepository.allDevices,
         savedSessionRepository.allSessions,
-        attackChainTemplateRepository.allTemplates
-    ) { devices, sessions, templates ->
+        attackChainTemplateRepository.allTemplates,
+        _activeTasks
+    ) { devices, sessions, templates, activeTasks ->
         // Calculate derived statistics.
         val bleCount = devices.count { it.protocol == Protocol.BLE }
         val classicCount = devices.count { it.protocol == Protocol.CLASSIC }
@@ -54,7 +78,8 @@ class DashboardViewModel(
             classicDeviceCount = classicCount,
             devicesWithLocation = devicesWithLocation,
             savedSessions = sessions,
-            attackChainTemplates = templates
+            attackChainTemplates = templates,
+            activeTasks = activeTasks
         )
     }.stateIn(
         // Keep the flow active for 5 seconds after the last subscriber disappears (e.g. rotation).

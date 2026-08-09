@@ -31,7 +31,7 @@ fun ReportingScreen(viewModel: ReportingViewModel = viewModel()) {
     val logs by viewModel.logs.collectAsState()
     val context = LocalContext.current
 
-    val createDocumentLauncher = rememberLauncherForActivityResult(
+    val createMarkdownLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -40,7 +40,21 @@ fun ReportingScreen(viewModel: ReportingViewModel = viewModel()) {
                 context.contentResolver.openOutputStream(uri)?.use { outputStream ->
                     outputStream.write(reportContent.toByteArray())
                 }
-                Toast.makeText(context, "Report exported successfully", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Markdown report exported successfully", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    val createJsonLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.let { uri ->
+                val reportContent = viewModel.generateJsonReport()
+                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.write(reportContent.toByteArray())
+                }
+                Toast.makeText(context, "JSON report exported successfully", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -52,7 +66,7 @@ fun ReportingScreen(viewModel: ReportingViewModel = viewModel()) {
     ) {
         Text("Reporting", style = MaterialTheme.typography.headlineSmall)
         Text(
-            "View logged actions and export a Markdown report.",
+            "View logged actions and export a report as Markdown or JSON.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -65,11 +79,27 @@ fun ReportingScreen(viewModel: ReportingViewModel = viewModel()) {
                     type = "text/markdown"
                     putExtra(Intent.EXTRA_TITLE, "blusnu_report.md")
                 }
-                createDocumentLauncher.launch(intent)
+                createMarkdownLauncher.launch(intent)
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Export Report")
+            Text("Export as Markdown")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = {
+                val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "application/json"
+                    putExtra(Intent.EXTRA_TITLE, "blusnu_report.json")
+                }
+                createJsonLauncher.launch(intent)
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Export as JSON")
         }
 
         Spacer(modifier = Modifier.height(16.dp))

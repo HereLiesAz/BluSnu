@@ -9,6 +9,7 @@ import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.GeolocationModule
 import com.hereliesaz.blusnu.data.HardwareManager
 import com.hereliesaz.blusnu.data.HardwareState
+import com.hereliesaz.blusnu.data.Location
 import com.hereliesaz.blusnu.data.LocationManager
 import com.hereliesaz.blusnu.data.TandemData
 import com.hereliesaz.blusnu.data.TandemManager
@@ -174,7 +175,10 @@ class FindViewModel(
                                  cooperativeLocation = Location(best.latitude, best.longitude)
                              )
 
-                             // Persist the triangulated location to the DB so it shows on the map permanently
+                             // Persist the triangulated location to the DB so it shows on the map permanently.
+                             // NOTE: This tandem/cooperative view and the single-user GeolocationViewModel
+                             // are two intentional geolocation stacks that both persist device lat/long.
+                             // They upsert by MAC (last write wins); this is expected, not a conflict.
                              val updatedDevice = selected.copy(latitude = best.latitude, longitude = best.longitude)
                              viewModelScope.launch {
                                  deviceRepository.insert(updatedDevice)

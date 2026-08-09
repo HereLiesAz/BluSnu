@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import org.json.JSONArray
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -48,5 +50,28 @@ class ReportingViewModel(application: Application) : AndroidViewModel(applicatio
         }
         sb.appendLine()
         return sb.toString()
+    }
+
+    /**
+     * Generates a JSON representation of the report (metadata + action log).
+     *
+     * PDF export is intentionally out of scope (future work); Markdown and JSON
+     * are the two supported export formats.
+     */
+    fun generateJsonReport(): String {
+        val root = JSONObject()
+        root.put("title", "BluSnu Report")
+        root.put("generated", dateFormat.format(Date()))
+
+        val logsArray = JSONArray()
+        _logs.value.forEach { entry ->
+            val logObject = JSONObject()
+            logObject.put("timestamp", entry.timestamp)
+            logObject.put("message", entry.message)
+            logsArray.put(logObject)
+        }
+        root.put("actionLog", logsArray)
+
+        return root.toString(2)
     }
 }

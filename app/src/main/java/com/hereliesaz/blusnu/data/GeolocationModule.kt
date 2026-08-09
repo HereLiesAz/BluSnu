@@ -1,6 +1,5 @@
 package com.hereliesaz.blusnu.data
 
-import com.hereliesaz.blusnu.ui.geolocation.Location
 import kotlin.math.abs
 import kotlin.math.pow
 
@@ -45,6 +44,19 @@ class GeolocationModule {
         // Get existing filter or create a new one for this device.
         val kalmanFilter = kalmanFilters.getOrPut(macAddress) { KalmanFilter() }
         return kalmanFilter.filter(rssi)
+    }
+
+    /**
+     * Clears the Kalman filter state for a device so its RSSI tracking restarts cleanly.
+     *
+     * The next [smoothRssi] call for this MAC will create a fresh filter that seeds itself
+     * from the first new measurement (no startup transient). Call this when a device is
+     * re-selected/re-tracked or when its readings should not be smoothed against stale history.
+     *
+     * @param macAddress The MAC address whose filter state should be removed.
+     */
+    fun resetFilter(macAddress: String) {
+        kalmanFilters.remove(macAddress)
     }
 
     /**
@@ -108,6 +120,10 @@ class KalmanFilter(
     private var currentEstimate = 0.0
     // The previous estimated value.
     private var lastEstimate = 0.0
+    // Whether the filter has seen its first measurement yet. Until it has, the estimate is
+    // seeded directly from the first measurement to avoid a large startup transient (e.g. a
+    // 0.0 seed would drag the first output for a -60 dBm reading toward ~-20).
+    private var isInitialized = false
 
     /**
      * Filters a new RSSI measurement to update the estimate.
@@ -116,6 +132,15 @@ class KalmanFilter(
      * @return The updated, smoothed estimate.
      */
     fun filter(measurement: Double): Double {
+        // On the very first measurement, seed the estimate from the measurement itself and
+        // return it directly. This eliminates the startup transient that a fixed 0.0 seed causes.
+        if (!isInitialized) {
+            currentEstimate = measurement
+            lastEstimate = measurement
+            isInitialized = true
+            return currentEstimate
+        }
+
         // Prediction step: Assume state hasn't changed (static model).
         lastEstimate = currentEstimate
 

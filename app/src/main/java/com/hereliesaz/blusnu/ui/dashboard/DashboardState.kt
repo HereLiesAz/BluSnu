@@ -1,5 +1,6 @@
 package com.hereliesaz.blusnu.ui.dashboard
 
+import com.hereliesaz.blusnu.data.ActiveTask
 import com.hereliesaz.blusnu.data.TargetDevice
 import com.hereliesaz.blusnu.data.SavedSession
 import com.hereliesaz.blusnu.data.AttackChainTemplate
@@ -13,6 +14,7 @@ import com.hereliesaz.blusnu.data.AttackChainTemplate
  * @property devicesWithLocation List of devices that have GPS coordinates (for Heatmap).
  * @property savedSessions List of previously saved sessions.
  * @property attackChainTemplates List of available attack workflows.
+ * @property activeTasks List of currently running background tasks.
  */
 data class DashboardState(
     val bleDeviceCount: Int = 0,
@@ -20,5 +22,6 @@ data class DashboardState(
     val isScanning: Boolean = false,
     val devicesWithLocation: List<TargetDevice> = emptyList(),
     val savedSessions: List<SavedSession> = emptyList(),
-    val attackChainTemplates: List<AttackChainTemplate> = emptyList()
+    val attackChainTemplates: List<AttackChainTemplate> = emptyList(),
+    val activeTasks: List<ActiveTask> = emptyList()
 )

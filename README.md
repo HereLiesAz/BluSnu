@@ -20,6 +20,8 @@ Blu Snu is built on a robust, modular architecture designed for stability and ex
     *   **Hardware Mode:** Interfaces with external USB dongles (via OTG) for promiscuous mode sniffing and jamming.
 4.  **Attack Chaining:** A visual "Canvas" allows users to link multiple attack modules into automated workflows (e.g., *Scan -> Spoof MAC -> Connect -> Fuzz*).
 
+> **Note on maturity:** Reconnaissance features (scanning, fingerprinting, GATT/SDP enumeration) operate against real devices via public Android APIs. Many of the exploitation modules, however, are proof-of-concept **simulations** intended for education and UI/workflow demonstration; they model the attack flow rather than performing real over-the-air exploitation. Simulated modules are marked "(Simulated)" in the feature list below. See `docs/TODO.md` for the authoritative per-module status.
+
 ---
 
 ## 🛡 Key Features & Modules
@@ -32,21 +34,21 @@ Blu Snu is organized into tactical categories found in the navigation rail:
 *   **Bluetooth Log:** A live, filtered log of all HCI events and application actions for debugging and analysis.
 
 ### 2. Impersonation
-*   **Spoofing:** (Root Required) Change your device's BD_ADDR (MAC address) and device name to clone a target device.
-*   **Gatt Relay:** Act as a Man-in-the-Middle (MitM) relay between a peripheral and a central device, forwarding and logging GATT packets.
+*   **Spoofing:** (Root Required — Simulated) Models changing your device's BD_ADDR (MAC address) and device name to clone a target device. The current implementation simulates the operation and does not actually alter the adapter's hardware address.
+*   **Gatt Relay:** (Simulated) Models a Man-in-the-Middle (MitM) relay between a peripheral and a central device. The two-node relay transport and RTT measurement are simulated.
 
 ### 3. Exploitation (Classic & BLE)
-*   **BLUFFS (CVE-2023-24023):** Demonstrates the "Bluetooth Forward and Future Secrecy" attacks to compromise session keys.
-*   **BrakTooth:** A suite of crash-inducing PoCs targeting various SoC stacks (LMP flooding, paging scans).
+*   **BLUFFS (CVE-2023-24023):** (Simulated) Demonstrates the "Bluetooth Forward and Future Secrecy" attack flow (LMP parameter manipulation, key-size checks) as a proof of concept.
+*   **BrakTooth:** (Simulated) A suite of crash-inducing PoCs targeting various SoC stacks (LMP flooding, paging scans). Requires external hardware (ESP32) for real execution; the current build simulates the hardware interface and packet injection.
 *   **Bluesnarfing:** Unauthorized access to information (phonebooks, calendars) from a Bluetooth-enabled device.
 *   **Bluebugging:** Taking control of the target device to make calls or listen in.
 *   **BlueSmack:** A Denial of Service (DoS) attack using L2CAP packet flooding.
 *   **Btlejuice / MitM:** A full proxy for intercepting and modifying BLE traffic.
 *   **Btlejacking:** Jamming an existing BLE connection and hijacking the session during reconnection.
 *   **Gatt Fuzzing:** Automated fuzzing of GATT characteristics to identify buffer overflows or logic errors.
-*   **Keystroke Injection (BadKB):** Emulate a Bluetooth keyboard to inject malicious keystrokes (DuckyScript support included).
-*   **SMP Bypass:** Techniques to bypass Security Manager Protocol pairing requirements.
-*   **PerfektBlue:** Exploits specific implementation flaws in popular BLE stacks.
+*   **Keystroke Injection (BadKB):** Emulate a Bluetooth keyboard to inject malicious keystrokes (DuckyScript support included). The HID emulation path uses public APIs; the raw-L2CAP root method (for bypassing pairing prompts) is simulated.
+*   **SMP Bypass:** (Simulated) Models techniques to bypass Security Manager Protocol pairing requirements by injecting out-of-order SMP packets.
+*   **PerfektBlue:** (Simulated) Models exploitation of implementation flaws in automotive BLE stacks via AVRCP/L2CAP fuzzing.
 
 ### 4. Disruption
 *   **BLE Spam:** Floods the environment with fake advertisement packets to disrupt scanning tools and confuse users.
@@ -55,7 +57,7 @@ Blu Snu is organized into tactical categories found in the navigation rail:
 *   **Find (Geolocation):** Uses a fuzzy-logic RSSI gradient and device rotation to triangulate the physical location of a target device.
 *   **Raw Commands:** (Root Required) Execute arbitrary shell commands directly against the Bluetooth stack.
 *   **Magisk Manager:** Integration with Magisk modules for kernel-level patching.
-*   **Report Generation:** Compile all findings into professional JSON/PDF reports.
+*   **Report Generation:** Compile all findings into JSON and Markdown reports. (PDF export is planned future work.)
 
 ---
 

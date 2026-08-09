@@ -47,15 +47,32 @@ class DeviceManagementViewModel(
         }
     }
 
+    // Snapshot of the MAC addresses that were already in the DB at the moment the current
+    // scan started. A device is "new in this scan" only if its MAC is NOT in this snapshot.
+    // Because the DB stores exactly one row per MAC (upsert), we cannot detect "new" by
+    // querying lastSeen on the single row, so we compare against this scan-start snapshot.
+    private var macsSeenBeforeScan: Set<String> = emptySet()
+
+    // Latest devices list observed from the repository, used to take the snapshot on scan start.
+    private var latestDevices: List<TargetDevice> = emptyList()
+
     init {
         // Collect all devices and compute statistics for the UI.
         viewModelScope.launch {
             deviceRepository.allDevices.collect { devices ->
-                val devicesInCurrentScan = devices.filter { it.lastSeen >= _state.value.scanStartTime }
+                latestDevices = devices
+
+                // Correlate each device's advertised services against the vulnerability DB
+                // and populate the runtime-only vulnerabilities field.
+                devices.forEach { device ->
+                    device.vulnerabilities = vulnerabilityCorrelator.findVulnerabilities(device.services)
+                }
+
+                val scanStartTime = _state.value.scanStartTime
+                val devicesInCurrentScan = devices.filter { it.lastSeen >= scanStartTime }
+                // "New" means the MAC was not present in the DB when this scan started.
                 val newDevicesInCurrentScan = devicesInCurrentScan.filter { device ->
-                    // "New" means we haven't seen it before this scan session.
-                    // This logic is slightly simplistic (relying on DB state), but sufficient.
-                    devices.none { it.macAddress == device.macAddress && it.lastSeen < _state.value.scanStartTime }
+                    device.macAddress !in macsSeenBeforeScan
                 }
                 _state.value = _state.value.copy(
                     devices = devices,
@@ -75,6 +92,9 @@ class DeviceManagementViewModel(
             bluetoothScanner?.startBleScan()
             bluetoothScanner?.startClassicDiscovery()
         }
+        // Snapshot the MACs already known before this scan so newly discovered devices
+        // can be counted correctly.
+        macsSeenBeforeScan = latestDevices.map { it.macAddress }.toSet()
         _state.value = _state.value.copy(isScanning = true, scanStartTime = System.currentTimeMillis())
     }
 

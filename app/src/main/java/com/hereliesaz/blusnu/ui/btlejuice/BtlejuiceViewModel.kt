@@ -45,18 +45,42 @@ class BtlejuiceViewModel(
     }
 
     fun onConnectHardware() {
-        // Placeholder for hardware connection logic.
+        _hardwareState.value = _hardwareState.value.copy(isConnected = true)
+        log("Single Bluetooth dongle connected (simulated).")
     }
 
     fun onConnectDual() {
-        // Placeholder for dual dongle connection logic.
+        _hardwareState.value = _hardwareState.value.copy(isConnected = true)
+        log("Dual Bluetooth dongles connected — ready for MitM proxy (simulated).")
     }
 
     fun onStartProxy(targetDevice: TargetDevice?) {
-        // Placeholder for starting the proxy.
+        if (!_hardwareState.value.isConnected) {
+            log("ERROR: Connect hardware before starting the proxy.")
+            return
+        }
+        if (targetDevice == null) {
+            log("ERROR: No target device selected.")
+            return
+        }
+        if (_btlejuiceState.value.isProxying) return
+
+        _btlejuiceState.value = _btlejuiceState.value.copy(isProxying = true)
+        val label = targetDevice.name ?: targetDevice.macAddress
+        log("Proxy started against $label — impersonating peripheral (simulated).")
+        // Represent the intercepted-traffic view honestly as a simulation placeholder.
+        _gattTraffic.value = GattTraffic(
+            entries = _gattTraffic.value.entries + "[SIM] Proxy established for $label."
+        )
     }
 
     fun onStopProxy() {
-        // Placeholder for stopping the proxy.
+        if (!_btlejuiceState.value.isProxying) return
+        _btlejuiceState.value = _btlejuiceState.value.copy(isProxying = false)
+        log("Proxy stopped.")
+    }
+
+    private fun log(message: String) {
+        _logs.value = _logs.value + message
     }
 }

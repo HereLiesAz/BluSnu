@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.hereliesaz.blusnu.BuildConfig
 
 /**
  * The main Room Database definition for the application.
@@ -79,15 +80,24 @@ abstract class AppDatabase : RoomDatabase() {
             // Check for existing instance
             return INSTANCE ?: synchronized(this) {
                 // Double-check inside synchronized block
-                val instance = Room.databaseBuilder(
+                val builder = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "blusnu_database" // The name of the SQLite database file on disk.
                 )
-                // Wipes the database if a migration path is missing (useful for dev/prototyping)
-                // TODO: Implement proper Migration strategies for production release
-                .fallbackToDestructiveMigration()
-                .build()
+
+                // DATA-LOSS WARNING: destructive migration WIPES all stored data whenever a
+                // schema change lacks an explicit Migration. We intentionally keep this fallback
+                // because proper per-version migrations are out of scope, BUT we restrict it to
+                // debug builds so a release build never silently destroys the user's data. In a
+                // release build with a missing migration, Room will instead throw at open time,
+                // which surfaces the problem rather than hiding it behind a silent wipe.
+                // TODO: Define real RoomDatabase.Migration objects before shipping schema changes.
+                if (BuildConfig.DEBUG) {
+                    builder.fallbackToDestructiveMigration()
+                }
+
+                val instance = builder.build()
 
                 INSTANCE = instance
                 // Return the instance.

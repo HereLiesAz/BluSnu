@@ -40,8 +40,11 @@ class DatabaseUpdater(private val context: Context) {
 
         // Compare content. A hash check would be more efficient in production.
         return if (remoteDbText != localDbText) {
-            // In a real app, you would download the file and overwrite the local cache here.
-            "Update found and applied."
+            // NOTE: We do NOT persist anything here. The vulnerability data is loaded from the
+            // read-only "vulnerabilities.json" asset by VulnerabilityCorrelator, and this method
+            // does not overwrite any cache. Report honestly that newer data exists but was not
+            // applied, rather than claiming it was applied.
+            "Newer vulnerability data is available, but automatic update is not yet implemented."
         } else {
             "No new updates available."
         }

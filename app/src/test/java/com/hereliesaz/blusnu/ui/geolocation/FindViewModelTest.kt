@@ -88,26 +88,42 @@ class FindViewModelTest {
         val device = TargetDevice(macAddress = "AA:BB:CC:DD:EE:FF", name = "Test Device", rssi = -50, protocol = com.hereliesaz.blusnu.data.Protocol.BLE)
         viewModel.selectDevice(device)
 
-        // Ensure hardwareManager call is verified if connected
-        `when`(hardwareManager.getSecondaryRssi(anyString())).thenReturn(-60)
-
-        // We can't easily test the full coroutine flow of bucket updates without MainDispatcherRule,
-        // but we can verify that calling the method doesn't crash.
+        // onDeviceRssiUpdated runs synchronously (it mutates _uiState directly), so we can
+        // assert on the resulting state immediately.
         viewModel.onDeviceRssiUpdated(device, -40)
 
-        // In a real test with TestDispatchers, we would assert that _uiState.value.estimatedBearing changes.
-        // For now, ensuring no regression/crash is the baseline.
-        assertTrue(true)
+        val state = viewModel.uiState.value
+
+        // The reported RSSI must be reflected on the tracked device.
+        assertEquals(-40, state.selectedDevice?.rssi)
+
+        // An RSSI reading must produce a path-loss distance estimate.
+        assertNotNull(state.rssiDistance)
+        assertTrue("rssiDistance should be positive", state.rssiDistance!! > 0.0)
+
+        // A strong signal (-40) exceeds the confidence threshold, so a bearing must be set.
+        // The compass azimuth defaults to 0f in this test (compass flow is empty), so the
+        // strongest bucket is index 0 -> bearing 0f.
+        assertNotNull(state.estimatedBearing)
+        assertEquals(0f, state.estimatedBearing!!, 0.001f)
     }
 
     @Test
-    fun `onDeviceRssiUpdated handles negative azimuth`() {
-        // This test ensures that if currentAzimuth is negative (e.g. -90), the bucket calculation doesn't crash
-        // and ideally logic works. Since azimuth flow is mocked, we need to ensure the state has the value.
-        // However, uiState's currentAzimuth is updated via flow collection which is async.
-        // So we can't easily set it here.
-        // But the math fix `((currentAzimuth % 360) + 360) % 360` prevents crash if it were reachable.
-        // We'll trust the math fix for now as injecting Dispatchers for full flow test is large refactor.
-        assertTrue(true)
+    fun `onDeviceRssiUpdated produces a normalized bearing in the 0-360 range`() {
+        val device = TargetDevice(macAddress = "AA:BB:CC:DD:EE:FF", name = "Test Device", rssi = -50, protocol = com.hereliesaz.blusnu.data.Protocol.BLE)
+        viewModel.selectDevice(device)
+
+        // Feed several updates to accumulate weight in the direction buckets. Regardless of
+        // azimuth sign, the normalization `((azimuth % 360) + 360) % 360` must keep the
+        // resulting bearing a valid heading: a multiple of 10 within [0, 360).
+        viewModel.onDeviceRssiUpdated(device, -45)
+        viewModel.onDeviceRssiUpdated(device, -50)
+        viewModel.onDeviceRssiUpdated(device, -40)
+
+        val bearing = viewModel.uiState.value.estimatedBearing
+        assertNotNull(bearing)
+        assertTrue("bearing should be >= 0", bearing!! >= 0f)
+        assertTrue("bearing should be < 360", bearing < 360f)
+        assertEquals("bearing should snap to a 10-degree bucket", 0f, bearing % 10f, 0.001f)
     }
 }
