@@ -91,7 +91,7 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Add DuckyScript parsing support.
     -   [x] Implement raw L2CAP socket method for root users (bypass Android API pairing prompts) (Simulated).
 -   [x] **Task 5.3: Bluetooth Spoofing Module**
-    -   [x] Implement the logic to change the Bluetooth adapter's MAC address. (Requires Elevated Mode)
+    -   [x] Implement the logic to change the Bluetooth adapter's MAC address. (Requires Elevated Mode) (Simulated — the module does not actually alter the adapter's hardware BD_ADDR; it simulates the operation.)
     -   [x] Create the UI to allow the user to specify a new MAC address.
 -   [x] **Task 5.4: PerfektBlue (Automotive RCE) Module**
     -   [x] Create UI for Automotive IVI auditing.
@@ -112,7 +112,9 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Create the initial set of templates (e.g., "Simple Scan," "Snarf and Inject").
 -   [x] **Task 6.3: Professional Reporting Engine**
     -   [x] Implement the logic to log all actions performed during an assessment.
-    -   [x] Create the functionality to generate and export a detailed report in PDF or Markdown format.
+    -   [x] Create the functionality to generate and export a detailed report in Markdown format.
+    -   [x] Create the functionality to export a detailed report in JSON format.
+    -   [ ] Create the functionality to export a detailed report in PDF format. (Not done — planned future work.)
 -   [x] **Task 6.4: Finalize Settings and Database Updates**
     -   [x] Create a settings screen for user preferences.
     -   [x] Implement the mechanism for securely downloading updates to the vulnerability and fingerprinting databases.
@@ -157,7 +159,7 @@ This document outlines the development tasks required to implement the Blu Snu f
 -   [x] **Task 7.5: Data Sharing and Analytics**
     -   [x] Add a sentence to the ethical use prompt asking the user to share anonymized data with the developer.
     -   [x] Add "Agree" and "Cancel" buttons to the new prompt.
-    -   [x] If the user agrees, implement functionality to back up their local database to a secure cloud database.
+    -   [x] If the user agrees, implement functionality to back up their local database to a secure cloud database. (Partial — the backup only runs when a real cloud endpoint URL is configured; no default/production endpoint ships with the app, so this is a no-op out of the box.)
 
 ## Future Research
 - https://github.com/francozappa/blur

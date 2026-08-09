@@ -40,8 +40,10 @@ import com.hereliesaz.aznavrail.*
 import com.hereliesaz.aznavrail.model.AzDockingSide
 import com.hereliesaz.blusnu.data.AppDatabase
 import com.hereliesaz.blusnu.data.AttackChainTemplateRepository
+import com.hereliesaz.blusnu.data.BleSpamModule
+import com.hereliesaz.blusnu.data.BluffsModule
+import com.hereliesaz.blusnu.data.BrakToothModule
 import com.hereliesaz.blusnu.data.BtlejackingModule
-import com.hereliesaz.blusnu.data.BtlejuiceModule
 import com.hereliesaz.blusnu.data.CloudBackup
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.HardwareManager
@@ -51,8 +53,14 @@ import com.hereliesaz.blusnu.data.TargetDevice
 import com.hereliesaz.blusnu.data.VulnerabilityCorrelator
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingScreen
 import com.hereliesaz.blusnu.ui.attackchaining.AttackChainingViewModel
+import com.hereliesaz.blusnu.ui.blespam.BleSpamScreen
+import com.hereliesaz.blusnu.ui.blespam.BleSpamViewModel
 import com.hereliesaz.blusnu.ui.bluetoothlog.BluetoothLogScreen
 import com.hereliesaz.blusnu.ui.bluetoothlog.BluetoothLogViewModel
+import com.hereliesaz.blusnu.ui.bluffs.BluffsScreen
+import com.hereliesaz.blusnu.ui.bluffs.BluffsViewModel
+import com.hereliesaz.blusnu.ui.braktooth.BrakToothScreen
+import com.hereliesaz.blusnu.ui.braktooth.BrakToothViewModel
 import com.hereliesaz.blusnu.ui.bluebugging.BluebuggingScreen
 import com.hereliesaz.blusnu.ui.bluebugging.BluebuggingViewModel
 import com.hereliesaz.blusnu.ui.bluesmack.BlueSmackScreen
@@ -70,12 +78,16 @@ import com.hereliesaz.blusnu.ui.devicemanagement.DeviceManagementScreen
 import com.hereliesaz.blusnu.ui.devicemanagement.DeviceManagementViewModel
 import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingScreen
 import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingViewModel
+import com.hereliesaz.blusnu.ui.gattrelay.GattRelayScreen
+import com.hereliesaz.blusnu.ui.gattrelay.GattRelayViewModel
 import com.hereliesaz.blusnu.ui.geolocation.FindScreen
 import com.hereliesaz.blusnu.ui.geolocation.FindViewModel
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationScreen
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationViewModel
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionScreen
 import com.hereliesaz.blusnu.ui.keystrokeinjection.KeystrokeInjectionViewModel
+import com.hereliesaz.blusnu.ui.perfektblue.PerfektBlueScreen
+import com.hereliesaz.blusnu.ui.perfektblue.PerfektBlueViewModel
 import com.hereliesaz.blusnu.ui.reporting.ReportingScreen
 import com.hereliesaz.blusnu.ui.rawcommands.RawCommandsScreen
 import com.hereliesaz.blusnu.ui.magisk.MagiskScreen
@@ -84,6 +96,8 @@ import com.hereliesaz.blusnu.ui.rawcommands.RawCommandsViewModel
 import com.hereliesaz.blusnu.ui.reporting.ReportingViewModel
 import com.hereliesaz.blusnu.ui.settings.SettingsScreen
 import com.hereliesaz.blusnu.ui.settings.SettingsViewModel
+import com.hereliesaz.blusnu.ui.smpbypass.SmpBypassScreen
+import com.hereliesaz.blusnu.ui.smpbypass.SmpBypassViewModel
 import com.hereliesaz.blusnu.ui.filetransfer.FileTransferScreen
 import com.hereliesaz.blusnu.ui.filetransfer.FileTransferViewModel
 import com.hereliesaz.blusnu.ui.hid.HidScreen
@@ -105,7 +119,6 @@ class MainActivity : ComponentActivity() {
     private val savedSessionRepository by lazy { SavedSessionRepository(database.savedSessionDao()) }
     private val attackChainTemplateRepository by lazy { AttackChainTemplateRepository(database.attackChainTemplateDao()) }
     private val hardwareManager by lazy { HardwareManager() }
-    private val btlejuiceModule by lazy { BtlejuiceModule(hardwareManager) }
     private val keystrokeInjectionModule by lazy { com.hereliesaz.blusnu.data.KeystrokeInjectionModule() }
     private val vulnerabilityCorrelator by lazy { VulnerabilityCorrelator(applicationContext) }
     private val httpClient by lazy {
@@ -192,22 +205,58 @@ class MainActivity : ComponentActivity() {
                     modelClass.isAssignableFrom(FileTransferViewModel::class.java) -> {
                         FileTransferViewModel(application) as T
                     }
+                    modelClass.isAssignableFrom(BluffsViewModel::class.java) -> {
+                        BluffsViewModel(deviceRepository, BluffsModule()) as T
+                    }
+                    modelClass.isAssignableFrom(BrakToothViewModel::class.java) -> {
+                        BrakToothViewModel(deviceRepository, BrakToothModule()) as T
+                    }
+                    modelClass.isAssignableFrom(BleSpamViewModel::class.java) -> {
+                        BleSpamViewModel(BleSpamModule(applicationContext)) as T
+                    }
+                    modelClass.isAssignableFrom(GattRelayViewModel::class.java) -> {
+                        GattRelayViewModel() as T
+                    }
+                    modelClass.isAssignableFrom(PerfektBlueViewModel::class.java) -> {
+                        PerfektBlueViewModel(deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(SmpBypassViewModel::class.java) -> {
+                        SmpBypassViewModel(deviceRepository) as T
+                    }
                     else -> throw IllegalArgumentException("Unknown ViewModel class")
                 }
             }
         }
     }
 
+    // Tracks whether all requested permissions were granted. Denials are not silently ignored.
+    private var deniedPermissions: List<String> = emptyList()
+
     private val requestPermissionsLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-            // Permission results handled by the system
+            val denied = permissions.filterValues { !it }.keys.toList()
+            deniedPermissions = denied
+            if (denied.isNotEmpty()) {
+                Log.w("MainActivity", "Permissions denied: ${denied.joinToString()}")
+                Toast.makeText(
+                    this,
+                    "Some permissions were denied; scanning may not work: " +
+                        denied.joinToString { it.substringAfterLast('.') },
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        vulnerabilityCorrelator.loadVulnerabilities()
+        try {
+            vulnerabilityCorrelator.loadVulnerabilities()
+        } catch (e: Exception) {
+            // A missing or malformed vulnerabilities.json asset must not crash launch.
+            Log.e("MainActivity", "Failed to load vulnerability database", e)
+        }
 
         requestRequiredPermissions()
 
@@ -218,7 +267,7 @@ class MainActivity : ComponentActivity() {
                 if (showDisclaimer) {
                     DisclaimerDialog { agreed ->
                         if (agreed) {
-                            simulateDatabaseBackup()
+                            backupDatabaseIfConfigured()
                         }
                         getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).edit {
                             putBoolean(
@@ -251,6 +300,12 @@ class MainActivity : ComponentActivity() {
                         azRailItem(id = "bluesnarfing", text = "Snarfing", route = "bluesnarfing")
                         azRailItem(id = "bluesmack", text = "Smack", route = "bluesmack")
                         azRailItem(id = "gattfuzzing", text = "Fuzzing", route = "gattfuzzing")
+                        azRailItem(id = "bluffs", text = "BLUFFS", route = "bluffs")
+                        azRailItem(id = "braktooth", text = "BrakTooth", route = "braktooth")
+                        azRailItem(id = "blespam", text = "Spam", route = "blespam")
+                        azRailItem(id = "gattrelay", text = "Relay", route = "gattrelay")
+                        azRailItem(id = "perfektblue", text = "PerfektBlue", route = "perfektblue")
+                        azRailItem(id = "smpbypass", text = "SMP", route = "smpbypass")
                         azRailItem(id = "spoofing", text = "Spoofing", route = "spoofing")
                         azRailItem(id = "keystroke_injection", text = "Injection", route = "keystroke_injection")
                         azRailItem(id = "btlejacking", text = "Jacking", route = "btlejacking")
@@ -279,6 +334,7 @@ class MainActivity : ComponentActivity() {
                                         devicesWithLocation = state.devicesWithLocation,
                                         savedSessions = state.savedSessions,
                                         attackChainTemplates = state.attackChainTemplates,
+                                        activeTasks = state.activeTasks,
                                         onStartScanClicked = { navController.navigate("targets") }
                                     )
                                 }
@@ -289,7 +345,10 @@ class MainActivity : ComponentActivity() {
                                         navController.navigate("btlejuice?targetDevice=$targetDeviceJson")
                                     }
                                 }
-                                composable("settings") { SettingsScreen() }
+                                composable("settings") {
+                                    val viewModel: SettingsViewModel = viewModel(factory = viewModelFactory)
+                                    SettingsScreen(viewModel = viewModel)
+                                }
                                 composable("bluebugging") {
                                     val viewModel: BluebuggingViewModel = viewModel(factory = viewModelFactory)
                                     BluebuggingScreen(viewModel = viewModel)
@@ -346,9 +405,8 @@ class MainActivity : ComponentActivity() {
                                         state = state,
                                         onAttemptAttack = viewModel::onAttemptAttack,
                                         onSendKeystrokes = viewModel::onSendKeystrokes,
-                                        onDeviceSelected = {
-                                            Toast.makeText(applicationContext, "Device selected: ${it.name}", Toast.LENGTH_SHORT).show()
-                                        }
+                                        onDeviceSelected = viewModel::onDeviceSelected,
+                                        onRunDuckyScript = viewModel::onRunDuckyScript
                                     )
                                 }
                                 composable("attack_chaining") {
@@ -362,6 +420,30 @@ class MainActivity : ComponentActivity() {
                                 composable("bluesmack") {
                                     val viewModel: BlueSmackViewModel = viewModel(factory = viewModelFactory)
                                     BlueSmackScreen(viewModel = viewModel)
+                                }
+                                composable("bluffs") {
+                                    val viewModel: BluffsViewModel = viewModel(factory = viewModelFactory)
+                                    BluffsScreen(viewModel = viewModel)
+                                }
+                                composable("braktooth") {
+                                    val viewModel: BrakToothViewModel = viewModel(factory = viewModelFactory)
+                                    BrakToothScreen(viewModel = viewModel)
+                                }
+                                composable("blespam") {
+                                    val viewModel: BleSpamViewModel = viewModel(factory = viewModelFactory)
+                                    BleSpamScreen(viewModel = viewModel)
+                                }
+                                composable("gattrelay") {
+                                    val viewModel: GattRelayViewModel = viewModel(factory = viewModelFactory)
+                                    GattRelayScreen(viewModel = viewModel)
+                                }
+                                composable("perfektblue") {
+                                    val viewModel: PerfektBlueViewModel = viewModel(factory = viewModelFactory)
+                                    PerfektBlueScreen(viewModel = viewModel)
+                                }
+                                composable("smpbypass") {
+                                    val viewModel: SmpBypassViewModel = viewModel(factory = viewModelFactory)
+                                    SmpBypassScreen(viewModel = viewModel)
                                 }
                                 composable("reporting") {
                                     val viewModel: ReportingViewModel = viewModel(factory = viewModelFactory)
@@ -387,7 +469,8 @@ class MainActivity : ComponentActivity() {
                                     RawCommandsScreen(viewModel)
                                 }
                                 composable("magisk") {
-                                    val viewModel: MagiskViewModel = viewModel(factory = viewModelFactory)
+                                    // MagiskScreen is static informational content; MagiskViewModel is a
+                                    // no-op, so no ViewModel is constructed here.
                                     MagiskScreen()
                                 }
                                 composable("hid") {
@@ -422,11 +505,26 @@ class MainActivity : ComponentActivity() {
         requestPermissionsLauncher.launch(requiredPermissions.toTypedArray())
     }
 
-    private fun simulateDatabaseBackup() {
-        // In a real app, this would connect to a cloud service and upload the database.
-        // For now, we'll just log a message.
+    /**
+     * Attempts a database backup only if the user has configured a real backup URL.
+     *
+     * The URL is read from the same SharedPreferences source that SettingsViewModel writes to
+     * ("blusnu_prefs" / "backup_url"). If the URL is blank or still the placeholder
+     * example.com value, the backup is skipped silently.
+     */
+    private fun backupDatabaseIfConfigured() {
+        val backupUrl = getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE)
+            .getString("backup_url", "")
+            ?.trim()
+            .orEmpty()
+
+        if (backupUrl.isBlank() || backupUrl.contains("example.com")) {
+            Log.i("MainActivity", "No real backup URL configured; skipping database backup.")
+            return
+        }
+
         CoroutineScope(Dispatchers.IO).launch {
-            CloudBackup(applicationContext, httpClient).backupDatabase("https://example.com/backup")
+            CloudBackup(applicationContext, httpClient).backupDatabase(backupUrl)
         }
     }
 }

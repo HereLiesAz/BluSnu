@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.hereliesaz.blusnu.data.ActiveTask
 import com.hereliesaz.blusnu.data.TargetDevice
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 
@@ -40,6 +41,7 @@ fun DashboardScreen(
     devicesWithLocation: List<TargetDevice> = emptyList(),
     savedSessions: List<com.hereliesaz.blusnu.data.SavedSession> = emptyList(),
     attackChainTemplates: List<com.hereliesaz.blusnu.data.AttackChainTemplate> = emptyList(),
+    activeTasks: List<ActiveTask> = emptyList(),
     onStartScanClicked: () -> Unit = {}
 ) {
     Column(
@@ -86,6 +88,23 @@ fun DashboardScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+
+        // Active Tasks
+        DashboardSection(title = "Active Tasks") {
+            if (activeTasks.isEmpty()) {
+                Text(
+                    "No active tasks.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(activeTasks) { task ->
+                        DashboardCard(title = task.name, description = task.description)
+                    }
+                }
+            }
+        }
 
         // Geolocated devices
         if (devicesWithLocation.isNotEmpty()) {

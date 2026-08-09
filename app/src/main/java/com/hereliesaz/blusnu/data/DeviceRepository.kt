@@ -45,9 +45,20 @@ class DeviceRepository(private val targetDeviceDao: TargetDeviceDao) {
 
             // If the existing record is found (it should be, but safety check via ?.let):
             existing?.let {
+                // Some update paths (service discovery via ACTION_UUID / onServicesDiscovered)
+                // do not carry a real RSSI reading and pass a sentinel value (0 or
+                // Short.MIN_VALUE == -32768). A genuine reading is always a plausible negative
+                // dBm. If the incoming RSSI is not a real reading, keep the previously stored
+                // value instead of clobbering it with garbage.
+                val incomingRssiIsReal =
+                    device.rssi != 0 && device.rssi != Short.MIN_VALUE.toInt()
+                val mergedRssi = if (incomingRssiIsReal) device.rssi else it.rssi
+
                 // Create a copy of the new device object (which has fresh RSSI/Time data),
                 // but overwrite specific fields with values from the existing database record.
                 val updated = device.copy(
+                    // Preserve a real RSSI reading; fall back to the stored one for service-only updates.
+                    rssi = mergedRssi,
                     // Preserve the notes the user wrote.
                     notes = it.notes,
                     // Preserve the favorite status.

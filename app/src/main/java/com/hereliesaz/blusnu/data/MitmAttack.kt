@@ -11,7 +11,6 @@ import kotlinx.coroutines.launch
  *
  * This class orchestrates the `HardwareManager` to perform a sequence of
  * scanning, jamming, and listening, while updating the UI state.
- * It is likely used by the `BtlejuiceMitmViewModel`.
  *
  * @property spoofingState The MutableStateFlow from the ViewModel to update with logs.
  * @property hardwareManager The interface to the external hardware.

@@ -1,6 +1,6 @@
 package com.hereliesaz.blusnu.utils
 
-import com.hereliesaz.blusnu.ui.geolocation.Location
+import com.hereliesaz.blusnu.data.Location
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sqrt

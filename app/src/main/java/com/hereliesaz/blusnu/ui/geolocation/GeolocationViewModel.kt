@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.BluetoothScanner
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.GeolocationModule
+import com.hereliesaz.blusnu.data.Location
 import com.hereliesaz.blusnu.data.LocationManager
 import com.hereliesaz.blusnu.data.TargetDevice
 import com.hereliesaz.blusnu.utils.Trilateration
@@ -16,8 +17,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-
-data class Location(val latitude: Double, val longitude: Double)
 
 data class ObservationPoint(
     val location: Location,
@@ -76,7 +75,7 @@ class GeolocationViewModel(
     fun startTracking() {
         val device = _uiState.value.selectedDevice ?: return
         observations.clear()
-        geolocationModule.smoothRssi(device.macAddress, 0.0) // reset Kalman
+        geolocationModule.resetFilter(device.macAddress)
 
         _uiState.value = _uiState.value.copy(
             isTracking = true,
@@ -173,7 +172,10 @@ class GeolocationViewModel(
                 }
                 accuracy = if (sumWeights > 0) kotlin.math.sqrt(sumWeightedResidualSq / sumWeights) else null
 
-                // Save to DB
+                // Save to DB.
+                // NOTE: This single-user WLS view and the tandem "Find" view (FindViewModel)
+                // are two intentional geolocation stacks that both persist device lat/long.
+                // They upsert by MAC (last write wins); this is expected, not a conflict.
                 _uiState.value.selectedDevice?.let { dev ->
                     val updated = dev.copy(latitude = result.latitude, longitude = result.longitude)
                     viewModelScope.launch { deviceRepository.insert(updated) }

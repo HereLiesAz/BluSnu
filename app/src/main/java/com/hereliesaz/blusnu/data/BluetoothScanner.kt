@@ -84,6 +84,10 @@ class BluetoothScanner(
                         val targetDevice = TargetDevice(
                             macAddress = it.address,
                             name = it.name,
+                            // ACTION_UUID usually carries no RSSI, so this resolves to the
+                            // Short.MIN_VALUE sentinel. DeviceRepository.insert treats that as
+                            // "no reading" and preserves the previously stored RSSI rather than
+                            // overwriting a good value with -32768.
                             rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt(),
                             protocol = Protocol.CLASSIC,
                             services = uuidExtra?.map { it.toString() } ?: emptyList(),
@@ -128,6 +132,9 @@ class BluetoothScanner(
                 val targetDevice = TargetDevice(
                     macAddress = gatt.device.address,
                     name = gatt.device.name,
+                    // Service discovery has no RSSI reading; 0 is a sentinel meaning "no reading".
+                    // DeviceRepository.insert preserves the previously stored RSSI in this case
+                    // instead of overwriting the real signal strength with 0.
                     rssi = 0,
                     protocol = Protocol.BLE,
                     services = services,

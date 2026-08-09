@@ -43,6 +43,11 @@ class HidViewModel(application: Application) : AndroidViewModel(application) {
     private val _pairedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
     private val _selectedDevice = MutableStateFlow<BluetoothDevice?>(null)
 
+    // Genuine connection-state flow, kept in sync with the active controller's connectionState
+    // (see collectConnectionStates). Using a dedicated flow ensures real state changes propagate
+    // to the UI instead of relying on a no-op self-assignment of _mode.
+    private val _connectionState = MutableStateFlow(HidConnectionState.DISCONNECTED)
+
     val state: StateFlow<HidUiState> = combine(
         _mode,
         _tab,
@@ -50,20 +55,18 @@ class HidViewModel(application: Application) : AndroidViewModel(application) {
         _pairedDevices,
         _selectedDevice
     ) { mode, tab, messages, paired, selected ->
-        val connectionState = when (mode) {
-            HidMode.CLASSIC -> classicController.connectionState.value
-            HidMode.BLE -> bleController.connectionState.value
-        }
         HidUiState(
             mode = mode,
             tab = tab,
-            connectionState = connectionState,
+            connectionState = HidConnectionState.DISCONNECTED,
             statusMessages = messages,
             pairedDevices = paired,
             selectedDevice = selected,
             classicSupported = classicController.isSupported(),
             bleSupported = bleController.isSupported()
         )
+    }.combine(_connectionState) { uiState, connectionState ->
+        uiState.copy(connectionState = connectionState)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HidUiState())
 
     init {
@@ -86,15 +89,21 @@ class HidViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun collectConnectionStates() {
+        // Emit a genuinely new connection state whenever the active controller's state changes,
+        // or when the user switches modes. This drives real UI updates (StateFlow dedups
+        // identical values, so the previous `_mode.value = _mode.value` emitted nothing).
         viewModelScope.launch {
-            classicController.connectionState.collect {
-                // Trigger recomposition by updating a dummy flow
-                _mode.value = _mode.value
-            }
-        }
-        viewModelScope.launch {
-            bleController.connectionState.collect {
-                _mode.value = _mode.value
+            combine(
+                _mode,
+                classicController.connectionState,
+                bleController.connectionState
+            ) { mode, classicState, bleState ->
+                when (mode) {
+                    HidMode.CLASSIC -> classicState
+                    HidMode.BLE -> bleState
+                }
+            }.collect { connectionState ->
+                _connectionState.value = connectionState
             }
         }
     }
