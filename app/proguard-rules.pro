@@ -1,21 +1,35 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Keep Room entities and DAOs
+-keep class com.hereliesaz.blusnu.data.TargetDevice { *; }
+-keep class com.hereliesaz.blusnu.data.SavedSession { *; }
+-keep class com.hereliesaz.blusnu.data.AttackChainTemplate { *; }
+-keep class com.hereliesaz.blusnu.data.Vulnerability { *; }
+-keep class com.hereliesaz.blusnu.data.Converters { *; }
+-keep class * extends androidx.room.RoomDatabase { *; }
+-keep class * implements androidx.room.dao.Dao { *; }
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Keep AttackNode implementations for Gson polymorphic deserialization
+-keep class com.hereliesaz.blusnu.ui.attackchaining.nodes.** { *; }
+-keep class com.hereliesaz.blusnu.ui.attackchaining.AttackChainingState { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Gson: keep classes used with TypeToken / fromJson
+-keepattributes Signature
+-keepattributes *Annotation*
+-keep class com.google.gson.** { *; }
+-keep class * implements com.google.gson.TypeAdapterFactory
+-keep class * implements com.google.gson.JsonSerializer
+-keep class * implements com.google.gson.JsonDeserializer
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Keep Ktor client internals
+-keep class io.ktor.** { *; }
+-dontwarn io.ktor.**
+
+# Keep kotlinx.serialization
+-keepattributes RuntimeVisibleAnnotations
+-keep class kotlinx.serialization.** { *; }
+-keepclassmembers class * {
+    @kotlinx.serialization.Serializable *;
+}
+
+# Keep line numbers for crash reports
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile

@@ -18,6 +18,8 @@ import android.os.Parcelable
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
@@ -34,10 +36,10 @@ class BluetoothScanner(
     private val _rssiFlow = MutableSharedFlow<RssiReading>(extraBufferCapacity = 256)
     val rssiFlow: SharedFlow<RssiReading> = _rssiFlow
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var isClassicReceiverRegistered = false
-    private val bleScanner: BluetoothLeScanner by lazy {
-        bluetoothAdapter.bluetoothLeScanner
-    }
+
+    private fun getBleScanner(): BluetoothLeScanner? = bluetoothAdapter.bluetoothLeScanner
 
     private val classicDiscoveryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -60,7 +62,7 @@ class BluetoothScanner(
                             lastSeen = System.currentTimeMillis()
                         )
                         insertDevice(targetDevice)
-                        CoroutineScope(Dispatchers.IO).launch {
+                        scope.launch {
                             bluetoothLog.log("Found classic device: ${targetDevice.name} (${targetDevice.macAddress})")
                         }
                     }
@@ -147,9 +149,13 @@ class BluetoothScanner(
     }
 
     fun insertDevice(device: TargetDevice) {
-        CoroutineScope(Dispatchers.IO).launch {
+        scope.launch {
             deviceRepository.insert(device)
         }
+    }
+
+    fun destroy() {
+        scope.cancel()
     }
 
     @SuppressLint("MissingPermission")
@@ -184,11 +190,13 @@ class BluetoothScanner(
 
     @SuppressLint("MissingPermission")
     fun startBleScan() {
-        bleScanner.startScan(bleScanCallback)
+        val scanner = getBleScanner()
+            ?: throw IllegalStateException("BLE scanner unavailable — is Bluetooth enabled?")
+        scanner.startScan(bleScanCallback)
     }
 
     @SuppressLint("MissingPermission")
     fun stopBleScan() {
-        bleScanner.stopScan(bleScanCallback)
+        getBleScanner()?.stopScan(bleScanCallback)
     }
 }

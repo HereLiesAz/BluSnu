@@ -107,7 +107,7 @@ import com.hereliesaz.blusnu.ui.spoofing.SpoofingViewModel
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.coroutines.CoroutineScope
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -267,13 +267,10 @@ class MainActivity : ComponentActivity() {
                 if (showDisclaimer) {
                     DisclaimerDialog { agreed ->
                         if (agreed) {
+                            getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).edit {
+                                putBoolean("disclaimer_accepted", true)
+                            }
                             backupDatabaseIfConfigured()
-                        }
-                        getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).edit {
-                            putBoolean(
-                                "disclaimer_accepted",
-                                true
-                            )
                         }
                         showDisclaimer = false
                     }
@@ -523,7 +520,7 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        CoroutineScope(Dispatchers.IO).launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             CloudBackup(applicationContext, httpClient).backupDatabase(backupUrl)
         }
     }
