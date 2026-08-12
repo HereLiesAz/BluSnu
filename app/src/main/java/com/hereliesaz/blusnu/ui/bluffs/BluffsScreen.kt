@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -173,14 +174,25 @@ fun BluffsScreen(viewModel: BluffsViewModel) {
                 CircularProgressIndicator()
             }
 
-            // Execute Button.
-            Button(
-                onClick = { viewModel.startAttack() },
-                enabled = selectedDevice != null && !isRunning,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(if (isRunning) "ATTACK IN PROGRESS..." else "EXECUTE ATTACK")
+            if (isRunning) {
+                OutlinedButton(
+                    onClick = { viewModel.stopAttack() },
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("STOP ATTACK")
+                }
+            } else {
+                Button(
+                    onClick = { viewModel.startAttack() },
+                    enabled = selectedDevice != null,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("EXECUTE ATTACK")
+                }
             }
 
             // Bottom Padding.

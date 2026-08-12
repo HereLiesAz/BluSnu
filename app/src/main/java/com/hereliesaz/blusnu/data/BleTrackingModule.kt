@@ -177,18 +177,6 @@ class BleTrackingModule(private val context: Context) {
                 }
             }
 
-            override fun onBatchedScanResults(results: MutableList<ScanResult>) {
-                if (!isScanning) return
-                scope.launch {
-                    for (result in results) {
-                        val log = processScanResult(result)
-                        if (log != null) {
-                            trySend(log)
-                        }
-                    }
-                }
-            }
-
             override fun onScanFailed(errorCode: Int) {
                 val message = when (errorCode) {
                     SCAN_FAILED_ALREADY_STARTED -> "Scan failed: already started"

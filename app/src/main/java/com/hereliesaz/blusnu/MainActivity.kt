@@ -257,7 +257,7 @@ class MainActivity : ComponentActivity() {
                         SettingsViewModel(application) as T
                     }
                     modelClass.isAssignableFrom(DeviceManagementViewModel::class.java) -> {
-                        DeviceManagementViewModel(application, deviceRepository, vulnerabilityCorrelator, macLookupClient, bluetoothLog) as T
+                        DeviceManagementViewModel(application, deviceRepository, vulnerabilityCorrelator, macLookupClient, bluetoothScanner) as T
                     }
                     modelClass.isAssignableFrom(SpoofingViewModel::class.java) -> {
                         val spoofingModule = com.hereliesaz.blusnu.data.SpoofingModule()

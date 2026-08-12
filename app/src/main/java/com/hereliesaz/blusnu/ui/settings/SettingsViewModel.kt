@@ -8,6 +8,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.DatabaseUpdater
 import com.hereliesaz.blusnu.utils.RootExecutor
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -17,7 +19,8 @@ import kotlinx.coroutines.launch
  */
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val databaseUpdater = DatabaseUpdater(application)
+    private val httpClient = HttpClient(CIO)
+    private val databaseUpdater = DatabaseUpdater(application, httpClient)
 
     private val _updateStatus = MutableStateFlow("")
     val updateStatus: StateFlow<String> = _updateStatus
@@ -80,6 +83,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     override fun onCleared() {
         super.onCleared()
         databaseUpdater.close()
+        httpClient.close()
     }
 
     fun checkPermissions() {
