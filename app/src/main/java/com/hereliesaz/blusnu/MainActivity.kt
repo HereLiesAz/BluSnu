@@ -537,7 +537,11 @@ class MainActivity : ComponentActivity() {
                                         onMacAddressChanged = viewModel::onMacAddressChanged,
                                         onApplyClicked = viewModel::onApplyClicked,
                                         onDeviceSelected = viewModel::onDeviceSelected,
-                                        onStartMitmAttack = viewModel::onStartMitmAttack
+                                        onStartMitmAttack = viewModel::onStartMitmAttack,
+                                        onStopMitmAttack = viewModel::onStopMitmAttack,
+                                        onRestoreOriginalMac = viewModel::onRestoreOriginalMac,
+                                        onNameChanged = viewModel::onNameChanged,
+                                        onApplyNameClicked = viewModel::onApplyNameClicked
                                     )
                                 }
                                 composable("bluetooth_log") {
