@@ -10,8 +10,10 @@ import com.hereliesaz.blusnu.data.BluesnarfingModule
 import com.hereliesaz.blusnu.data.KeystrokeInjectionModule
 import com.hereliesaz.blusnu.ui.attackchaining.nodes.AttackNode
 import com.hereliesaz.blusnu.ui.attackchaining.nodes.ChainServices
+import com.hereliesaz.blusnu.ui.attackchaining.nodes.ConnectorRole
 import com.hereliesaz.blusnu.ui.attackchaining.nodes.NodeConnector
 import com.hereliesaz.blusnu.ui.attackchaining.nodes.NodeId
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,12 +29,16 @@ import com.hereliesaz.blusnu.data.TargetDevice
  * @property connections List of links between connectors.
  * @property logs Execution logs.
  * @property devices List of available devices (for node configuration).
+ * @property isExecuting Whether a chain execution is currently running.
+ * @property savedChainNames Names of all persisted chains for the Load dialog.
  */
 data class AttackChainingState(
     val nodes: Map<NodeId, AttackNode> = emptyMap(),
     val connections: List<Pair<NodeConnector, NodeConnector>> = emptyList(),
     val logs: List<String> = emptyList(),
-    val devices: List<TargetDevice> = emptyList()
+    val devices: List<TargetDevice> = emptyList(),
+    val isExecuting: Boolean = false,
+    val savedChainNames: Set<String> = emptySet()
 )
 
 /**
@@ -51,6 +57,13 @@ class AttackChainingViewModel(
     private val executor = com.hereliesaz.blusnu.data.AttackChainExecutor()
     private val _uiState = MutableStateFlow(AttackChainingState())
     val uiState: StateFlow<AttackChainingState> = _uiState.asStateFlow()
+
+    /** Tracks the currently running execution job so it can be cancelled (13.5). */
+    private var executionJob: Job? = null
+
+    /** Reason the last addConnection() call was rejected, or null. */
+    private val _connectionError = MutableStateFlow<String?>(null)
+    val connectionError: StateFlow<String?> = _connectionError.asStateFlow()
 
     init {
         // Load default or blank state.
@@ -72,6 +85,13 @@ class AttackChainingViewModel(
                 _uiState.update { it.copy(devices = devices) }
             }
         }
+
+        // Load saved chain names for UI.
+        refreshSavedChainNames()
+    }
+
+    private fun refreshSavedChainNames() {
+        _uiState.update { it.copy(savedChainNames = repository.getAllAttackChainNames()) }
     }
 
     /**
@@ -123,19 +143,54 @@ class AttackChainingViewModel(
     }
 
     /**
-     * Adds a connection link.
+     * Adds a connection link with full validation:
+     * - 13.1: Directionality enforcement (OUTPUT -> INPUT only).
+     * - 13.6: Duplicate connection rejection.
+     * - Self-loop prevention.
+     *
+     * When two connectors of the same role are tapped, the connection is normalized:
+     * if both are INPUT or both OUTPUT, the connection is rejected with a message.
      */
     fun addConnection(from: NodeConnector, to: NodeConnector) {
         viewModelScope.launch {
             // Prevent self-loops.
-            if (from.nodeId != to.nodeId) {
-                _uiState.update { currentState ->
-                    val newConnections = currentState.connections.toMutableList()
-                    newConnections.add(from to to)
-                    currentState.copy(connections = newConnections)
+            if (from.nodeId == to.nodeId) {
+                _connectionError.value = "Cannot connect a node to itself"
+                return@launch
+            }
+
+            // 13.1: Validate directionality -- one must be OUTPUT, the other INPUT.
+            val (output, input) = when {
+                from.role == ConnectorRole.OUTPUT && to.role == ConnectorRole.INPUT -> from to to
+                from.role == ConnectorRole.INPUT && to.role == ConnectorRole.OUTPUT -> to to from
+                else -> {
+                    val sameRole = from.role.name.lowercase()
+                    _connectionError.value = "Invalid connection: both connectors are $sameRole. Connect an output to an input."
+                    return@launch
                 }
             }
+
+            _uiState.update { currentState ->
+                // 13.6: Reject duplicate connections (same source output and destination input).
+                val duplicate = currentState.connections.any {
+                    it.first == output && it.second == input
+                }
+                if (duplicate) {
+                    _connectionError.value = "Connection already exists"
+                    return@update currentState
+                }
+
+                _connectionError.value = null
+                val newConnections = currentState.connections.toMutableList()
+                newConnections.add(output to input)
+                currentState.copy(connections = newConnections)
+            }
         }
+    }
+
+    /** Clears the last connection error after it has been shown. */
+    fun clearConnectionError() {
+        _connectionError.value = null
     }
 
     /**
@@ -169,8 +224,10 @@ class AttackChainingViewModel(
         }
     }
 
+    /** 13.8: Persist the current chain state under the given name. */
     fun saveAttackChain(name: String) {
         repository.saveAttackChain(name, uiState.value)
+        refreshSavedChainNames()
     }
 
     fun loadAttackChain(name: String) {
@@ -192,12 +249,27 @@ class AttackChainingViewModel(
 
     /**
      * Runs the current graph.
+     * 13.5: Stores the Job so it can be cancelled. Guards against concurrent runs.
      */
     fun executeChain() {
+        if (_uiState.value.isExecuting) return
         val services = mutableMapOf<String, Any>()
         bluetoothAdapter?.let { services[ChainServices.BLUETOOTH_ADAPTER] = it }
         services[ChainServices.BLUESNARFING_MODULE] = BluesnarfingModule()
         services[ChainServices.KEYSTROKE_INJECTION_MODULE] = keystrokeInjectionModule
-        executor.execute(uiState.value, viewModelScope, services)
+        _uiState.update { it.copy(isExecuting = true) }
+        executionJob = executor.execute(uiState.value, viewModelScope, services) {
+            // Completion callback -- reset isExecuting.
+            _uiState.update { it.copy(isExecuting = false) }
+        }
+    }
+
+    /**
+     * 13.5: Cancels the currently running chain execution.
+     */
+    fun cancelExecution() {
+        executionJob?.cancel()
+        executionJob = null
+        _uiState.update { it.copy(isExecuting = false) }
     }
 }
