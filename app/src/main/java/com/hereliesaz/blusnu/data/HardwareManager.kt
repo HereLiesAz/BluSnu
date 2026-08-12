@@ -29,6 +29,12 @@ enum class HardwareState {
     CONNECTION_FAILED
 }
 
+enum class HardwareDeviceType {
+    UNKNOWN,
+    BTLEJACK,
+    ESP32
+}
+
 class HardwareManager(private val context: Context) {
 
     companion object {
@@ -46,6 +52,10 @@ class HardwareManager(private val context: Context) {
     val deviceLogs = _deviceLogs.asSharedFlow()
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    @Volatile
+    var deviceType: HardwareDeviceType = HardwareDeviceType.UNKNOWN
+        private set
 
     // 3.6: @Volatile ensures cross-thread visibility of port references
     @Volatile
@@ -100,10 +110,11 @@ class HardwareManager(private val context: Context) {
 
                     _hardwareState.value = HardwareState.CONNECTED_BTLEJACK
 
-                    // Query firmware version
+                    // Query firmware version and classify device
                     sendCommandInternal(port, "version")
                     val versionResponse = readResponse(port)
-                    log("Connected to BtleJack device.")
+                    deviceType = classifyDeviceType(versionResponse)
+                    log("Connected to ${deviceType.name} device.")
                     if (versionResponse.isNotBlank()) {
                         log("Firmware: $versionResponse")
                     }
@@ -187,6 +198,7 @@ class HardwareManager(private val context: Context) {
         try { secondaryPort?.close() } catch (_: IOException) {}
         primaryPort = null
         secondaryPort = null
+        deviceType = HardwareDeviceType.UNKNOWN
         _hardwareState.value = HardwareState.DISCONNECTED
     }
 
@@ -270,8 +282,15 @@ class HardwareManager(private val context: Context) {
         }
     }
 
-    // 3.9: Use tryEmit (non-suspending, drops if buffer full) instead of
-    // scope.launch { emit() } which spawned an unbounded number of coroutines
+    private fun classifyDeviceType(versionResponse: String): HardwareDeviceType {
+        val lower = versionResponse.lowercase()
+        return when {
+            lower.contains("esp32") || lower.contains("braktooth") -> HardwareDeviceType.ESP32
+            lower.contains("btlejack") -> HardwareDeviceType.BTLEJACK
+            else -> HardwareDeviceType.UNKNOWN
+        }
+    }
+
     private fun log(message: String) {
         _deviceLogs.tryEmit(message)
         Log.d(TAG, message)

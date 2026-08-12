@@ -2,22 +2,24 @@ package com.hereliesaz.blusnu.ui.braktooth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.blusnu.data.ActionLogger
+import com.hereliesaz.blusnu.data.ActiveTaskManager
 import com.hereliesaz.blusnu.data.BrakToothModule
 import com.hereliesaz.blusnu.data.BrakToothVector
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.TargetDevice
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * ViewModel for BrakTooth functionality.
  *
  * Interfaces with [BrakToothModule] to control the ESP32 hardware and execute attacks.
+ * Integrates with [ActionLogger] for audit trail and [ActiveTaskManager] for dashboard
+ * task tracking.
  */
 class BrakToothViewModel(
     private val deviceRepository: DeviceRepository,
@@ -71,15 +73,19 @@ class BrakToothViewModel(
             val connected = brakToothModule.checkHardware()
             _hardwareConnected.value = connected
             if (connected) {
-                _logs.value = _logs.value + "Hardware CONNECTED."
+                _logs.value = _logs.value + "Hardware CONNECTED (ESP32 detected)."
             } else {
-                _logs.value = _logs.value + "Hardware NOT FOUND. Please check USB-OTG connection."
+                _logs.value = _logs.value + "ESP32 hardware NOT FOUND. BrakTooth requires an ESP32 dongle flashed with BrakTooth firmware."
             }
         }
     }
 
     /**
      * Initiates the selected fuzzing vector.
+     *
+     * The entire flow collection is wrapped in try-catch so that any exception
+     * from the module (serial I/O failure, MAC validation, etc.) surfaces as an
+     * error log instead of freezing the UI in the "running" state.
      */
     fun startFuzzing() {
         val device = _selectedDevice.value ?: return
@@ -92,11 +98,28 @@ class BrakToothViewModel(
         _isRunning.value = true
         _logs.value = emptyList()
 
+        val taskId = "braktooth_${System.currentTimeMillis()}"
+        ActionLogger.log("BrakTooth: Starting ${_selectedVector.value.name} on ${device.name ?: device.macAddress}")
+        ActiveTaskManager.add(taskId, "BrakTooth Fuzzer", "${_selectedVector.value.name} on ${device.name ?: device.macAddress}")
+
         viewModelScope.launch {
-            brakToothModule.startFuzzing(device, _selectedVector.value).collect { log ->
-                _logs.value = _logs.value + log
+            try {
+                brakToothModule.startFuzzing(device, _selectedVector.value).collect { log ->
+                    _logs.value = _logs.value + log
+                }
+                val resultSummary = _logs.value.joinToString("\n").take(200)
+                ActionLogger.log("BrakTooth: Finished fuzzing ${device.name ?: device.macAddress}")
+                ActionLogger.log("Result: $resultSummary")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val errorMsg = "ERROR: ${e.message ?: "Unknown error"}"
+                _logs.value = _logs.value + errorMsg
+                ActionLogger.log("BrakTooth: Error during fuzzing -- ${e.message}")
+            } finally {
+                _isRunning.value = false
+                ActiveTaskManager.remove(taskId)
             }
-            _isRunning.value = false
         }
     }
 }
