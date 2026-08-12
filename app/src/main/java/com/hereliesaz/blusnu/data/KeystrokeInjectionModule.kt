@@ -1,5 +1,6 @@
 package com.hereliesaz.blusnu.data
 
+import android.util.Log
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -16,21 +17,30 @@ import kotlinx.coroutines.withTimeoutOrNull
 class KeystrokeInjectionModule(private val hidController: BleHidController) {
 
     companion object {
+        private const val TAG = "KeystrokeInjectionModule"
+
         /** Timeout in milliseconds to wait for a BLE HID connection after advertising starts. */
         private const val CONNECTION_TIMEOUT_MS = 30_000L
+
+        /** If more than 10% of keystrokes fail, sendKeystrokes returns false. */
+        private const val FAILURE_THRESHOLD_PERCENT = 10
     }
 
+    // Fix 2.8: Store target device address to filter connections
+    private var targetAddress: String? = null
+
     /**
-     * Attempts to pair with the target device as a Keyboard.
-     *
      * Initializes the BLE HID GATT server and begins advertising. Waits up to
-     * [CONNECTION_TIMEOUT_MS] for a remote device to connect.
+     * [CONNECTION_TIMEOUT_MS] for the target device to connect.
      *
-     * @param device The target device (used for context; the actual connection is
-     *               initiated by the remote device connecting to our advertisement).
+     * @param device The target device. Its address is stored to filter incoming connections.
      * @return `true` if a device connected within the timeout, `false` on error or timeout.
      */
     suspend fun attemptPairing(device: TargetDevice): Boolean {
+        // Fix 2.8: Store the target address for connection filtering
+        targetAddress = device.macAddress
+        Log.d(TAG, "Targeting device: ${device.name ?: device.macAddress}")
+
         // Initialize the GATT server (registers HID service, battery service, etc.)
         hidController.initialize()
 
@@ -56,14 +66,23 @@ class KeystrokeInjectionModule(private val hidController: BleHidController) {
      * Injects a sequence of keystrokes (text or commands) via the BLE HID connection.
      *
      * @param text The string to type on the target device.
-     * @return `true` if sent successfully, `false` if not connected.
+     * @return `true` if sent successfully with acceptable failure rate, `false` if not
+     *         connected or if more than [FAILURE_THRESHOLD_PERCENT]% of keystrokes failed.
      */
     suspend fun sendKeystrokes(text: String): Boolean {
         if (hidController.connectionState.value != HidConnectionState.CONNECTED) {
             return false
         }
 
-        hidController.typeString(text)
-        return true
+        // Fix 2.9: Track per-character success/failure and return accurate result
+        val failures = hidController.typeString(text)
+        val total = text.length
+        if (total == 0) return true
+
+        val failurePercent = (failures * 100) / total
+        if (failures > 0) {
+            Log.w(TAG, "Keystroke injection: $failures/$total characters failed ($failurePercent%)")
+        }
+        return failurePercent <= FAILURE_THRESHOLD_PERCENT
     }
 }
