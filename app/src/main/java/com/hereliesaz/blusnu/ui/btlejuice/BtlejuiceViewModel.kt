@@ -1,7 +1,7 @@
 package com.hereliesaz.blusnu.ui.btlejuice
 
 import android.app.Application
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.BtlejuiceModule
 import com.hereliesaz.blusnu.data.BtlejuiceState
@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 
 data class BtlejuiceHardwareState(val isConnected: Boolean = false)
 data class GattTraffic(val entries: List<String> = emptyList())
@@ -25,7 +24,13 @@ class BtlejuiceViewModel(
     private val deviceRepository: DeviceRepository,
     private val hardwareManager: HardwareManager,
     private val btlejuiceModule: BtlejuiceModule
-) : ViewModel() {
+) : AndroidViewModel(application) {
+
+    companion object {
+        /** 3.10: Maximum number of log / traffic entries kept in memory */
+        private const val MAX_LOG_ENTRIES = 1000
+    }
+
     private val _hardwareState = MutableStateFlow(BtlejuiceHardwareState())
     val hardwareState: StateFlow<BtlejuiceHardwareState> = _hardwareState.asStateFlow()
 
@@ -70,16 +75,27 @@ class BtlejuiceViewModel(
         // Observe intercepted GATT traffic from the module
         btlejuiceModule.interceptedTraffic
             .onEach { trafficLine ->
-                _gattTraffic.value = GattTraffic(
-                    entries = _gattTraffic.value.entries + trafficLine
-                )
+                // 3.10: Cap traffic list at MAX_LOG_ENTRIES
+                val currentEntries = _gattTraffic.value.entries
+                val updatedEntries = if (currentEntries.size >= MAX_LOG_ENTRIES) {
+                    currentEntries.drop(1) + trafficLine
+                } else {
+                    currentEntries + trafficLine
+                }
+                _gattTraffic.value = GattTraffic(entries = updatedEntries)
             }
             .launchIn(viewModelScope)
 
         // Observe hardware device logs
         hardwareManager.deviceLogs
             .onEach { logMessage ->
-                _logs.value = _logs.value + logMessage
+                // 3.10: Cap log list at MAX_LOG_ENTRIES
+                val currentLogs = _logs.value
+                _logs.value = if (currentLogs.size >= MAX_LOG_ENTRIES) {
+                    currentLogs.drop(1) + logMessage
+                } else {
+                    currentLogs + logMessage
+                }
             }
             .launchIn(viewModelScope)
     }
@@ -111,7 +127,20 @@ class BtlejuiceViewModel(
         btlejuiceModule.stopProxy()
     }
 
+    // 3.10: Bounded log helper
     private fun log(message: String) {
-        _logs.value = _logs.value + message
+        val currentLogs = _logs.value
+        _logs.value = if (currentLogs.size >= MAX_LOG_ENTRIES) {
+            currentLogs.drop(1) + message
+        } else {
+            currentLogs + message
+        }
+    }
+
+    // 3.1 / 3.14: Release hardware resources and cancel module scope on ViewModel destruction
+    override fun onCleared() {
+        super.onCleared()
+        btlejuiceModule.close()
+        hardwareManager.close()
     }
 }

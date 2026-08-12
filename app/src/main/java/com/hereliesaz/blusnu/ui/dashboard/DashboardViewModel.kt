@@ -8,8 +8,6 @@ import com.hereliesaz.blusnu.data.ActiveTaskManager
 import com.hereliesaz.blusnu.data.AttackChainTemplate
 import com.hereliesaz.blusnu.data.AttackChainTemplateRepository
 import com.hereliesaz.blusnu.data.DeviceRepository
-import com.hereliesaz.blusnu.data.DeviceWithLocation
-import com.hereliesaz.blusnu.data.Location
 import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.SavedSession
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,9 +53,10 @@ class DashboardViewModel(
         attackChainTemplateRepository.allTemplates,
         ActiveTaskManager.tasks
     ) { devices, sessions, templates, activeTasks ->
-        // Calculate derived statistics.
-        val bleCount = devices.count { it.protocol == Protocol.BLE }
-        val classicCount = devices.count { it.protocol == Protocol.CLASSIC }
+        // Calculate derived statistics. DUAL devices support both transports
+        // so they must be counted in both BLE and Classic totals.
+        val bleCount = devices.count { it.protocol == Protocol.BLE || it.protocol == Protocol.DUAL }
+        val classicCount = devices.count { it.protocol == Protocol.CLASSIC || it.protocol == Protocol.DUAL }
         val devicesWithLocation = devices.filter { it.latitude != null && it.longitude != null }
 
         // Return new state.

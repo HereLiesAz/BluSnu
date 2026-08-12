@@ -3,9 +3,12 @@ package com.hereliesaz.blusnu.ui.spoofing
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.blusnu.data.ActionLogger
+import com.hereliesaz.blusnu.data.ActiveTaskManager
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.SpoofingModule
 import com.hereliesaz.blusnu.data.TargetDevice
+import com.hereliesaz.blusnu.utils.MacValidator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -77,25 +80,33 @@ class SpoofingViewModel(
      * Executes the MAC change request.
      */
     fun onApplyClicked() {
+        val taskId = "spoofing_${System.currentTimeMillis()}"
+        ActionLogger.log("Spoofing: Applying MAC address $macAddress")
+        ActiveTaskManager.add(taskId, "MAC Spoofing", "Changing to $macAddress")
+
         viewModelScope.launch {
-            log("Applying new MAC address: $macAddress")
-            // Call the data module to execute root commands.
-            val success = spoofingModule.spoofMacAddress(macAddress)
-            if (success) {
-                log("Successfully changed MAC address to $macAddress")
-            } else {
-                log("Failed to change MAC address.")
+            try {
+                log("Applying new MAC address: $macAddress")
+                // Call the data module to execute root commands.
+                val success = spoofingModule.spoofMacAddress(macAddress)
+                if (success) {
+                    log("Successfully changed MAC address to $macAddress")
+                    ActionLogger.log("Spoofing: Successfully changed MAC to $macAddress")
+                } else {
+                    log("Failed to change MAC address.")
+                    ActionLogger.log("Spoofing: Failed to change MAC address")
+                }
+            } finally {
+                ActiveTaskManager.remove(taskId)
             }
         }
     }
 
     /**
-     * Validates MAC address format (XX:XX:XX:XX:XX:XX).
+     * Validates MAC address format (XX:XX:XX:XX:XX:XX) using the shared
+     * [MacValidator] to avoid regex divergence across the app.
      */
-    private fun isValidMacAddress(mac: String): Boolean {
-        val regex = Regex("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$")
-        return regex.matches(mac)
-    }
+    private fun isValidMacAddress(mac: String): Boolean = MacValidator.isValid(mac)
 
     /**
      * Helper to append to the status log.

@@ -7,6 +7,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.DatabaseUpdater
+import com.hereliesaz.blusnu.utils.RootExecutor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -40,26 +41,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     /**
-     * Checks availability of SU binary.
+     * Checks availability of SU binary using the shared [RootExecutor].
      */
     fun checkRootAccess() {
-        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            _isRooted.value = isRootAvailable()
-        }
-    }
-
-    private fun isRootAvailable(): Boolean {
-        return try {
-            val process = ProcessBuilder("su", "-c", "id")
-                .redirectErrorStream(true)
-                .start()
-
-            process.inputStream.use { it.readBytes() }
-
-            val exitCode = process.waitFor()
-            exitCode == 0
-        } catch (e: Exception) {
-            false
+        viewModelScope.launch {
+            _isRooted.value = RootExecutor.isRootAvailable()
         }
     }
 

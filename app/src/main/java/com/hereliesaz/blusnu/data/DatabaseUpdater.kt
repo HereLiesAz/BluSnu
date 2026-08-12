@@ -2,7 +2,6 @@ package com.hereliesaz.blusnu.data
 
 import android.content.Context
 import io.ktor.client.*
-import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import java.io.Closeable
@@ -15,9 +14,14 @@ import java.security.MessageDigest
  * Fetches the latest vulnerability data from a remote URL, compares it against
  * the local copy using SHA-256 hashes, and persists updates to internal storage.
  *
- * @property context Application context.
+ * @param context Application context.
+ * @param httpClient Shared [HttpClient] instance from the app. Avoids creating a
+ *                   redundant CIO engine; the caller owns the client lifecycle.
  */
-class DatabaseUpdater(private val context: Context) : Closeable {
+class DatabaseUpdater(
+    private val context: Context,
+    private val httpClient: HttpClient
+) : Closeable {
 
     companion object {
         /** Remote URL to fetch the latest vulnerability database from. */
@@ -27,14 +31,12 @@ class DatabaseUpdater(private val context: Context) : Closeable {
         private const val LOCAL_FILENAME = "vulnerabilities.json"
     }
 
-    private val httpClient = HttpClient(CIO)
-
     /**
-     * Closes the underlying HTTP client to release connections and threads.
-     * Should be called from the owning lifecycle (e.g. ViewModel.onCleared()).
+     * No-op: the [httpClient] is owned by the caller (usually MainActivity),
+     * which is responsible for closing it. Retained for [Closeable] contract.
      */
     override fun close() {
-        httpClient.close()
+        // Client lifecycle is managed by the caller.
     }
 
     /**

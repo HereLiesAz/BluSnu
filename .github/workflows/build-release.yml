@@ -1,19 +1,10 @@
-name: Merged Build (Debug)
+name: On-Demand Release Build
 
 on:
-  push:
-    branches: [ "**" ]
-  pull_request:
-    branches: [ "main" ]
   workflow_dispatch:
 
-# ⚡ Concurrency: Cancels the entire job if a new push comes in.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  build-debug:
+  build-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -80,13 +71,34 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build Debug with Gradle
+      - name: Decode Keystore
+        env:
+          KEYSTORE_PRIVATE: ${{ secrets.KEYSTORE_PRIVATE }}
+        run: |
+          if [ -n "$KEYSTORE_PRIVATE" ]; then
+            # Attempt to decode. Using -i to ignore garbage (e.g. newlines)
+            if echo "$KEYSTORE_PRIVATE" | base64 -d -i > app/release.keystore 2>/dev/null; then
+               echo "Keystore decoded successfully."
+            else
+               echo "Warning: Keystore decoding failed. Proceeding with unsigned build."
+               rm -f app/release.keystore
+            fi
+          else
+            echo "KEYSTORE_PRIVATE secret not found. Skipping."
+          fi
+
+      - name: Build with Gradle
         id: gradle-build
+        env:
+          KEYSTORE_PATH: release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           set +e
           
-          # Build the Debug APK (Universal)
-          ./gradlew assembleDebug -PversionCode=$BUILD_NUMBER -PversionName=$VERSION_NAME --build-cache > build.log 2>&1
+          # Build the Release APK
+          ./gradlew assembleRelease -PversionCode=$BUILD_NUMBER -PversionName=$VERSION_NAME --build-cache > build.log 2>&1
           
           EXIT_CODE=$?
           echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
@@ -112,7 +124,7 @@ jobs:
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                title: `Build Failure on ${context.eventName === 'pull_request' ? 'PR #' + context.issue.number : context.ref}`,
+                title: `Release Build Failure on ${context.ref}`,
                 body: `@${assignee} /jules debug this build error\n\n**Log:**\n\`\`\`\n${logTail}\n\`\`\``,
                 labels: ['jules', 'bug'],
                 assignees: [assignee]
@@ -122,20 +134,20 @@ jobs:
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                title: `Build Failure on ${context.eventName === 'pull_request' ? 'PR #' + context.issue.number : context.ref}`,
+                title: `Release Build Failure on ${context.ref}`,
                 body: `@${assignee} /jules debug this build error\n\n**Log:**\n\`\`\`\n${logTail}\n\`\`\``,
                 labels: ['jules', 'bug']
               });
             }
 
       # ------------------------------------------------------------------
-      # RELEASE STEPS (Only run on PUSH, not Pull Requests)
+      # RELEASE STEPS
       # ------------------------------------------------------------------
       - name: Prepare Release Variables
-        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: success()
         id: release_vars
         run: |
-          TAG_NAME="latest-debug-v${MAJOR}.${MINOR}"
+          TAG_NAME="latest-release-v${MAJOR}.${MINOR}"
           
           # Dynamic App Name from settings.gradle
           if [ -f "settings.gradle.kts" ]; then
@@ -146,8 +158,8 @@ jobs:
              APP_NAME="App"
           fi
           
-          # Locate built Debug APK
-          APK_ORIGINAL=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+          # Locate built APK
+          APK_ORIGINAL=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
           
           if [ -z "$APK_ORIGINAL" ]; then
              echo "Error: No APK found to release!"
@@ -155,7 +167,7 @@ jobs:
           fi
 
           # Use static name to allow overwriting (clobbering) the existing asset
-          TARGET_NAME="${APP_NAME}-${VERSION_NAME}-debug.apk"
+          TARGET_NAME="${APP_NAME}-${VERSION_NAME}-release.apk"
           
           # Rename for release
           mv "$APK_ORIGINAL" "$TARGET_NAME"
@@ -170,7 +182,7 @@ jobs:
           cd build_tools_package && zip -r ../build-tools.zip . && cd ..
 
       - name: Publish Release
-        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: success()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -178,7 +190,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           # Force update tag to point to current commit
-          git tag -fa $TAG_NAME -m "Latest Debug Build"
+          git tag -fa $TAG_NAME -m "Latest Release Build"
           git push origin $TAG_NAME --force
 
           BUILD_TOOLS="build-tools.zip"
@@ -186,17 +198,17 @@ jobs:
           # Check if release exists
           if gh release view $TAG_NAME > /dev/null 2>&1; then
              echo "Updating existing release..."
-             gh release edit $TAG_NAME --prerelease \
-               --title "Latest Debug Build ($TAG_NAME)" \
-               --notes "Auto-build from commit $GITHUB_SHA" \
+             gh release edit $TAG_NAME --prerelease=false \
+               --title "Latest Release Build ($TAG_NAME)" \
+               --notes "Manual release build from commit $GITHUB_SHA" \
                --target $GITHUB_SHA
              gh release upload $TAG_NAME "$APK_FILE" --clobber
              [ -f "$BUILD_TOOLS" ] && gh release upload $TAG_NAME "$BUILD_TOOLS" --clobber
           else
              echo "Creating new release..."
-             gh release create $TAG_NAME "$APK_FILE" --prerelease \
-               --title "Latest Debug Build ($TAG_NAME)" \
-               --notes "Auto-build from commit $GITHUB_SHA" \
+             gh release create $TAG_NAME "$APK_FILE" \
+               --title "Latest Release Build ($TAG_NAME)" \
+               --notes "Manual release build from commit $GITHUB_SHA" \
                --target $GITHUB_SHA
              [ -f "$BUILD_TOOLS" ] && gh release upload $TAG_NAME "$BUILD_TOOLS" --clobber
           fi
