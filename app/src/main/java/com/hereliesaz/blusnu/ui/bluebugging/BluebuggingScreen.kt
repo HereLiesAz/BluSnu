@@ -51,7 +51,7 @@ fun BluebuggingScreen(viewModel: BluebuggingViewModel) {
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Text("Bluebugging", style = MaterialTheme.typography.headlineSmall)
+        Text("Bluebugging", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         // Finding 8.8: Removed false "Requires root." claim.
         // Finding 8.9: Rewritten to accurately describe implemented AT commands.
         Text(

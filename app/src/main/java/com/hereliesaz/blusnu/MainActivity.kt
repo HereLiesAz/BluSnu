@@ -107,6 +107,69 @@ import com.hereliesaz.blusnu.ui.hid.HidScreen
 import com.hereliesaz.blusnu.ui.hid.HidViewModel
 import com.hereliesaz.blusnu.ui.spoofing.SpoofingScreen
 import com.hereliesaz.blusnu.ui.spoofing.SpoofingViewModel
+import com.hereliesaz.blusnu.data.Esp32HciModule
+import com.hereliesaz.blusnu.data.InjectableModule
+import com.hereliesaz.blusnu.data.LmpFuzzingModule
+import com.hereliesaz.blusnu.data.RfJammingModule
+import com.hereliesaz.blusnu.data.ScreamingChannelsModule
+import com.hereliesaz.blusnu.data.SniffleModule
+import com.hereliesaz.blusnu.data.SweynToothModule
+import com.hereliesaz.blusnu.ui.androidbtrce.AndroidBtRceScreen
+import com.hereliesaz.blusnu.ui.androidbtrce.AndroidBtRceViewModel
+import com.hereliesaz.blusnu.ui.badbluetooth.BadBluetoothScreen
+import com.hereliesaz.blusnu.ui.badbluetooth.BadBluetoothViewModel
+import com.hereliesaz.blusnu.ui.batteryexhaustion.BatteryExhaustionScreen
+import com.hereliesaz.blusnu.ui.batteryexhaustion.BatteryExhaustionViewModel
+import com.hereliesaz.blusnu.ui.bias.BiasScreen
+import com.hereliesaz.blusnu.ui.bias.BiasViewModel
+import com.hereliesaz.blusnu.ui.blesa.BlesaScreen
+import com.hereliesaz.blusnu.ui.blesa.BlesaViewModel
+import com.hereliesaz.blusnu.ui.bletracking.BleTrackingScreen
+import com.hereliesaz.blusnu.ui.bletracking.BleTrackingViewModel
+import com.hereliesaz.blusnu.ui.blewhisperer.BleWhispererScreen
+import com.hereliesaz.blusnu.ui.blewhisperer.BleWhispererViewModel
+import com.hereliesaz.blusnu.ui.blueborne.BlueBorneScreen
+import com.hereliesaz.blusnu.ui.blueborne.BlueBorneViewModel
+import com.hereliesaz.blusnu.ui.bluefrag.BlueFragScreen
+import com.hereliesaz.blusnu.ui.bluefrag.BlueFragViewModel
+import com.hereliesaz.blusnu.ui.bluespy.BlueSpyScreen
+import com.hereliesaz.blusnu.ui.bluespy.BlueSpyViewModel
+import com.hereliesaz.blusnu.ui.bluetrust.BlueTrustScreen
+import com.hereliesaz.blusnu.ui.bluetrust.BlueTrustViewModel
+import com.hereliesaz.blusnu.ui.blur.BlurScreen
+import com.hereliesaz.blusnu.ui.blur.BlurViewModel
+import com.hereliesaz.blusnu.ui.breaktooth.BreaktoothScreen
+import com.hereliesaz.blusnu.ui.breaktooth.BreaktoothViewModel
+import com.hereliesaz.blusnu.ui.esp32hci.Esp32HciScreen
+import com.hereliesaz.blusnu.ui.esp32hci.Esp32HciViewModel
+import com.hereliesaz.blusnu.ui.injectable.InjectableScreen
+import com.hereliesaz.blusnu.ui.injectable.InjectableViewModel
+import com.hereliesaz.blusnu.ui.knob.KnobScreen
+import com.hereliesaz.blusnu.ui.knob.KnobViewModel
+import com.hereliesaz.blusnu.ui.knobble.KnobBleScreen
+import com.hereliesaz.blusnu.ui.knobble.KnobBleViewModel
+import com.hereliesaz.blusnu.ui.l2capfuzzing.L2capFuzzingScreen
+import com.hereliesaz.blusnu.ui.l2capfuzzing.L2capFuzzingViewModel
+import com.hereliesaz.blusnu.ui.lmpfuzzing.LmpFuzzingScreen
+import com.hereliesaz.blusnu.ui.lmpfuzzing.LmpFuzzingViewModel
+import com.hereliesaz.blusnu.ui.meshprovisioning.MeshProvisioningScreen
+import com.hereliesaz.blusnu.ui.meshprovisioning.MeshProvisioningViewModel
+import com.hereliesaz.blusnu.ui.methodconfusion.MethodConfusionScreen
+import com.hereliesaz.blusnu.ui.methodconfusion.MethodConfusionViewModel
+import com.hereliesaz.blusnu.ui.nroottag.NRootTagScreen
+import com.hereliesaz.blusnu.ui.nroottag.NRootTagViewModel
+import com.hereliesaz.blusnu.ui.passkeyreflection.PasskeyReflectionScreen
+import com.hereliesaz.blusnu.ui.passkeyreflection.PasskeyReflectionViewModel
+import com.hereliesaz.blusnu.ui.rfjamming.RfJammingScreen
+import com.hereliesaz.blusnu.ui.rfjamming.RfJammingViewModel
+import com.hereliesaz.blusnu.ui.screamingchannels.ScreamingChannelsScreen
+import com.hereliesaz.blusnu.ui.screamingchannels.ScreamingChannelsViewModel
+import com.hereliesaz.blusnu.ui.sniffle.SniffleScreen
+import com.hereliesaz.blusnu.ui.sniffle.SniffleViewModel
+import com.hereliesaz.blusnu.ui.stealtooth.StealtoothScreen
+import com.hereliesaz.blusnu.ui.stealtooth.StealtoothViewModel
+import com.hereliesaz.blusnu.ui.sweyntooth.SweynToothScreen
+import com.hereliesaz.blusnu.ui.sweyntooth.SweynToothViewModel
 import com.hereliesaz.blusnu.ui.theme.BluSnuTheme
 import android.bluetooth.BluetoothManager
 import android.content.Intent
@@ -234,6 +297,97 @@ class MainActivity : ComponentActivity() {
                     modelClass.isAssignableFrom(SmpBypassViewModel::class.java) -> {
                         SmpBypassViewModel(application, deviceRepository) as T
                     }
+                    modelClass.isAssignableFrom(AndroidBtRceViewModel::class.java) -> {
+                        AndroidBtRceViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(BadBluetoothViewModel::class.java) -> {
+                        BadBluetoothViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(BatteryExhaustionViewModel::class.java) -> {
+                        BatteryExhaustionViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(BiasViewModel::class.java) -> {
+                        BiasViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(BlesaViewModel::class.java) -> {
+                        BlesaViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(BleTrackingViewModel::class.java) -> {
+                        BleTrackingViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(BleWhispererViewModel::class.java) -> {
+                        BleWhispererViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(BlueBorneViewModel::class.java) -> {
+                        BlueBorneViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(BlueFragViewModel::class.java) -> {
+                        BlueFragViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(BlueSpyViewModel::class.java) -> {
+                        BlueSpyViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(BlueTrustViewModel::class.java) -> {
+                        BlueTrustViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(BlurViewModel::class.java) -> {
+                        BlurViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(BreaktoothViewModel::class.java) -> {
+                        BreaktoothViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(Esp32HciViewModel::class.java) -> {
+                        val esp32HciModule = Esp32HciModule(hardwareManager)
+                        Esp32HciViewModel(application, hardwareManager, esp32HciModule, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(InjectableViewModel::class.java) -> {
+                        val injectableModule = InjectableModule(hardwareManager)
+                        InjectableViewModel(application, hardwareManager, injectableModule, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(KnobViewModel::class.java) -> {
+                        KnobViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(KnobBleViewModel::class.java) -> {
+                        KnobBleViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(L2capFuzzingViewModel::class.java) -> {
+                        L2capFuzzingViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(LmpFuzzingViewModel::class.java) -> {
+                        val lmpFuzzingModule = LmpFuzzingModule(hardwareManager)
+                        LmpFuzzingViewModel(application, deviceRepository, lmpFuzzingModule) as T
+                    }
+                    modelClass.isAssignableFrom(MeshProvisioningViewModel::class.java) -> {
+                        MeshProvisioningViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(MethodConfusionViewModel::class.java) -> {
+                        MethodConfusionViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(NRootTagViewModel::class.java) -> {
+                        NRootTagViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(PasskeyReflectionViewModel::class.java) -> {
+                        PasskeyReflectionViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(RfJammingViewModel::class.java) -> {
+                        val rfJammingModule = RfJammingModule(hardwareManager)
+                        RfJammingViewModel(application, hardwareManager, rfJammingModule, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(ScreamingChannelsViewModel::class.java) -> {
+                        val screamingChannelsModule = ScreamingChannelsModule(hardwareManager)
+                        ScreamingChannelsViewModel(application, hardwareManager, screamingChannelsModule, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(SniffleViewModel::class.java) -> {
+                        val sniffleModule = SniffleModule(hardwareManager)
+                        SniffleViewModel(application, hardwareManager, sniffleModule, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(StealtoothViewModel::class.java) -> {
+                        StealtoothViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(SweynToothViewModel::class.java) -> {
+                        val sweynToothModule = SweynToothModule(hardwareManager)
+                        SweynToothViewModel(application, hardwareManager, sweynToothModule, deviceRepository) as T
+                    }
                     else -> throw IllegalArgumentException("Unknown ViewModel class")
                 }
             }
@@ -349,6 +503,14 @@ class MainActivity : ComponentActivity() {
                         azRailItem(id = "bluffs", text = "BLUFFS", route = "bluffs")
                         azRailItem(id = "braktooth", text = "BrakTooth", route = "braktooth")
                         azRailItem(id = "perfektblue", text = "PerfektBlue", route = "perfektblue")
+                        azRailItem(id = "knob", text = "KNOB", route = "knob")
+                        azRailItem(id = "bias", text = "BIAS", route = "bias")
+                        azRailItem(id = "methodconfusion", text = "Confusion", route = "methodconfusion")
+                        azRailItem(id = "bluespy", text = "BlueSpy", route = "bluespy")
+                        azRailItem(id = "stealtooth", text = "Stealtooth", route = "stealtooth")
+                        azRailItem(id = "bluetrust", text = "BlueTrust", route = "bluetrust")
+                        azRailItem(id = "lmpfuzzing", text = "LMP Fuzz", route = "lmpfuzzing")
+                        azRailItem(id = "passkeyreflection", text = "Passkey", route = "passkeyreflection")
                         azDivider()
 
                         // -- BLE Attacks --
@@ -358,6 +520,32 @@ class MainActivity : ComponentActivity() {
                         azRailItem(id = "smpbypass", text = "SMP Audit", route = "smpbypass")
                         azRailItem(id = "btlejacking", text = "BtleJacking", route = "btlejacking")
                         azRailItem(id = "btlejuice", text = "BtleJuice", route = "btlejuice")
+                        azRailItem(id = "blesa", text = "BLESA", route = "blesa")
+                        azRailItem(id = "knobble", text = "KNOB-BLE", route = "knobble")
+                        azRailItem(id = "badbluetooth", text = "BadBT", route = "badbluetooth")
+                        azRailItem(id = "blewhisperer", text = "Whisperer", route = "blewhisperer")
+                        azRailItem(id = "meshprovisioning", text = "Mesh", route = "meshprovisioning")
+                        azRailItem(id = "blur", text = "BLUR", route = "blur")
+                        azRailItem(id = "bletracking", text = "Tracking", route = "bletracking")
+                        azRailItem(id = "nroottag", text = "nRootTag", route = "nroottag")
+                        azRailItem(id = "batteryexhaustion", text = "Battery", route = "batteryexhaustion")
+                        azRailItem(id = "l2capfuzzing", text = "L2CAP Fuzz", route = "l2capfuzzing")
+                        azRailItem(id = "breaktooth", text = "Breaktooth", route = "breaktooth")
+                        azDivider()
+
+                        // -- External Hardware --
+                        azRailItem(id = "sniffle", text = "Sniffle", route = "sniffle")
+                        azRailItem(id = "injectable", text = "InjectaBLE", route = "injectable")
+                        azRailItem(id = "sweyntooth", text = "SweynTooth", route = "sweyntooth")
+                        azRailItem(id = "rfjamming", text = "RF Jam", route = "rfjamming")
+                        azRailItem(id = "screamingchannels", text = "Screaming", route = "screamingchannels")
+                        azRailItem(id = "esp32hci", text = "ESP32 HCI", route = "esp32hci")
+                        azDivider()
+
+                        // -- Legacy --
+                        azRailItem(id = "blueborne", text = "BlueBorne", route = "blueborne")
+                        azRailItem(id = "bluefrag", text = "BlueFrag", route = "bluefrag")
+                        azRailItem(id = "androidbtrce", text = "BT RCE", route = "androidbtrce")
                         azDivider()
 
                         // -- Tools --
@@ -564,6 +752,118 @@ class MainActivity : ComponentActivity() {
                                 composable("file_transfer") {
                                     val viewModel: FileTransferViewModel = viewModel(factory = viewModelFactory)
                                     FileTransferScreen(viewModel = viewModel)
+                                }
+                                composable("knob") {
+                                    val viewModel: KnobViewModel = viewModel(factory = viewModelFactory)
+                                    KnobScreen(viewModel = viewModel)
+                                }
+                                composable("bias") {
+                                    val viewModel: BiasViewModel = viewModel(factory = viewModelFactory)
+                                    BiasScreen(viewModel = viewModel)
+                                }
+                                composable("methodconfusion") {
+                                    val viewModel: MethodConfusionViewModel = viewModel(factory = viewModelFactory)
+                                    MethodConfusionScreen(viewModel = viewModel)
+                                }
+                                composable("bluespy") {
+                                    val viewModel: BlueSpyViewModel = viewModel(factory = viewModelFactory)
+                                    BlueSpyScreen(viewModel = viewModel)
+                                }
+                                composable("stealtooth") {
+                                    val viewModel: StealtoothViewModel = viewModel(factory = viewModelFactory)
+                                    StealtoothScreen(viewModel = viewModel)
+                                }
+                                composable("bluetrust") {
+                                    val viewModel: BlueTrustViewModel = viewModel(factory = viewModelFactory)
+                                    BlueTrustScreen(viewModel = viewModel)
+                                }
+                                composable("lmpfuzzing") {
+                                    val viewModel: LmpFuzzingViewModel = viewModel(factory = viewModelFactory)
+                                    LmpFuzzingScreen(viewModel = viewModel)
+                                }
+                                composable("passkeyreflection") {
+                                    val viewModel: PasskeyReflectionViewModel = viewModel(factory = viewModelFactory)
+                                    PasskeyReflectionScreen(viewModel = viewModel)
+                                }
+                                composable("blesa") {
+                                    val viewModel: BlesaViewModel = viewModel(factory = viewModelFactory)
+                                    BlesaScreen(viewModel = viewModel)
+                                }
+                                composable("knobble") {
+                                    val viewModel: KnobBleViewModel = viewModel(factory = viewModelFactory)
+                                    KnobBleScreen(viewModel = viewModel)
+                                }
+                                composable("badbluetooth") {
+                                    val viewModel: BadBluetoothViewModel = viewModel(factory = viewModelFactory)
+                                    BadBluetoothScreen(viewModel = viewModel)
+                                }
+                                composable("blewhisperer") {
+                                    val viewModel: BleWhispererViewModel = viewModel(factory = viewModelFactory)
+                                    BleWhispererScreen(viewModel = viewModel)
+                                }
+                                composable("meshprovisioning") {
+                                    val viewModel: MeshProvisioningViewModel = viewModel(factory = viewModelFactory)
+                                    MeshProvisioningScreen(viewModel = viewModel)
+                                }
+                                composable("blur") {
+                                    val viewModel: BlurViewModel = viewModel(factory = viewModelFactory)
+                                    BlurScreen(viewModel = viewModel)
+                                }
+                                composable("bletracking") {
+                                    val viewModel: BleTrackingViewModel = viewModel(factory = viewModelFactory)
+                                    BleTrackingScreen(viewModel = viewModel)
+                                }
+                                composable("nroottag") {
+                                    val viewModel: NRootTagViewModel = viewModel(factory = viewModelFactory)
+                                    NRootTagScreen(viewModel = viewModel)
+                                }
+                                composable("batteryexhaustion") {
+                                    val viewModel: BatteryExhaustionViewModel = viewModel(factory = viewModelFactory)
+                                    BatteryExhaustionScreen(viewModel = viewModel)
+                                }
+                                composable("l2capfuzzing") {
+                                    val viewModel: L2capFuzzingViewModel = viewModel(factory = viewModelFactory)
+                                    L2capFuzzingScreen(viewModel = viewModel)
+                                }
+                                composable("breaktooth") {
+                                    val viewModel: BreaktoothViewModel = viewModel(factory = viewModelFactory)
+                                    BreaktoothScreen(viewModel = viewModel)
+                                }
+                                composable("sniffle") {
+                                    val viewModel: SniffleViewModel = viewModel(factory = viewModelFactory)
+                                    SniffleScreen(viewModel = viewModel)
+                                }
+                                composable("injectable") {
+                                    val viewModel: InjectableViewModel = viewModel(factory = viewModelFactory)
+                                    InjectableScreen(viewModel = viewModel)
+                                }
+                                composable("sweyntooth") {
+                                    val viewModel: SweynToothViewModel = viewModel(factory = viewModelFactory)
+                                    SweynToothScreen(viewModel = viewModel)
+                                }
+                                composable("rfjamming") {
+                                    val viewModel: RfJammingViewModel = viewModel(factory = viewModelFactory)
+                                    RfJammingScreen(viewModel = viewModel)
+                                }
+                                composable("screamingchannels") {
+                                    val viewModel: ScreamingChannelsViewModel = viewModel(factory = viewModelFactory)
+                                    ScreamingChannelsScreen(viewModel = viewModel)
+                                }
+                                composable("esp32hci") {
+                                    val viewModel: Esp32HciViewModel = viewModel(factory = viewModelFactory)
+                                    Esp32HciScreen(viewModel = viewModel)
+                                }
+                                composable("blueborne") {
+                                    val viewModel: BlueBorneViewModel = viewModel(factory = viewModelFactory)
+                                    BlueBorneScreen(viewModel = viewModel)
+                                }
+                                composable("bluefrag") {
+                                    val viewModel: BlueFragViewModel = viewModel(factory = viewModelFactory)
+                                    BlueFragScreen(viewModel = viewModel)
+                                }
+                                composable("androidbtrce") {
+                                    val viewModel: AndroidBtRceViewModel = viewModel(factory = viewModelFactory)
+                                    AndroidBtRceScreen(viewModel = viewModel)
                                 }
                             }
                         }

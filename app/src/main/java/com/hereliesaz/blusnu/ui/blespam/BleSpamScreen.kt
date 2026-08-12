@@ -62,7 +62,8 @@ fun BleSpamScreen(viewModel: BleSpamViewModel) {
             // Header.
             Text(
                 text = "BLE Spam (Advertisement Flooding)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             // Warning text.
             Text(

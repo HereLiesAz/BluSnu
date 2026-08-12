@@ -59,7 +59,8 @@ fun GattRelayScreen(viewModel: GattRelayViewModel) {
             // Header.
             Text(
                 text = "GATT Relay (PKES Attack)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Relays GATT messages between a vehicle and a phone via two attacking devices (Node A and Node B).",

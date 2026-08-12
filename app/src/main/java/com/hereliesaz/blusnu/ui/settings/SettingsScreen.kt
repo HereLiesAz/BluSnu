@@ -45,7 +45,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Text("Settings", style = MaterialTheme.typography.headlineSmall)
+        Text("Settings", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(16.dp))
 
         // Database updates.

@@ -63,7 +63,7 @@ fun BluetoothLogScreen(viewModel: BluetoothLogViewModel) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("Bluetooth Log", style = MaterialTheme.typography.headlineSmall)
+        Text("Bluetooth Log", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(8.dp))
 
         // Device picker dropdown so the user can select which device's log to view.

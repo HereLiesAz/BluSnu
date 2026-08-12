@@ -71,7 +71,8 @@ fun BrakToothScreen(viewModel: BrakToothViewModel) {
         ) {
             Text(
                 text = "BrakTooth Fuzzer (ESP32)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Requires dedicated ESP32 dongle flashed with BrakTooth firmware connected via USB-OTG.",

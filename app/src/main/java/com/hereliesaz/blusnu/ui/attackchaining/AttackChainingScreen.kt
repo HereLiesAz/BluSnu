@@ -125,6 +125,7 @@ fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
         Text(
             "Attack Chaining",
             style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -468,7 +469,8 @@ fun AttackChainingScreen(viewModel: AttackChainingViewModel) {
                                 }
                                 Text(
                                     "Attack Chain Editor",
-                                    style = MaterialTheme.typography.headlineSmall
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(

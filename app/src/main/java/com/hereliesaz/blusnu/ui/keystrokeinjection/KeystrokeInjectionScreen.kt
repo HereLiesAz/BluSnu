@@ -49,7 +49,7 @@ fun KeystrokeInjectionScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("Keystroke Injection", style = MaterialTheme.typography.headlineSmall)
+        Text("Keystroke Injection", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         Text(
             "Attempt silent Bluetooth pairing and inject keystrokes to the target device. For real HID keyboard/touchpad, use the HID screen instead.",
             style = MaterialTheme.typography.bodyMedium,

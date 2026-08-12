@@ -69,7 +69,8 @@ fun PerfektBlueScreen(viewModel: PerfektBlueViewModel) {
             // Header.
             Text(
                 text = "PerfektBlue (Automotive RCE)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Audits In-Vehicle Infotainment (IVI) systems for vulnerabilities in PBAP and AVRCP implementations.",

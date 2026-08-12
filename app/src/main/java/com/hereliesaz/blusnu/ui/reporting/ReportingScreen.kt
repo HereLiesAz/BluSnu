@@ -64,7 +64,7 @@ fun ReportingScreen(viewModel: ReportingViewModel = viewModel()) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("Reporting", style = MaterialTheme.typography.headlineSmall)
+        Text("Reporting", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         Text(
             "View logged actions and export a report as Markdown or JSON.",
             style = MaterialTheme.typography.bodyMedium,

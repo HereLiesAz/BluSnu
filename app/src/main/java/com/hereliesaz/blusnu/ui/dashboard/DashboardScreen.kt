@@ -52,7 +52,7 @@ fun DashboardScreen(
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Text("Dashboard", style = MaterialTheme.typography.headlineSmall)
+        Text("Dashboard", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(16.dp))
 
         // Device Counters

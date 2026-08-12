@@ -71,7 +71,8 @@ fun BluffsScreen(viewModel: BluffsViewModel) {
             // Header.
             Text(
                 text = "BLUFFS (CVE-2023-24023) Attack",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Attempts to downgrade Bluetooth Classic session key security using LMP manipulation.",

@@ -48,7 +48,7 @@ fun BtlejackingScreen(viewModel: BtlejackingViewModel) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("BtleJacking", style = MaterialTheme.typography.headlineSmall)
+        Text("BtleJacking", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         Text(
             "Sniff, jam, and hijack BLE connections. Requires external Btlejack hardware (nRF51-based sniffer).",
             style = MaterialTheme.typography.bodyMedium,

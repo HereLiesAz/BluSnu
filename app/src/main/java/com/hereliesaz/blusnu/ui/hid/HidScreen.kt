@@ -72,7 +72,7 @@ fun HidScreen(viewModel: HidViewModel) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("HID Controller", style = MaterialTheme.typography.headlineSmall)
+        Text("HID Controller", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         Text(
             "Shows paired Bluetooth devices. Pair via system Settings first.",
             style = MaterialTheme.typography.bodySmall,
