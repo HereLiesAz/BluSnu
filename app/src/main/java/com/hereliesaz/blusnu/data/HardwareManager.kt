@@ -1,6 +1,11 @@
 package com.hereliesaz.blusnu.data
 
+import android.content.Context
+import android.hardware.usb.UsbManager
 import android.util.Log
+import com.hoho.android.usbserial.driver.UsbSerialDriver
+import com.hoho.android.usbserial.driver.UsbSerialPort
+import com.hoho.android.usbserial.driver.UsbSerialProber
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -9,127 +14,201 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.IOException
 
-/**
- * Enumeration of possible states for external hardware connections.
- */
 enum class HardwareState {
     DISCONNECTED,
     CONNECTING,
-    CONNECTED_BTLEJACK, // Specifically connected to a BtleJack sniffer
-    CONNECTED_DUAL,     // Connected to both BtleJack and a secondary USB dongle
+    CONNECTED_BTLEJACK,
+    CONNECTED_DUAL,
     CONNECTION_FAILED
 }
 
-/**
- * Manages connections to external hardware peripherals via USB-OTG or Serial.
- *
- * <p>
- * Blu Snu supports external hardware to perform attacks not possible with standard Android radios:
- * 1. <b>BtleJack (Micro:bit):</b> For sniffing and connection jamming.
- * 2. <b>USB Dongles (e.g., CSR8510, RTL8761B):</b> For promiscuous mode and dual-antenna direction finding.
- * </p>
- *
- * This class abstracts the serial communication (usually via UsbSerial library) and state management.
- * Currently, it simulates these interactions for demonstration purposes.
- */
-class HardwareManager {
+class HardwareManager(private val context: Context) {
 
-    // StateFlows for UI observability
+    companion object {
+        private const val TAG = "HardwareManager"
+        private const val BAUD_RATE = 115200
+        private const val READ_TIMEOUT_MS = 1000
+        private const val READ_BUFFER_SIZE = 4096
+    }
+
     private val _hardwareState = MutableStateFlow(HardwareState.DISCONNECTED)
     val hardwareState = _hardwareState.asStateFlow()
 
-    // SharedFlow for a stream of log messages (Console output)
-    private val _deviceLogs = MutableSharedFlow<String>()
+    private val _deviceLogs = MutableSharedFlow<String>(extraBufferCapacity = 64)
     val deviceLogs = _deviceLogs.asSharedFlow()
 
-    // Dedicated scope for I/O operations to prevent blocking the Main Thread
     private val scope = CoroutineScope(Dispatchers.IO + Job())
 
-    /**
-     * Initiates connection to the primary BtleJack device.
-     */
+    private var primaryPort: UsbSerialPort? = null
+    private var secondaryPort: UsbSerialPort? = null
+    private var readJob: Job? = null
+
     fun connect() {
         scope.launch {
             _hardwareState.value = HardwareState.CONNECTING
-            log("Connecting to BtleJack...")
+            log("Scanning for USB serial devices...")
 
-            // Simulation: Delay mimics USB handshake and baud rate negotiation
-            delay(2000)
+            val usbManager = context.getSystemService(Context.USB_SERVICE) as UsbManager
+            val availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)
 
-            _hardwareState.value = HardwareState.CONNECTED_BTLEJACK
-            log("Connected to BtleJack MkII.")
-            log("Firmware version: 1.3.3.7")
-        }
-    }
-
-    /**
-     * Connects a secondary USB dongle for Dual-Antenna operations.
-     * Required for high-precision RSSI Triangulation (Diversity Reception).
-     */
-    fun connectDual() {
-        scope.launch {
-            // Prerequisite: Primary hardware must be connected first (controller).
-            if (_hardwareState.value != HardwareState.CONNECTED_BTLEJACK) {
-                log("BtleJack must be connected first.")
+            if (availableDrivers.isEmpty()) {
+                _hardwareState.value = HardwareState.CONNECTION_FAILED
+                log("No USB serial devices found. Connect BtleJack via USB-OTG.")
                 return@launch
             }
-            log("Connecting secondary USB BLE dongle...")
 
-            // Simulate USB connection delay.
-            delay(1500)
+            val driver = availableDrivers[0]
+            val connection = usbManager.openDevice(driver.device)
+            if (connection == null) {
+                _hardwareState.value = HardwareState.CONNECTION_FAILED
+                log("USB permission denied. Grant USB access and retry.")
+                return@launch
+            }
 
-            _hardwareState.value = HardwareState.CONNECTED_DUAL
-            log("Connected to Realtek RTL8761B.")
+            try {
+                val port = driver.ports[0]
+                port.open(connection)
+                port.setParameters(BAUD_RATE, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
+                primaryPort = port
+
+                _hardwareState.value = HardwareState.CONNECTED_BTLEJACK
+
+                // Query firmware version
+                sendCommandInternal(port, "version")
+                val versionResponse = readResponse(port)
+                log("Connected to BtleJack device.")
+                if (versionResponse.isNotBlank()) {
+                    log("Firmware: $versionResponse")
+                }
+
+                startReadLoop(port)
+            } catch (e: IOException) {
+                _hardwareState.value = HardwareState.CONNECTION_FAILED
+                log("Connection failed: ${e.message}")
+            }
         }
     }
 
-    /**
-     * Closes all external connections.
-     */
+    fun connectDual() {
+        scope.launch {
+            if (_hardwareState.value != HardwareState.CONNECTED_BTLEJACK) {
+                log("Primary device must be connected first.")
+                return@launch
+            }
+
+            val usbManager = context.getSystemService(Context.USB_SERVICE) as UsbManager
+            val availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)
+
+            if (availableDrivers.size < 2) {
+                log("Second USB device not found. Connect a secondary BLE dongle.")
+                return@launch
+            }
+
+            val driver = availableDrivers[1]
+            val connection = usbManager.openDevice(driver.device)
+            if (connection == null) {
+                log("USB permission denied for secondary device.")
+                return@launch
+            }
+
+            try {
+                val port = driver.ports[0]
+                port.open(connection)
+                port.setParameters(BAUD_RATE, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
+                secondaryPort = port
+
+                _hardwareState.value = HardwareState.CONNECTED_DUAL
+                log("Secondary USB dongle connected.")
+            } catch (e: IOException) {
+                log("Secondary connection failed: ${e.message}")
+            }
+        }
+    }
+
     fun disconnect() {
         scope.launch {
+            readJob?.cancel()
+            readJob = null
+            try { primaryPort?.close() } catch (_: IOException) {}
+            try { secondaryPort?.close() } catch (_: IOException) {}
+            primaryPort = null
+            secondaryPort = null
             _hardwareState.value = HardwareState.DISCONNECTED
             log("Disconnected from external hardware.")
         }
     }
 
-    /**
-     * Sends a raw command string to the connected hardware.
-     * @param command The command (e.g., "STOP", "JAM 0x1234").
-     */
     fun sendCommand(command: String) {
-        log("CMD > $command")
-        // TODO: Integrate UsbSerial library here to write to the output stream.
+        val port = primaryPort
+        if (port == null) {
+            log("No device connected. Cannot send: $command")
+            return
+        }
+        scope.launch {
+            log("CMD > $command")
+            try {
+                sendCommandInternal(port, command)
+            } catch (e: IOException) {
+                log("Write error: ${e.message}")
+            }
+        }
     }
 
-    /**
-     * Reads the RSSI from the secondary hardware for a specific MAC address.
-     *
-     * <p>
-     * <b>Physics Note:</b> By comparing RSSI from the internal phone antenna and an external directional antenna,
-     * we can determine directionality much more accurately than with a single omni-directional antenna.
-     * </p>
-     *
-     * @param macAddress The target to query.
-     * @return The simulated RSSI value (e.g., -55) or null if not found.
-     */
     fun getSecondaryRssi(macAddress: String): Int? {
-        if (_hardwareState.value != HardwareState.CONNECTED_DUAL) return null
-
-        // Simulation: Return a random RSSI in a realistic range.
-        // In production, this would parse the HCI Event or Serial output from the dongle.
-        return ((-90..-40).random())
+        val port = secondaryPort ?: return null
+        return try {
+            sendCommandInternal(port, "rssi $macAddress")
+            val response = readResponse(port)
+            response.trim().toIntOrNull()
+        } catch (e: IOException) {
+            Log.e(TAG, "Failed to read secondary RSSI", e)
+            null
+        }
     }
 
-    /**
-     * Internal helper to log messages to the [deviceLogs] flow.
-     */
+    private fun sendCommandInternal(port: UsbSerialPort, command: String) {
+        val data = "$command\r\n".toByteArray()
+        port.write(data, READ_TIMEOUT_MS)
+    }
+
+    private fun readResponse(port: UsbSerialPort): String {
+        val buffer = ByteArray(READ_BUFFER_SIZE)
+        val bytesRead = port.read(buffer, READ_TIMEOUT_MS)
+        return if (bytesRead > 0) String(buffer, 0, bytesRead).trim() else ""
+    }
+
+    private fun startReadLoop(port: UsbSerialPort) {
+        readJob = scope.launch {
+            val buffer = ByteArray(READ_BUFFER_SIZE)
+            while (isActive) {
+                try {
+                    val bytesRead = port.read(buffer, READ_TIMEOUT_MS)
+                    if (bytesRead > 0) {
+                        val line = String(buffer, 0, bytesRead).trim()
+                        if (line.isNotEmpty()) {
+                            log("< $line")
+                        }
+                    }
+                } catch (e: IOException) {
+                    if (isActive) {
+                        log("Read error: ${e.message}")
+                        _hardwareState.value = HardwareState.CONNECTION_FAILED
+                        break
+                    }
+                }
+            }
+        }
+    }
+
     private fun log(message: String) {
         scope.launch {
             _deviceLogs.emit(message)
-            Log.d("HardwareManager", message)
+            Log.d(TAG, message)
         }
     }
 }

@@ -2,6 +2,13 @@ package com.hereliesaz.blusnu.ui.reporting
 
 import android.app.Application
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import com.hereliesaz.blusnu.data.ActionLogger
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -10,25 +17,28 @@ import org.junit.Rule
 import org.junit.Test
 import org.mockito.kotlin.mock
 
-/**
- * Tests for the surviving reporting implementation ([ReportingViewModel]).
- *
- * The previous dead `ui/report/ReportViewModel` was removed; this test targets the wired
- * ViewModel instead. It exercises the stable [ReportingViewModel.generateMarkdownReport]
- * API and the action-log accumulation that feeds it.
- */
+@OptIn(ExperimentalCoroutinesApi::class)
 class ReportingViewModelTest {
 
     @get:Rule
     val instantTaskExecutorRule = InstantTaskExecutorRule()
 
+    private val testDispatcher = UnconfinedTestDispatcher()
     private lateinit var viewModel: ReportingViewModel
     private lateinit var application: Application
 
     @Before
     fun setup() {
+        Dispatchers.setMain(testDispatcher)
+        ActionLogger.clearLogs()
         application = mock()
         viewModel = ReportingViewModel(application)
+    }
+
+    @After
+    fun tearDown() {
+        ActionLogger.clearLogs()
+        Dispatchers.resetMain()
     }
 
     @Test
@@ -37,7 +47,6 @@ class ReportingViewModelTest {
 
         assertTrue("report should start with the document header", report.startsWith("# BluSnu Report"))
         assertTrue("empty report should state that nothing was logged", report.contains("No actions logged."))
-        // No table should be emitted when there is nothing to tabulate.
         assertFalse("empty report should not contain a log table", report.contains("| Timestamp | Action |"))
         assertTrue("log should start empty", viewModel.logs.value.isEmpty())
     }

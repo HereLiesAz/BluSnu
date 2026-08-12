@@ -161,4 +161,5 @@ dependencies {
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.serialization)
     implementation("androidx.appcompat:appcompat:1.7.1")
+    implementation(libs.usb.serial)
 }

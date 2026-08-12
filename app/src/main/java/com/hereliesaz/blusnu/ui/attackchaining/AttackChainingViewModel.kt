@@ -1,11 +1,15 @@
 package com.hereliesaz.blusnu.ui.attackchaining
 
 import android.app.Application
+import android.bluetooth.BluetoothAdapter
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.AttackChainRepository
 import com.hereliesaz.blusnu.data.AttackChainTemplates
+import com.hereliesaz.blusnu.data.BluesnarfingModule
+import com.hereliesaz.blusnu.data.KeystrokeInjectionModule
 import com.hereliesaz.blusnu.ui.attackchaining.nodes.AttackNode
+import com.hereliesaz.blusnu.ui.attackchaining.nodes.ChainServices
 import com.hereliesaz.blusnu.ui.attackchaining.nodes.NodeConnector
 import com.hereliesaz.blusnu.ui.attackchaining.nodes.NodeId
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,7 +43,9 @@ data class AttackChainingState(
 class AttackChainingViewModel(
     application: Application,
     private val repository: AttackChainRepository,
-    private val deviceRepository: com.hereliesaz.blusnu.data.DeviceRepository
+    private val deviceRepository: com.hereliesaz.blusnu.data.DeviceRepository,
+    private val bluetoothAdapter: BluetoothAdapter?,
+    private val keystrokeInjectionModule: KeystrokeInjectionModule
 ) : AndroidViewModel(application) {
 
     private val executor = com.hereliesaz.blusnu.data.AttackChainExecutor()
@@ -188,6 +194,10 @@ class AttackChainingViewModel(
      * Runs the current graph.
      */
     fun executeChain() {
-        executor.execute(uiState.value, viewModelScope)
+        val services = mutableMapOf<String, Any>()
+        bluetoothAdapter?.let { services[ChainServices.BLUETOOTH_ADAPTER] = it }
+        services[ChainServices.BLUESNARFING_MODULE] = BluesnarfingModule()
+        services[ChainServices.KEYSTROKE_INJECTION_MODULE] = keystrokeInjectionModule
+        executor.execute(uiState.value, viewModelScope, services)
     }
 }

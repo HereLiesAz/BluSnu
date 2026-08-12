@@ -2,9 +2,12 @@ package com.hereliesaz.blusnu.ui.reporting
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.hereliesaz.blusnu.data.ActionLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -23,12 +26,18 @@ class ReportingViewModel(application: Application) : AndroidViewModel(applicatio
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
+    init {
+        viewModelScope.launch {
+            ActionLogger.logs.collect { actionLogs ->
+                _logs.value = actionLogs.map { entry ->
+                    ReportLogEntry(timestamp = entry.timestamp, message = entry.message)
+                }
+            }
+        }
+    }
+
     fun addLog(message: String) {
-        val entry = ReportLogEntry(
-            timestamp = dateFormat.format(Date()),
-            message = message
-        )
-        _logs.value = _logs.value + entry
+        ActionLogger.log(message)
     }
 
     fun generateMarkdownReport(): String {
@@ -52,12 +61,6 @@ class ReportingViewModel(application: Application) : AndroidViewModel(applicatio
         return sb.toString()
     }
 
-    /**
-     * Generates a JSON representation of the report (metadata + action log).
-     *
-     * PDF export is intentionally out of scope (future work); Markdown and JSON
-     * are the two supported export formats.
-     */
     fun generateJsonReport(): String {
         val root = JSONObject()
         root.put("title", "BluSnu Report")

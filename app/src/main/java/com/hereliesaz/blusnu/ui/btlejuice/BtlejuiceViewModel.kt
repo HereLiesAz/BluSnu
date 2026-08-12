@@ -3,26 +3,33 @@ package com.hereliesaz.blusnu.ui.btlejuice
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.blusnu.data.BtlejuiceModule
+import com.hereliesaz.blusnu.data.BtlejuiceState
 import com.hereliesaz.blusnu.data.DeviceRepository
+import com.hereliesaz.blusnu.data.HardwareManager
+import com.hereliesaz.blusnu.data.HardwareState
 import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.TargetDevice
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 data class BtlejuiceHardwareState(val isConnected: Boolean = false)
-data class BtlejuiceState(val isProxying: Boolean = false)
 data class GattTraffic(val entries: List<String> = emptyList())
 
 class BtlejuiceViewModel(
     application: Application,
-    private val deviceRepository: DeviceRepository
+    private val deviceRepository: DeviceRepository,
+    private val hardwareManager: HardwareManager,
+    private val btlejuiceModule: BtlejuiceModule
 ) : ViewModel() {
     private val _hardwareState = MutableStateFlow(BtlejuiceHardwareState())
     val hardwareState: StateFlow<BtlejuiceHardwareState> = _hardwareState.asStateFlow()
 
-    private val _btlejuiceState = MutableStateFlow(BtlejuiceState())
+    private val _btlejuiceState = MutableStateFlow(BtlejuiceState.IDLE)
     val btlejuiceState: StateFlow<BtlejuiceState> = _btlejuiceState.asStateFlow()
 
     private val _logs = MutableStateFlow<List<String>>(emptyList())
@@ -35,23 +42,54 @@ class BtlejuiceViewModel(
     val gattTraffic: StateFlow<GattTraffic> = _gattTraffic.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            deviceRepository.allDevices.collect { allDevices ->
+        // Observe discovered BLE devices from the repository
+        deviceRepository.allDevices
+            .onEach { allDevices ->
                 _discoveredDevices.value = allDevices.filter {
                     it.protocol == Protocol.BLE || it.protocol == Protocol.DUAL
                 }
             }
-        }
+            .launchIn(viewModelScope)
+
+        // Observe hardware connection state
+        hardwareManager.hardwareState
+            .onEach { state ->
+                val isConnected = state == HardwareState.CONNECTED_BTLEJACK ||
+                        state == HardwareState.CONNECTED_DUAL
+                _hardwareState.value = BtlejuiceHardwareState(isConnected = isConnected)
+            }
+            .launchIn(viewModelScope)
+
+        // Observe btlejuice module state
+        btlejuiceModule.state
+            .onEach { state ->
+                _btlejuiceState.value = state
+            }
+            .launchIn(viewModelScope)
+
+        // Observe intercepted GATT traffic from the module
+        btlejuiceModule.interceptedTraffic
+            .onEach { trafficLine ->
+                _gattTraffic.value = GattTraffic(
+                    entries = _gattTraffic.value.entries + trafficLine
+                )
+            }
+            .launchIn(viewModelScope)
+
+        // Observe hardware device logs
+        hardwareManager.deviceLogs
+            .onEach { logMessage ->
+                _logs.value = _logs.value + logMessage
+            }
+            .launchIn(viewModelScope)
     }
 
     fun onConnectHardware() {
-        _hardwareState.value = _hardwareState.value.copy(isConnected = true)
-        log("Single Bluetooth dongle connected (simulated).")
+        hardwareManager.connect()
     }
 
     fun onConnectDual() {
-        _hardwareState.value = _hardwareState.value.copy(isConnected = true)
-        log("Dual Bluetooth dongles connected — ready for MitM proxy (simulated).")
+        hardwareManager.connectDual()
     }
 
     fun onStartProxy(targetDevice: TargetDevice?) {
@@ -63,21 +101,14 @@ class BtlejuiceViewModel(
             log("ERROR: No target device selected.")
             return
         }
-        if (_btlejuiceState.value.isProxying) return
+        if (_btlejuiceState.value != BtlejuiceState.IDLE) return
 
-        _btlejuiceState.value = _btlejuiceState.value.copy(isProxying = true)
-        val label = targetDevice.name ?: targetDevice.macAddress
-        log("Proxy started against $label — impersonating peripheral (simulated).")
-        // Represent the intercepted-traffic view honestly as a simulation placeholder.
-        _gattTraffic.value = GattTraffic(
-            entries = _gattTraffic.value.entries + "[SIM] Proxy established for $label."
-        )
+        btlejuiceModule.startProxy(targetDevice)
     }
 
     fun onStopProxy() {
-        if (!_btlejuiceState.value.isProxying) return
-        _btlejuiceState.value = _btlejuiceState.value.copy(isProxying = false)
-        log("Proxy stopped.")
+        if (_btlejuiceState.value == BtlejuiceState.IDLE) return
+        btlejuiceModule.stopProxy()
     }
 
     private fun log(message: String) {

