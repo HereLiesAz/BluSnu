@@ -83,7 +83,7 @@ import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingScreen
 import com.hereliesaz.blusnu.ui.gattfuzzing.GattFuzzingViewModel
 import com.hereliesaz.blusnu.ui.gattrelay.GattRelayScreen
 import com.hereliesaz.blusnu.ui.gattrelay.GattRelayViewModel
-import com.hereliesaz.blusnu.ui.geolocation.FindScreen
+
 import com.hereliesaz.blusnu.ui.geolocation.FindViewModel
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationScreen
 import com.hereliesaz.blusnu.ui.geolocation.GeolocationViewModel
@@ -491,7 +491,7 @@ class MainActivity : ComponentActivity() {
                     AzHostActivityLayout(
                         navController = navController,
                         modifier = Modifier.fillMaxSize(),
-                        currentDestination = currentDestination?.destination?.route,
+                        currentDestination = currentDestination?.destination?.route?.substringBefore("?"),
                         initiallyExpanded = false
                     ) {
                         azConfig(

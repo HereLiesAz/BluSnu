@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.ActionLogger
+import com.hereliesaz.blusnu.data.ActiveTaskManager
 import com.hereliesaz.blusnu.data.BluebuggingModule
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.Protocol
@@ -43,6 +44,7 @@ class BluebuggingViewModel(application: Application, deviceRepository: DeviceRep
     private val bluetoothAdapter: BluetoothAdapter? = (application.getSystemService(BluetoothManager::class.java) as BluetoothManager).adapter
 
     private var attackJob: Job? = null
+    private var currentTaskId: String? = null
 
     init {
         viewModelScope.launch {
@@ -78,6 +80,11 @@ class BluebuggingViewModel(application: Application, deviceRepository: DeviceRep
         ActionLogger.log("Bluebugging attack started against ${selected.macAddress}")
 
         _isRunning.value = true
+
+        val taskId = "bluebugging_${System.currentTimeMillis()}"
+        currentTaskId = taskId
+        ActiveTaskManager.add(taskId, "Bluebugging", "AT commands on ${selected.name ?: selected.macAddress}")
+
         attackJob = viewModelScope.launch {
             try {
                 val output = StringBuilder()
@@ -88,14 +95,16 @@ class BluebuggingViewModel(application: Application, deviceRepository: DeviceRep
                 _result.value = output.toString()
                 ActionLogger.log("Bluebugging attack finished against ${selected.macAddress}")
             } catch (e: CancellationException) {
-                // Finding 8.5: Rethrow CancellationException — do not swallow it
                 throw e
             } catch (e: Exception) {
                 _status.value = "Error: ${e.message}"
-                // Finding 8.7: Disconnect on error to clean up resources
                 bluebuggingModule.disconnect()
+                ActionLogger.log("Bluebugging: Error — ${e.message}")
             } finally {
                 _isRunning.value = false
+                currentTaskId?.let { ActiveTaskManager.remove(it) }
+                currentTaskId = null
+                attackJob = null
             }
         }
     }
@@ -139,5 +148,7 @@ class BluebuggingViewModel(application: Application, deviceRepository: DeviceRep
         super.onCleared()
         attackJob?.cancel()
         bluebuggingModule.disconnect()
+        currentTaskId?.let { ActiveTaskManager.remove(it) }
+        currentTaskId = null
     }
 }

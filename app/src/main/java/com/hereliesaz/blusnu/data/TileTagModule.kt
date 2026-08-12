@@ -129,7 +129,7 @@ class TileTagModule(private val context: Context) {
 
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-            .setReportDelay(SCAN_REPORT_INTERVAL_MS)
+            .setReportDelay(0L)
             .build()
 
         try {

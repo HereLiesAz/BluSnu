@@ -2,9 +2,9 @@
 
 ## 1. Executive Summary
 
-Blu Snu is an offensive Bluetooth security framework for Android. The goal is to create a production-ready application that unifies Bluetooth Classic and BLE auditing. The project is currently in a "Simulated Prototype" state. While the UI shell and navigation are largely complete, critical attack logic is often simulated or incomplete.
+Blu Snu is an offensive Bluetooth security framework for Android. The goal is a production-quality application that unifies Bluetooth Classic and BLE auditing directly from an Android device. The UI shell and navigation are complete. Attack modules that require Root execute real low-level Bluetooth stack operations via `su`; hardware modules interface with connected ESP32, Ubertooth, or SDR peripherals.
 
-**Core Objective:** Transition the app from a simulated prototype to a functional security tool by replacing placeholders with real implementations and fixing architectural flaws.
+**Core Objective:** Maintain and extend the framework — add new CVE modules, fix architectural issues, and keep the implementation current with new vulnerability research.
 
 ## 2. Environment Setup & Build
 
@@ -23,19 +23,13 @@ The project uses Kotlin 2.2.20. Ensure your `JAVA_HOME` points to JDK 17.
 
 ## 3. Current State Analysis
 
-### Functional Modules (UI & Basic Logic)
+### Module Status Overview
 -   **Navigation:** `AzNavRail` is integrated and working.
--   **Dashboard:** Displays simulated stats.
--   **Device Discovery:** `BluetoothScanner` is implemented but needs rigorous testing on real hardware.
--   **Database:** Room database is set up (`TargetDevice`, `SavedSession`).
-
-### Simulated Modules (Must be Replaced)
--   **HardwareManager:** Currently simulates connection to "BtleJack" and "Dual Dongle" using `delay()`.
-    -   *Action:* Must be replaced with `usb-serial-for-android` logic to communicate with actual firmware.
--   **SpoofingModule:** Simulates MAC address changing.
-    -   *Action:* Requires root access implementation (`su` commands) to modify system configs or `bccmd`.
--   **KeystrokeInjection:** Simulates delays.
-    -   *Action:* Needs real HID over GATT implementation.
+-   **Dashboard:** Live data from `ActiveTaskManager`, `DeviceRepository`, and the Room database.
+-   **Device Discovery:** `BluetoothScanner` — Classic + BLE scanning via public Android APIs.
+-   **Database:** Room database (`TargetDevice`, `SavedSession`).
+-   **Root Modules:** `SpoofingModule`, `KeystrokeInjectionModule`, and all CVE attack modules require `su` on the device. Root path uses raw HCI or L2CAP sockets.
+-   **Hardware Modules:** `HardwareManager` interfaces with connected USB peripherals (ESP32 via USB-OTG serial, Ubertooth One, CC26xx running Sniffle firmware).
 
 ### Critical Bugs & Architectural Issues
 1.  **Attack Chain Templates Crash:**

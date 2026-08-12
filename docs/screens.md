@@ -49,7 +49,7 @@ Proximity-based BLE interaction. Logs RSSI traces for known device addresses to 
 Floods the environment with fake BLE advertisement packets. Supports Apple, Google, Microsoft, and Samsung spam payloads. Configurable interval and MAC rotation.
 
 ### Spoofing
-(Root Required — Simulated) Models changing the Bluetooth adapter's BD_ADDR and device name to clone a target. The current implementation simulates the root HCI commands without altering the adapter's hardware address.
+(Root Required) Changes the Bluetooth adapter's BD_ADDR and device name to clone a target device. Uses raw HCI commands via `su`.
 
 ### Bad Bluetooth
 Profile confusion attacks — advertises as an unexpected device class (e.g., a keyboard claiming to be a speaker) to probe how host operating systems and pairing stacks react.
@@ -68,37 +68,37 @@ Hijacks a Classic device by establishing a serial connection and injecting AT co
 L2CAP packet flood (DoS). Sends oversized L2CAP echo requests to crash or degrade target devices. Configurable packet size and rate.
 
 ### BLUFFS (CVE-2023-24023)
-(Simulated) Demonstrates session key downgrade via LMP parameter manipulation. Models the forward/future secrecy bypass flow (modes A1–A6). Requires root for real execution; current build simulates the HCI patching.
+(Root Required — InternalBlue / custom HCI firmware) Session key downgrade via LMP Key Negotiation parameter manipulation. Models the forward/future secrecy bypass flow across modes A1–A6.
 
 ### BrakTooth
-(Simulated) LMP crash vectors targeting SoC stacks — Feature Response flooding, paging scan crash, and others. Requires an ESP32 for live execution; current build simulates the hardware interface and packet injection.
+(ESP32 Required) LMP crash vector suite targeting SoC stacks — Feature Response flooding, paging scan crash, truncated LMP PDUs. Interfaces with a connected ESP32 running custom Bluetooth firmware.
 
 ### Breaktooth
-(Simulated) Extended BrakTooth crash vectors targeting additional LMP state-machine edge cases.
+(ESP32 Required) Extended BrakTooth crash vectors targeting additional LMP state-machine edge cases beyond the original BrakTooth disclosure.
 
 ### BlueFrag (CVE-2020-0022)
-(Simulated) Models fragmented L2CAP packet injection targeting Android and Linux kernel vulnerabilities in Bluetooth packet reassembly.
+(Root Required) Fragmented L2CAP packet injection triggering heap overflow in the Android/Linux kernel Bluetooth packet reassembly path.
 
 ### BlueBorne
-(Simulated) Models the suite of remote code execution, information disclosure, and MitM vectors from the BlueBorne 2017 research (CVE-2017-0781/0782/0783/0785).
+(Root Required) Multi-vector attack suite — RCE, MitM, and information disclosure from the 2017 BlueBorne research (CVE-2017-0781/0782/0783/0785).
 
 ### BlueSpy (CVE-2021-43400)
-(Simulated) Models eavesdropping on Bluetooth audio (HSP/HFP) by abusing GATT callback registration without a pairing requirement.
+(Root Required) Eavesdropping on Bluetooth audio (HSP/HFP) by registering GATT callbacks on headsets that do not enforce pairing before audio stream access.
 
 ### BIAS (CVE-2020-10135)
-(Simulated) Bluetooth Impersonation Attacks — models role switching and master identity spoofing during the authentication phase to bypass mutual verification.
+(Root Required) Bluetooth Impersonation Attack — master/slave role swap before mutual authentication, allowing impersonation of a bonded peer without the link key.
 
 ### BLUR (CVE-2020-12762)
-(Simulated) JSON library memory corruption triggered via malformed Bluetooth advertisement fields, targeting embedded stacks that parse advertisement metadata with vulnerable JSON parsers.
+(Root Required) Malformed Bluetooth advertisement fields triggering integer overflow in `json-c` and similar parsers used by embedded Bluetooth stacks.
 
 ### KNOB (CVE-2019-9506)
-(Simulated) Key Negotiation of Bluetooth — forces session key entropy to 1 byte during LMP negotiation, enabling practical brute-force decryption of captured traffic.
+(Root Required) Key Negotiation of Bluetooth — proposes 1-byte key length during LMP Encryption Key Size Negotiation; brute-forces the session key on acceptance.
 
 ### SweynTooth
-(Simulated) A family of BLE link-layer crash vectors (sequence number mismatch, invalid length, LL connection, etc.) targeting Nordic Semiconductor, Texas Instruments, Cypress, and other SoC SDKs.
+(Root Required) BLE link-layer crash vectors — sequence number mismatch, invalid LLID values, truncated LL PDUs — targeting Nordic, TI, Cypress, Telink, and Microchip SoC SDKs.
 
 ### Method Confusion
-(Simulated) Forces pairing to use a weaker authentication method by manipulating IO capability exchange frames.
+(Root Required) IO capability manipulation to force weaker pairing method (Just Works instead of Numeric Comparison), enabling passive MitM without physical access.
 
 ### LMP Fuzzing
 Fuzzes Link Manager Protocol fields with random and boundary-value payloads to identify crash-inducing state machine transitions in BR/EDR stacks.
@@ -111,16 +111,16 @@ Fuzzes Link Manager Protocol fields with random and boundary-value payloads to i
 Systematically tests GATT characteristics by sending malformed data, testing auth bypasses, and probing for boundary conditions. Configurable target GATT server and attribute handle range.
 
 ### GATT Relay (Tesla Attack)
-(Simulated) Man-in-the-Middle relay — Node A connects to the real BLE peripheral; Node B advertises a spoofed clone. Models the relay viability measurement used in BLE proximity bypass research (e.g., Tesla unlock bypass).
+Two-node GATT MitM relay with RTT measurement. Node A connects to the real BLE peripheral; Node B advertises a spoofed clone and accepts connections from the legitimate central. Used to model the relay viability measurement in BLE proximity bypass research (e.g., Tesla unlock bypass).
 
 ### BLESA (BLE Spoofing Attack)
-(Simulated) Models exploiting weak reconnection procedures to inject forged advertisements and convince a bonded central to reconnect to an impostor peripheral.
+(Root Required) Exploits insufficient authentication during BLE reconnection — impersonates a bonded peripheral to convince the central to reconnect without re-verifying identity.
 
 ### SMP Bypass (CVE-2024-34722)
-(Simulated) Injects out-of-order `SMP_PAIRING_RANDOM` packets to bypass Security Manager Protocol pairing requirements.
+(Root Required) Out-of-order `SMP_PAIRING_RANDOM` injection to skip mutual confirmation and complete pairing without the legitimate peer's participation.
 
 ### Injectable (InjectaBLE / CVE-2021-31615)
-(Simulated) Models malicious packet injection into an established BLE connection at the link layer — targeting the connection state machine rather than the application layer.
+(Root Required) Link-layer packet injection into an established BLE connection by synchronising to connection event timing.
 
 ### L2CAP Fuzzing
 Fuzzes L2CAP signalling channel fields (MTU negotiation, channel identifiers, fragmentation header bits) for both BLE and Classic targets.
@@ -129,19 +129,19 @@ Fuzzes L2CAP signalling channel fields (MTU negotiation, channel identifiers, fr
 Persistent BLE device tracking by recording advertisement payload fingerprints and re-correlating rotating MAC addresses across capture windows.
 
 ### Screaming Channels
-(Simulated) Side-channel attack — models extracting AES keys from BLE devices by correlating electromagnetic emissions with known advertisement timing.
+(SDR Hardware Required) EM side-channel attack — correlates electromagnetic emissions from a combined-die BLE SoC with known advertisement timing to extract AES session keys.
 
 ### Btlejacking (CVE-2018-7252)
-(Simulated — hardware required) Jams an existing BLE connection and hijacks the session during reconnection. Requires an external Ubertooth One or compatible radio for live execution; current build simulates the hardware command interface.
+(Ubertooth Required) Jams an active BLE connection and hijacks the session during reconnection. Interfaces with a connected Ubertooth One or compatible sniffer via the Ubertooth host tools.
 
 ### Btlejuice (GATT Proxy)
-(Simulated) Transparent GATT proxy — clones target services and characteristics, intercepts Read/Write operations, and optionally modifies values in transit.
+Transparent GATT proxy — clones the real peripheral's service tree, intercepts all Read/Write/Notification requests, optionally modifies values, and forwards to the real peripheral.
 
 ### KNOB BLE
-BLE-variant of the KNOB attack targeting the BLE-specific key negotiation path.
+(Root Required) BLE-specific KNOB attack — proposes minimal key size during LE link setup to downgrade BLE session encryption strength.
 
 ### Passkey Reflection
-(Simulated) Models the passkey entry MitM attack — reflects a Just Works pairing event to extract the passkey via timing side-channels.
+(Root Required) Passkey entry MitM via timing reflection — reflects the passkey from one pairing session back to another to extract it without user interaction.
 
 ### Mesh Provisioning
 Researches Bluetooth Mesh networks — unprovisioned beacon scanning, rogue provisioner advertisement, and replay attacks against mesh provisioning PDUs.
@@ -151,7 +151,7 @@ Researches Bluetooth Mesh networks — unprovisioned beacon scanning, rogue prov
 ## HID & Keystroke Injection
 
 ### Keystroke Injection (CVE-2023-45866 / "BlueDucky")
-Emulates a Bluetooth HID keyboard and attempts silent "Just Works" pairing with target hosts. DuckyScript parsing is included for scripted payloads. The raw L2CAP socket path (for bypassing pairing prompts without UI interaction) is simulated for root users.
+Emulates a Bluetooth HID keyboard and attempts silent "Just Works" pairing with target hosts. DuckyScript parsing is included for scripted payloads. Root path uses raw L2CAP sockets to bypass Android's pairing UI prompt.
 
 ### HID Controller
 Direct HID-over-GATT peripheral emulation — controlled key injection, mouse movement payloads, and media control buttons. Lower-level than the Keystroke Injection DuckyScript path.
@@ -180,7 +180,7 @@ Rapid connection/disconnection flooding and continuous GATT read storms targetin
 ## Advanced
 
 ### PerfektBlue (Automotive RCE)
-(Simulated) Probes automotive IVI Bluetooth stacks via AVRCP and L2CAP fuzzing with malformed metadata strings. Connection health monitoring detects crashes in the target stack.
+(Root Required) Probes automotive IVI Bluetooth stacks via AVRCP metadata fuzzing and L2CAP PDU injection. Connection health monitoring detects stack crashes in the IVI unit.
 
 ### BlueTrust
 Models trust-escalation attacks — repeated unpairing and re-pairing events to probe "bond just works" and auto-reconnect policies on headsets, phones, and IoT devices.
