@@ -8,7 +8,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.ksp)
-    kotlin("plugin.serialization") version "2.2.20"
+    kotlin("plugin.serialization") version "2.4.10"
 }
 
 // Helper to get git commit count using standard Java ProcessBuilder to avoid Gradle API deprecations/scope issues
@@ -57,12 +57,12 @@ println("Configuring Build: Name=$buildName, Code=$buildCode")
 
 android {
     namespace = "com.hereliesaz.blusnu"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.hereliesaz.blusnu"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = buildCode
         versionName = buildName
 
@@ -114,8 +114,11 @@ android {
         compose = true
         buildConfig = true
     }
-    kotlinOptions {
-        jvmTarget = "17"
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
@@ -144,10 +147,10 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
     testImplementation("androidx.arch.core:core-testing:2.2.0")
-    testImplementation("org.mockito:mockito-core:5.11.0")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
+    testImplementation("org.mockito:mockito-core:5.18.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -157,5 +160,5 @@ dependencies {
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.serialization)
-    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("androidx.appcompat:appcompat:1.7.1")
 }
