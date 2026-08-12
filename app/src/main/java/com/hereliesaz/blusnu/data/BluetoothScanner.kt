@@ -155,6 +155,8 @@ class BluetoothScanner(
     }
 
     fun destroy() {
+        stopBleScan()
+        stopClassicDiscovery()
         scope.cancel()
     }
 

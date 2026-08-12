@@ -26,7 +26,7 @@ class AttackChainExecutorTest {
         val state = AttackChainingState(
             nodes = mapOf("start" to startNode, "wait" to waitNode),
             connections = listOf(
-                NodeConnector("out", "start") to NodeConnector("in", "wait")
+                NodeConnector("start", "start") to NodeConnector("in", "wait")
             )
         )
 
