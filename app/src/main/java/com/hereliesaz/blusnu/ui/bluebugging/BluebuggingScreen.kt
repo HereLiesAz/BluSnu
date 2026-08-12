@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -35,6 +37,7 @@ fun BluebuggingScreen(viewModel: BluebuggingViewModel) {
     val devices by viewModel.devices.collectAsState()
     val status by viewModel.status.collectAsState()
     val result by viewModel.result.collectAsState()
+    val isRunning by viewModel.isRunning.collectAsState()
     var expanded by remember { mutableStateOf(false) }
 
     Column(
@@ -62,6 +65,7 @@ fun BluebuggingScreen(viewModel: BluebuggingViewModel) {
                 readOnly = true,
                 label = { Text("Target Device") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                enabled = !isRunning,
                 modifier = Modifier
                     .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                     .fillMaxWidth()
@@ -91,12 +95,27 @@ fun BluebuggingScreen(viewModel: BluebuggingViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = { viewModel.startAttack() },
-            enabled = selectedDevice != null,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Start Attack")
+        if (!isRunning) {
+            Button(
+                onClick = { viewModel.startAttack() },
+                enabled = selectedDevice != null,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Start Attack")
+            }
+        } else {
+            Button(
+                onClick = { viewModel.stopAttack() },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Stop Attack")
+            }
+        }
+
+        if (isRunning) {
+            Spacer(modifier = Modifier.height(12.dp))
+            CircularProgressIndicator()
         }
 
         if (status.isNotBlank()) {

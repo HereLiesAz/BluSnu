@@ -11,6 +11,7 @@ import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.TargetDevice
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,8 +32,13 @@ class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRe
     private val _devices = MutableStateFlow<List<TargetDevice>>(emptyList())
     val devices: StateFlow<List<TargetDevice>> = _devices.asStateFlow()
 
+    private val _isRunning = MutableStateFlow(false)
+    val isRunning: StateFlow<Boolean> = _isRunning
+
     private val bluesnarfingModule = BluesnarfingModule()
     private val bluetoothAdapter: BluetoothAdapter? = (application.getSystemService(BluetoothManager::class.java) as BluetoothManager).adapter
+
+    private var attackJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -50,6 +56,8 @@ class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRe
     }
 
     fun startAttack() {
+        if (_isRunning.value) return
+
         val selected = _selectedDevice.value ?: return
         ActionLogger.log("Bluesnarfing attack started against ${selected.macAddress}.")
 
@@ -65,17 +73,36 @@ class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRe
             return
         }
 
-        viewModelScope.launch {
-            _status.value = "Connecting..."
-            val result = withContext(Dispatchers.IO) {
-                bluesnarfingModule.getPhonebook(device)
-            }
-            _status.value = "Finished"
-            result.onSuccess {
-                _result.value = it
-            }.onFailure {
-                _result.value = it.message ?: "Unknown error"
+        _isRunning.value = true
+        attackJob = viewModelScope.launch {
+            try {
+                _status.value = "Connecting..."
+                val result = withContext(Dispatchers.IO) {
+                    bluesnarfingModule.getPhonebook(device)
+                }
+                _status.value = "Finished"
+                result.onSuccess {
+                    _result.value = it
+                }.onFailure {
+                    _result.value = it.message ?: "Unknown error"
+                }
+            } catch (e: Exception) {
+                _status.value = "Error: ${e.message}"
+            } finally {
+                _isRunning.value = false
             }
         }
+    }
+
+    fun stopAttack() {
+        attackJob?.cancel()
+        attackJob = null
+        _isRunning.value = false
+        _status.value = "Attack stopped."
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        attackJob?.cancel()
     }
 }

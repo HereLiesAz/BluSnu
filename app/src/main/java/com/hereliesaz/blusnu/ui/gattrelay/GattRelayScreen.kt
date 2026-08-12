@@ -115,14 +115,23 @@ fun GattRelayScreen(viewModel: GattRelayViewModel) {
                 CircularProgressIndicator()
             }
 
-            // Action Button.
-            Button(
-                onClick = { viewModel.startRelay() },
-                enabled = !isRunning,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(if (isRunning) "RELAY ACTIVE..." else "START RELAY")
+            // Action Buttons.
+            if (!isRunning) {
+                Button(
+                    onClick = { viewModel.startRelay() },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("START RELAY")
+                }
+            } else {
+                Button(
+                    onClick = { viewModel.stopRelay() },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onErrorContainer),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("STOP RELAY")
+                }
             }
 
             Spacer(modifier = Modifier.fillMaxWidth().height(screenHeight * 0.1f))
