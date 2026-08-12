@@ -3,9 +3,8 @@ package com.hereliesaz.blusnu.data
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 /**
  * Data class representing a single log entry in the application's action log.
@@ -32,10 +31,7 @@ object ActionLogger {
     // Observers (like UI components) can collect this flow to receive updates.
     val logs = _logs.asStateFlow()
 
-    // Date formatter to ensure consistent timestamp formatting across all logs.
-    // Uses the default locale to match the user's device settings.
-    // Pattern "yyyy-MM-dd HH:mm:ss" provides a standard sortable date-time string.
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+    private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
     /**
      * Adds a new message to the log.
@@ -46,10 +42,7 @@ object ActionLogger {
      * @param message The message string to log.
      */
     fun log(message: String) {
-        // Capture the current system time and format it using the defined dateFormat.
-        val timestamp = dateFormat.format(Date())
-
-        // Create a new LogEntry object with the formatted timestamp and the provided message.
+        val timestamp = LocalDateTime.now().format(dateFormat)
         val newEntry = LogEntry(timestamp, message)
 
         _logs.update { it + newEntry }

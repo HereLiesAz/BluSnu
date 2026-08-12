@@ -1,6 +1,7 @@
 package com.hereliesaz.blusnu.data
 
 import android.util.Log
+import com.hereliesaz.blusnu.utils.MacValidator
 import com.hereliesaz.blusnu.utils.RootExecutor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -100,6 +101,7 @@ class BlueSmackModule {
         packetSize: Int,
         count: Int
     ): List<String> = withContext(Dispatchers.IO) {
+        MacValidator.requireValid(targetMac)
         val lines = mutableListOf<String>()
         try {
             val process = Runtime.getRuntime().exec("su")
@@ -107,7 +109,6 @@ class BlueSmackModule {
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             val errReader = BufferedReader(InputStreamReader(process.errorStream))
 
-            // Write the l2ping command
             os.write("l2ping -i hci0 -s $packetSize -c $count -f $targetMac\n".toByteArray())
             os.write("exit\n".toByteArray())
             os.flush()

@@ -13,6 +13,8 @@ import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -69,8 +71,7 @@ class BleSpamModule(private val context: Context) {
 
     // Coroutine job to manage the advertising loop.
     private var advertisingJob: Job? = null
-    // Scope for background operations (IO).
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     // Callback to receive status updates from the BluetoothLeAdvertiser.
     private val advertiseCallback = object : AdvertiseCallback() {
@@ -183,7 +184,13 @@ class BleSpamModule(private val context: Context) {
     fun stopSpam() {
         _isAdvertising.value = false
         advertisingJob?.cancel()
+        advertisingJob = null
         stopSpamInternal()
+    }
+
+    fun close() {
+        stopSpam()
+        scope.cancel()
     }
 
     /**

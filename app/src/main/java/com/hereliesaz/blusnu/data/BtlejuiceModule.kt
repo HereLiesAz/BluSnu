@@ -4,6 +4,8 @@ import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -43,7 +45,7 @@ class BtlejuiceModule(private val hardwareManager: HardwareManager) {
     private val _interceptedTraffic = MutableSharedFlow<String>(extraBufferCapacity = 64)
     val interceptedTraffic = _interceptedTraffic.asSharedFlow()
 
-    private val scope = CoroutineScope(Dispatchers.IO + Job())
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var proxyJob: Job? = null
 
     /**
@@ -101,11 +103,12 @@ class BtlejuiceModule(private val hardwareManager: HardwareManager) {
     fun stopProxy() {
         proxyJob?.cancel()
         proxyJob = null
+        _state.value = BtlejuiceState.IDLE
+        hardwareManager.sendCommand("stop")
+    }
 
-        scope.launch {
-            _state.value = BtlejuiceState.IDLE
-            hardwareManager.sendCommand("stop")
-            _interceptedTraffic.emit("Proxy stopped.")
-        }
+    fun close() {
+        stopProxy()
+        scope.cancel()
     }
 }

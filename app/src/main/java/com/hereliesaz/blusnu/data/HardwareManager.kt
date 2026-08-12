@@ -9,6 +9,8 @@ import com.hoho.android.usbserial.driver.UsbSerialProber
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,7 +44,7 @@ class HardwareManager(private val context: Context) {
     private val _deviceLogs = MutableSharedFlow<String>(extraBufferCapacity = 64)
     val deviceLogs = _deviceLogs.asSharedFlow()
 
-    private val scope = CoroutineScope(Dispatchers.IO + Job())
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private var primaryPort: UsbSerialPort? = null
     private var secondaryPort: UsbSerialPort? = null
@@ -131,16 +133,18 @@ class HardwareManager(private val context: Context) {
     }
 
     fun disconnect() {
-        scope.launch {
-            readJob?.cancel()
-            readJob = null
-            try { primaryPort?.close() } catch (_: IOException) {}
-            try { secondaryPort?.close() } catch (_: IOException) {}
-            primaryPort = null
-            secondaryPort = null
-            _hardwareState.value = HardwareState.DISCONNECTED
-            log("Disconnected from external hardware.")
-        }
+        readJob?.cancel()
+        readJob = null
+        try { primaryPort?.close() } catch (_: IOException) {}
+        try { secondaryPort?.close() } catch (_: IOException) {}
+        primaryPort = null
+        secondaryPort = null
+        _hardwareState.value = HardwareState.DISCONNECTED
+    }
+
+    fun close() {
+        disconnect()
+        scope.cancel()
     }
 
     fun sendCommand(command: String) {

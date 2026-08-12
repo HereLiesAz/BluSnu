@@ -7,6 +7,8 @@ import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -57,7 +59,7 @@ class TandemManager(private val context: Context? = null) {
     private val _tandemData = MutableSharedFlow<TandemData>()
     val tandemData = _tandemData.asSharedFlow()
 
-    private val scope = CoroutineScope(Dispatchers.IO + Job())
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     // Server socket to accept incoming connections.
     private var serverSocket: ServerSocket? = null
@@ -253,27 +255,26 @@ class TandemManager(private val context: Context? = null) {
      * Stops the session, closes sockets, and unregisters NSD service.
      */
     fun stopSession() {
-        scope.launch {
-            _isTandemActive.value = false
-            try {
-                if (nsdManager != null) {
-                    registrationListener?.let { nsdManager?.unregisterService(it) }
-                    discoveryListener?.let { nsdManager?.stopServiceDiscovery(it) }
-                }
-            } catch (e: Exception) {
-                // Ignore NSD errors.
+        _isTandemActive.value = false
+        try {
+            if (nsdManager != null) {
+                registrationListener?.let { nsdManager?.unregisterService(it) }
+                discoveryListener?.let { nsdManager?.stopServiceDiscovery(it) }
             }
-            try {
-                serverSocket?.close()
-            } catch (e: Exception) {
-                // Ignore socket errors.
-            }
-            serverSocket = null
+        } catch (_: Exception) {}
+        try {
+            serverSocket?.close()
+        } catch (_: Exception) {}
+        serverSocket = null
 
-            synchronized(peers) {
-                peers.forEach { try { it.close() } catch (e: Exception) {} }
-                peers.clear()
-            }
+        synchronized(peers) {
+            peers.forEach { try { it.close() } catch (_: Exception) {} }
+            peers.clear()
         }
+    }
+
+    fun close() {
+        stopSession()
+        scope.cancel()
     }
 }
