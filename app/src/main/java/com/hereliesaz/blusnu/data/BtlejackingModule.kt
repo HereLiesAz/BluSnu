@@ -1,6 +1,7 @@
 package com.hereliesaz.blusnu.data
 
 import android.util.Log
+import com.hereliesaz.blusnu.utils.MacValidator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -24,11 +25,12 @@ enum class BtlejackingState {
 }
 
 /**
- * Module responsible for the Btlejacking attack (CVE-2018-7252).
+ * Module responsible for the Btlejacking attack.
  *
- * Btlejacking allows an attacker to hijack an active BLE connection.
- * It requires specialized hardware (e.g., nRF51822 with BtleJack firmware) because
- * standard Bluetooth chips cannot perform the required sniffing and precise jamming.
+ * BtleJack exploits BLE connection-following to sniff, jam, and hijack active
+ * BLE connections. It requires specialized hardware (e.g., nRF51822 with
+ * BtleJack firmware) because standard Bluetooth chips cannot perform the
+ * required sniffing and precise jamming.
  *
  * This class acts as the controller for that external hardware, sending commands
  * via the [HardwareManager] and parsing real output to determine phase transitions.
@@ -57,8 +59,14 @@ class BtlejackingModule(private val hardwareManager: HardwareManager) {
      * in the device output, with a timeout.
      *
      * @param target The device to target.
+     * @throws IllegalArgumentException if the target MAC address is invalid.
      */
     fun startSniffing(target: TargetDevice) {
+        // 3.8: Validate MAC before interpolating into serial command
+        MacValidator.requireValid(target.macAddress)
+
+        // 3.4: Cancel any existing attack job before launching a new one
+        attackJob?.cancel()
         attackJob = scope.launch {
             _state.value = BtlejackingState.SNIFFING
             hardwareManager.sendCommand("sniff -t ${target.macAddress}")
@@ -154,6 +162,10 @@ class BtlejackingModule(private val hardwareManager: HardwareManager) {
         hardwareManager.sendCommand("stop")
     }
 
+    /**
+     * Releases all resources: cancels any running attack, stops hardware,
+     * and cancels the coroutine scope.
+     */
     fun close() {
         stop()
         scope.cancel()
