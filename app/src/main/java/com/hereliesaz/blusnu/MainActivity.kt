@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -75,6 +76,7 @@ import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceScreen
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceViewModel
 import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
 import com.hereliesaz.blusnu.ui.components.SystemRequirementsDialog
+import com.hereliesaz.blusnu.ui.components.UpdateAvailableDialog
 import com.hereliesaz.blusnu.ui.dashboard.DashboardScreen
 import com.hereliesaz.blusnu.ui.dashboard.DashboardViewModel
 import com.hereliesaz.blusnu.ui.devicemanagement.DeviceManagementScreen
@@ -206,6 +208,7 @@ class MainActivity : ComponentActivity() {
         }
     }
     private val macLookupClient by lazy { MacLookupClient(httpClient) }
+    private val appUpdateChecker by lazy { com.hereliesaz.blusnu.data.AppUpdateChecker(httpClient) }
     private val bluetoothLog by lazy { com.hereliesaz.blusnu.data.BluetoothLog() }
     private val bluetoothScanner: com.hereliesaz.blusnu.data.BluetoothScanner by lazy {
         com.hereliesaz.blusnu.data.BluetoothScanner(applicationContext, deviceRepository, bluetoothAdapter, bluetoothLog)
@@ -453,6 +456,15 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 } else {
+                    // --- Update check: runs once per session, shows dialog if a newer release exists ---
+                    var updateVersion by remember { mutableStateOf<String?>(null) }
+                    LaunchedEffect(Unit) {
+                        updateVersion = appUpdateChecker.getLatestVersionIfNewer()
+                    }
+                    updateVersion?.let { version ->
+                        UpdateAvailableDialog(latestVersion = version, onDismiss = { updateVersion = null })
+                    }
+
                     // --- System Requirements Check (5C) ---
                     val btManager = remember { getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager }
                     val locManager = remember { getSystemService(Context.LOCATION_SERVICE) as? LocationManager }
