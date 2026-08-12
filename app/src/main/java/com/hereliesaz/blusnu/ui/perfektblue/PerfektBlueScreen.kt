@@ -20,6 +20,7 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -39,8 +40,9 @@ import com.hereliesaz.blusnu.ui.components.ResultActions
  * Screen for the PerfektBlue audit module.
  *
  * PerfektBlue focuses on vulnerabilities in Bluetooth implementations of
- * In-Vehicle Infotainment (IVI) systems, specifically targeting profiles like
- * PBAP (Phonebook Access) and AVRCP (Media Control).
+ * In-Vehicle Infotainment (IVI) systems, specifically targeting the PBAP
+ * (Phonebook Access) profile. AVRCP (Media Control) is reported but not
+ * fuzzed over RFCOMM because AVRCP uses L2CAP transport.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -126,7 +128,7 @@ fun PerfektBlueScreen(viewModel: PerfektBlueViewModel) {
                 }
             }
 
-            // Copy/Share result actions (5E).
+            // Copy/Share result actions.
             if (logs.isNotEmpty()) {
                 ResultActions(
                     resultText = logs.joinToString("\n"),
@@ -139,7 +141,20 @@ fun PerfektBlueScreen(viewModel: PerfektBlueViewModel) {
                 CircularProgressIndicator()
             }
 
-            // Action Button.
+            // Stop Button -- visible only when audit is running (10.8).
+            if (isRunning) {
+                OutlinedButton(
+                    onClick = { viewModel.stopAttack() },
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("STOP AUDIT")
+                }
+            }
+
+            // Start Audit Button.
             Button(
                 onClick = { viewModel.startAudit() },
                 enabled = selectedDevice != null && !isRunning,
