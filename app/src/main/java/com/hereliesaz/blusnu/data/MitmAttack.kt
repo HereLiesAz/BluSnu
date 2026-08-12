@@ -1,57 +1,94 @@
 package com.hereliesaz.blusnu.data
 
-import kotlinx.coroutines.CoroutineScope
+import android.util.Log
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
 
 /**
- * Helper class to coordinate a Man-in-the-Middle (MitM) attack sequence.
+ * Coordinates a Man-in-the-Middle (MitM) attack sequence using external hardware.
  *
- * This class orchestrates the `HardwareManager` to perform a sequence of
- * scanning, jamming, and listening, while updating the UI state.
+ * Orchestrates the [HardwareManager] through scanning, jamming, and listening phases.
+ * UI state is updated via [onLog] callback rather than direct MutableStateFlow mutation.
  *
- * @property spoofingState The MutableStateFlow from the ViewModel to update with logs.
- * @property hardwareManager The interface to the external hardware.
- * @property coroutineScope The scope in which to run the attack logic.
+ * The [logCollectorJob] is tracked so it can be cancelled when the attack stops.
  */
 class MitmAttack(
-    private val spoofingState: MutableStateFlow<com.hereliesaz.blusnu.ui.spoofing.SpoofingState>,
     private val hardwareManager: HardwareManager,
-    private val coroutineScope: CoroutineScope
+    private val coroutineScope: CoroutineScope,
+    private val onLog: (String) -> Unit
 ) {
 
+    companion object {
+        private const val TAG = "MitmAttack"
+    }
+
+    private var logCollectorJob: Job? = null
+
     /**
-     * Starts the automated MitM sequence.
+     * Runs the automated MitM sequence. This is a suspend function that completes
+     * when the attack sequence finishes or fails. Callers should wrap in a Job
+     * for cancellation support.
+     *
+     * @return true if the sequence completed successfully, false on failure.
      */
-    suspend fun start() {
-        // Launch a collector to pipe logs from HardwareManager to the UI state.
-        coroutineScope.launch {
+    suspend fun start(): Boolean {
+        // Launch a collector to pipe hardware logs to the UI via callback.
+        logCollectorJob = coroutineScope.launch {
             hardwareManager.deviceLogs.collect { log ->
-                spoofingState.update {
-                    // Append new log to the "MITM" key in the map.
-                    it.copy(
-                        mitmLogs = it.mitmLogs + ("MITM" to (it.mitmLogs["MITM"] ?: emptyList()) + log)
-                    )
-                }
+                onLog(log)
             }
         }
 
-        // Step 1: Connect to the hardware dongle.
-        hardwareManager.connect()
-        delay(2000)
+        return try {
+            // Step 1: Connect to the hardware dongle.
+            onLog("Connecting to hardware dongle...")
+            hardwareManager.connect()
+            delay(2000)
 
-        // Step 2: Scan for BLE devices using the dongle.
-        hardwareManager.sendCommand("scan ble")
-        delay(5000)
+            // Verify connection
+            val state = hardwareManager.hardwareState.value
+            if (state == HardwareState.CONNECTION_FAILED || state == HardwareState.DISCONNECTED) {
+                onLog("Failed to connect to hardware dongle.")
+                return false
+            }
+            onLog("Hardware connected (state: $state)")
 
-        // Step 3: Initiate Jamming and Sniffing (Listen).
-        // This command likely tells the firmware to follow the target and jam the master.
-        hardwareManager.sendCommand("jam_and_listen")
-        delay(10000)
+            // Step 2: Scan for BLE devices using the dongle.
+            onLog("Scanning for BLE devices...")
+            hardwareManager.sendCommand("scan ble")
+            delay(5000)
 
-        // Step 4: Disconnect/Cleanup.
-        hardwareManager.disconnect()
+            // Step 3: Initiate Jamming and Sniffing (Listen).
+            onLog("Starting jam-and-listen phase...")
+            hardwareManager.sendCommand("jam_and_listen")
+            delay(10000)
+
+            onLog("MITM sequence completed.")
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "MITM attack failed", e)
+            onLog("MITM attack failed: ${e.message}")
+            false
+        } finally {
+            // Clean up the log collector
+            logCollectorJob?.cancel()
+            logCollectorJob = null
+            hardwareManager.disconnect()
+        }
+    }
+
+    /**
+     * Cancels the log collector job. Called externally when stopping the MITM attack.
+     */
+    fun cancelLogCollector() {
+        logCollectorJob?.cancel()
+        logCollectorJob = null
     }
 }

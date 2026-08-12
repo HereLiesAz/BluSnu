@@ -178,7 +178,7 @@ class MainActivity : ComponentActivity() {
                         FindViewModel(application, deviceRepository, hardwareManager) as T
                     }
                     modelClass.isAssignableFrom(KeystrokeInjectionViewModel::class.java) -> {
-                        KeystrokeInjectionViewModel(application, keystrokeInjectionModule, deviceRepository) as T
+                        KeystrokeInjectionViewModel(application, keystrokeInjectionModule, bleHidController, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(AttackChainingViewModel::class.java) -> {
                         val repository = com.hereliesaz.blusnu.data.AttackChainRepository(application)
@@ -210,7 +210,7 @@ class MainActivity : ComponentActivity() {
                         BluetoothLogViewModel(application, bluetoothLog, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(HidViewModel::class.java) -> {
-                        HidViewModel(application) as T
+                        HidViewModel(application, bleHidController) as T
                     }
                     modelClass.isAssignableFrom(FileTransferViewModel::class.java) -> {
                         FileTransferViewModel(application) as T
@@ -232,7 +232,7 @@ class MainActivity : ComponentActivity() {
                         PerfektBlueViewModel(deviceRepository, perfektBlueModule) as T
                     }
                     modelClass.isAssignableFrom(SmpBypassViewModel::class.java) -> {
-                        SmpBypassViewModel(deviceRepository) as T
+                        SmpBypassViewModel(application, deviceRepository) as T
                     }
                     else -> throw IllegalArgumentException("Unknown ViewModel class")
                 }
@@ -355,7 +355,7 @@ class MainActivity : ComponentActivity() {
                         azRailItem(id = "gattfuzzing", text = "Fuzzing", route = "gattfuzzing")
                         azRailItem(id = "blespam", text = "Spam", route = "blespam")
                         azRailItem(id = "gattrelay", text = "Relay", route = "gattrelay")
-                        azRailItem(id = "smpbypass", text = "SMP Bypass", route = "smpbypass")
+                        azRailItem(id = "smpbypass", text = "SMP Audit", route = "smpbypass")
                         azRailItem(id = "btlejacking", text = "BtleJacking", route = "btlejacking")
                         azRailItem(id = "btlejuice", text = "BtleJuice", route = "btlejuice")
                         azDivider()
@@ -537,7 +537,11 @@ class MainActivity : ComponentActivity() {
                                         onMacAddressChanged = viewModel::onMacAddressChanged,
                                         onApplyClicked = viewModel::onApplyClicked,
                                         onDeviceSelected = viewModel::onDeviceSelected,
-                                        onStartMitmAttack = viewModel::onStartMitmAttack
+                                        onStartMitmAttack = viewModel::onStartMitmAttack,
+                                        onStopMitmAttack = viewModel::onStopMitmAttack,
+                                        onRestoreOriginalMac = viewModel::onRestoreOriginalMac,
+                                        onNameChanged = viewModel::onNameChanged,
+                                        onApplyNameClicked = viewModel::onApplyNameClicked
                                     )
                                 }
                                 composable("bluetooth_log") {
