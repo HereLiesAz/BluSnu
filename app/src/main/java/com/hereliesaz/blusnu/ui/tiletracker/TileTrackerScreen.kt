@@ -151,7 +151,7 @@ fun TileTrackerScreen(viewModel: TileTrackerViewModel) {
 
         if (logs.isNotEmpty()) {
             ResultActions(
-                text = logs.joinToString("\n"),
+                resultText = logs.joinToString("\n"),
                 label = "Tile Tracker Results"
             )
         }

@@ -161,6 +161,70 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Add "Agree" and "Cancel" buttons to the new prompt.
     -   [x] If the user agrees, implement functionality to back up their local database to a secure cloud database. (Partial — the backup only runs when a real cloud endpoint URL is configured; no default/production endpoint ships with the app, so this is a no-op out of the box.)
 
+## Milestone 8: New Attack Modules (Batch 2 & 3)
+
+-   [x] **Task 8.1: Additional Classic/BLE Attack Modules**
+    -   [x] BlueFrag (CVE-2020-0022) — L2CAP fragmentation injection (simulated)
+    -   [x] BlueBorne — full CVE-2017-078x vector suite (simulated)
+    -   [x] BlueSpy (CVE-2021-43400) — HSP/HFP eavesdropping (simulated)
+    -   [x] BIAS (CVE-2020-10135) — master/slave identity spoofing (simulated)
+    -   [x] BLUR (CVE-2020-12762) — JSON library memory corruption via BLE (simulated)
+    -   [x] KNOB (CVE-2019-9506) — key entropy downgrade (simulated)
+    -   [x] SweynTooth — SoC BLE link-layer crash vectors (simulated)
+    -   [x] Method Confusion — IO capability manipulation (simulated)
+    -   [x] LMP Fuzzing — Link Manager Protocol field fuzzer
+    -   [x] Breaktooth — extended BrakTooth crash vectors (simulated)
+-   [x] **Task 8.2: Additional BLE Modules**
+    -   [x] BLESA — BLE reconnection spoofing (simulated)
+    -   [x] SMP Bypass (CVE-2024-34722) — out-of-order pairing packets (simulated)
+    -   [x] Injectable (InjectaBLE / CVE-2021-31615) — link-layer packet injection (simulated)
+    -   [x] L2CAP Fuzzing — BLE/Classic L2CAP signalling fuzzer
+    -   [x] Stealtooth — persistent BLE tracking via payload fingerprinting
+    -   [x] Screaming Channels — EM side-channel AES extraction (simulated)
+    -   [x] KNOB BLE variant
+    -   [x] Passkey Reflection — timing side-channel passkey extraction (simulated)
+    -   [x] Mesh Provisioning — Bluetooth Mesh rogue provisioner research
+    -   [x] BLE Whisperer — proximity presence detection via RSSI traces
+    -   [x] BLE Tracking — MAC correlation for device movement analysis
+-   [x] **Task 8.3: HID & Injection Modules**
+    -   [x] Android BT RCE — researches Android Bluetooth stack RCE CVEs
+    -   [x] HID Controller — direct HID-over-GATT peripheral emulation
+    -   [x] Bad Bluetooth (BadBluetooth) — profile confusion attacks
+    -   [x] Battery Exhaustion — connection flooding / GATT read storm
+-   [x] **Task 8.4: Hardware & Physical Modules**
+    -   [x] ESP32 HCI — direct HCI command interface for raw injection/sniffing
+    -   [x] Sniffle — control interface for CC26xx BLE sniffer
+    -   [x] RF Jamming — 2.4 GHz broadband interference via ESP32/SDR
+-   [x] **Task 8.5: Advanced Modules**
+    -   [x] BlueTrust — trust escalation via repeated pairing events
+    -   [x] File Transfer — OBEX Push/FTP file exfiltration/delivery
+
+## Milestone 9: Tracking Network Research Modules
+
+-   [x] **Task 9.1: Apple Find My (nRootTag)**
+    -   [x] `NRootTagModule.kt` — scan, broadcast, and track-target modes
+    -   [x] `NRootTagViewModel.kt` + `NRootTagScreen.kt`
+    -   [x] Wired into MainActivity factory, nav rail, and NavHost
+-   [x] **Task 9.2: Google Find Hub / FMDN**
+    -   [x] `FindHubTagModule.kt` — scan and broadcast modes (Service UUID 0xFE6F, 20-byte EID)
+    -   [x] `FindHubTagViewModel.kt` + `FindHubTagScreen.kt`
+    -   [x] Wired into MainActivity
+-   [x] **Task 9.3: Tile / Life360 Network**
+    -   [x] `TileTagModule.kt` — scan and broadcast modes (Service UUID 0xFEED, 17-byte payload)
+    -   [x] `TileTrackerViewModel.kt` + `TileTrackerScreen.kt`
+    -   [x] Wired into MainActivity
+
+## Milestone 10: CI & Build Remediation
+
+-   [x] **Task 10.1: CancellableContinuation.resume() API**
+    -   [x] Fixed `GattRelayModule.kt` — `resume(value, onCancellation = null)` required parameter
+-   [x] **Task 10.2: ensureActive() resolution**
+    -   [x] Fixed `AttackChainExecutor.kt` — replaced bare `ensureActive()` with `currentCoroutineContext().ensureActive()`
+-   [x] **Task 10.3: ViewModel / Screen remediation**
+    -   [x] All ViewModels follow `attackJob: Job?` + `currentTaskId: String?` + `onCleared()` pattern
+    -   [x] All ViewModels call `ActiveTaskManager.add/remove` and `ActionLogger.log`
+    -   [x] All stop buttons use `OutlinedButton` with `contentColor = error`
+
 ## Future Research
 - https://github.com/francozappa/blur
 - https://github.com/francozappa/bias

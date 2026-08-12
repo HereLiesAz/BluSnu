@@ -150,7 +150,7 @@ fun FindHubTagScreen(viewModel: FindHubTagViewModel) {
 
         if (logs.isNotEmpty()) {
             ResultActions(
-                text = logs.joinToString("\n"),
+                resultText = logs.joinToString("\n"),
                 label = "Find Hub Tag Results"
             )
         }
