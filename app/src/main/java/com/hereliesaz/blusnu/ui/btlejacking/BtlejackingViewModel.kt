@@ -38,11 +38,16 @@ class BtlejackingViewModel(
     private val deviceRepository: DeviceRepository
 ) : AndroidViewModel(application) {
 
+    companion object {
+        /** 3.10: Maximum number of log entries kept in memory */
+        private const val MAX_LOG_ENTRIES = 1000
+    }
+
     private val _state = MutableStateFlow(BtlejackingScreenState())
     val state = _state.asStateFlow()
 
     init {
-        // Observer hardware status.
+        // Observe hardware status.
         hardwareManager.hardwareState
             .onEach { hardwareState ->
                 _state.value = _state.value.copy(hardwareState = hardwareState)
@@ -67,7 +72,14 @@ class BtlejackingViewModel(
         // Observe hardware logs.
         hardwareManager.deviceLogs
             .onEach { log ->
-                _state.value = _state.value.copy(deviceLogs = _state.value.deviceLogs + log)
+                // 3.10: Cap log list at MAX_LOG_ENTRIES, dropping oldest entries
+                val currentLogs = _state.value.deviceLogs
+                val updatedLogs = if (currentLogs.size >= MAX_LOG_ENTRIES) {
+                    currentLogs.drop(1) + log
+                } else {
+                    currentLogs + log
+                }
+                _state.value = _state.value.copy(deviceLogs = updatedLogs)
             }
             .launchIn(viewModelScope)
     }
@@ -94,5 +106,12 @@ class BtlejackingViewModel(
         viewModelScope.launch {
             btlejackingModule.stop()
         }
+    }
+
+    // 3.1 / 3.14: Release hardware resources and cancel module scope on ViewModel destruction
+    override fun onCleared() {
+        super.onCleared()
+        btlejackingModule.close()
+        hardwareManager.close()
     }
 }

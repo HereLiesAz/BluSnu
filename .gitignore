@@ -612,3 +612,6 @@ replay_pid*
 *.lock
 .gradle/
 .ideaz/
+
+# Claude Code worktrees
+.claude/worktrees/

@@ -14,6 +14,10 @@ import android.content.Context
 import android.location.Location
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -30,6 +34,18 @@ class FindViewModelTest {
 
     @get:Rule
     val instantTaskExecutorRule = InstantTaskExecutorRule()
+
+    private val testDispatcher = kotlinx.coroutines.test.StandardTestDispatcher()
+
+    @Before
+    fun setupCoroutines() {
+        Dispatchers.setMain(testDispatcher)
+    }
+
+    @org.junit.After
+    fun tearDownCoroutines() {
+        Dispatchers.resetMain()
+    }
 
     private lateinit var viewModel: FindViewModel
     private lateinit var application: Application
@@ -55,7 +71,17 @@ class FindViewModelTest {
         `when`(sharedPreferences.getBoolean(anyString(), anyBoolean())).thenReturn(false)
 
         // Mock state flow for hardwareManager
-        `when`(hardwareManager.hardwareState).thenReturn(MutableStateFlow(HardwareState.DISCONNECTED))
+        val hardwareStateFlow = MutableStateFlow(HardwareState.DISCONNECTED)
+        `when`(hardwareManager.hardwareState).thenReturn(hardwareStateFlow)
+
+        // Mock getSecondaryRssi
+        kotlinx.coroutines.runBlocking {
+            `when`(hardwareManager.getSecondaryRssi(anyString())).thenReturn(null)
+        }
+
+        // Mock tandem manager state
+        val tandemDataFlow = kotlinx.coroutines.flow.MutableSharedFlow<com.hereliesaz.blusnu.data.TandemData>()
+        `when`(tandemManager.tandemData).thenReturn(tandemDataFlow)
 
         // Mock repository
         `when`(deviceRepository.allDevices).thenReturn(flowOf(emptyList()))
@@ -69,6 +95,9 @@ class FindViewModelTest {
 
         viewModel = FindViewModel(application, deviceRepository, hardwareManager, locationManager, compassManager, tandemManager)
         viewModel.startTracking() // To start collecting location
+
+        // Wait for FindViewModel init blocks and tracking to finish
+        testDispatcher.scheduler.advanceUntilIdle()
     }
 
     @Test
@@ -84,13 +113,13 @@ class FindViewModelTest {
     }
 
     @Test
-    fun `onDeviceRssiUpdated updates direction finding state`() {
+    fun `onDeviceRssiUpdated updates direction finding state`() = runTest {
         val device = TargetDevice(macAddress = "AA:BB:CC:DD:EE:FF", name = "Test Device", rssi = -50, protocol = com.hereliesaz.blusnu.data.Protocol.BLE)
         viewModel.selectDevice(device)
 
-        // onDeviceRssiUpdated runs synchronously (it mutates _uiState directly), so we can
-        // assert on the resulting state immediately.
+        // onDeviceRssiUpdated now runs asynchronously due to coroutines, so advance time
         viewModel.onDeviceRssiUpdated(device, -40)
+        testScheduler.advanceUntilIdle()
 
         val state = viewModel.uiState.value
 
@@ -109,7 +138,7 @@ class FindViewModelTest {
     }
 
     @Test
-    fun `onDeviceRssiUpdated produces a normalized bearing in the 0-360 range`() {
+    fun `onDeviceRssiUpdated produces a normalized bearing in the 0-360 range`() = runTest {
         val device = TargetDevice(macAddress = "AA:BB:CC:DD:EE:FF", name = "Test Device", rssi = -50, protocol = com.hereliesaz.blusnu.data.Protocol.BLE)
         viewModel.selectDevice(device)
 
@@ -119,6 +148,7 @@ class FindViewModelTest {
         viewModel.onDeviceRssiUpdated(device, -45)
         viewModel.onDeviceRssiUpdated(device, -50)
         viewModel.onDeviceRssiUpdated(device, -40)
+        testScheduler.advanceUntilIdle()
 
         val bearing = viewModel.uiState.value.estimatedBearing
         assertNotNull(bearing)
