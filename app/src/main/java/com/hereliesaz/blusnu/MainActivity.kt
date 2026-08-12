@@ -23,6 +23,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,6 +75,9 @@ import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingScreen
 import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingViewModel
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceScreen
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceViewModel
+import com.hereliesaz.blusnu.data.DeveloperSettingsManager
+import com.hereliesaz.blusnu.ui.components.DeveloperSettingsGuideDialog
+import com.hereliesaz.blusnu.ui.components.DevSettingUiState
 import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
 import com.hereliesaz.blusnu.ui.components.SystemRequirementsDialog
 import com.hereliesaz.blusnu.ui.components.UpdateAvailableDialog
@@ -186,6 +190,7 @@ import io.ktor.serialization.kotlinx.json.json
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 class MainActivity : ComponentActivity() {
@@ -209,6 +214,9 @@ class MainActivity : ComponentActivity() {
     }
     private val macLookupClient by lazy { MacLookupClient(httpClient) }
     private val appUpdateChecker by lazy { com.hereliesaz.blusnu.data.AppUpdateChecker(httpClient) }
+    private val developerSettingsManager by lazy {
+        DeveloperSettingsManager(getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE))
+    }
     private val bluetoothLog by lazy { com.hereliesaz.blusnu.data.BluetoothLog() }
     private val bluetoothScanner: com.hereliesaz.blusnu.data.BluetoothScanner by lazy {
         com.hereliesaz.blusnu.data.BluetoothScanner(applicationContext, deviceRepository, bluetoothAdapter, bluetoothLog)
@@ -438,6 +446,9 @@ class MainActivity : ComponentActivity() {
 
         requestRequiredPermissions()
 
+        // Restore any developer settings that were left enabled by a previous crashed session.
+        Thread { developerSettingsManager.restoreAll() }.start()
+
         setContent {
             BluSnuTheme {
                 var showDisclaimer by remember { mutableStateOf(!getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).getBoolean("disclaimer_accepted", false)) }
@@ -463,6 +474,62 @@ class MainActivity : ComponentActivity() {
                     }
                     updateVersion?.let { version ->
                         UpdateAvailableDialog(latestVersion = version, onDismiss = { updateVersion = null })
+                    }
+
+                    // --- Developer Settings Guide: shown once per install ---
+                    var showDevSettingsGuide by remember {
+                        mutableStateOf(
+                            !getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE)
+                                .getBoolean("dev_settings_guide_shown", false)
+                        )
+                    }
+                    var devSettingStates by remember { mutableStateOf<List<DevSettingUiState>>(emptyList()) }
+                    val devSettingsScope = rememberCoroutineScope()
+
+                    LaunchedEffect(Unit) {
+                        devSettingStates = withContext(Dispatchers.IO) {
+                            DeveloperSettingsManager.ALL.map { setting ->
+                                val currentValue = developerSettingsManager.getCurrentValue(setting)
+                                val isEnabledByApp = developerSettingsManager.isEnabledByUs(setting)
+                                DevSettingUiState(
+                                    setting = setting,
+                                    isAlreadyOn = currentValue == setting.enableValue && !isEnabledByApp,
+                                    isEnabledByApp = isEnabledByApp
+                                )
+                            }
+                        }
+                    }
+
+                    if (showDevSettingsGuide && devSettingStates.isNotEmpty()) {
+                        DeveloperSettingsGuideDialog(
+                            settings = devSettingStates,
+                            onEnable = { setting ->
+                                devSettingsScope.launch {
+                                    withContext(Dispatchers.IO) {
+                                        developerSettingsManager.enableForSession(setting)
+                                    }
+                                    devSettingStates = withContext(Dispatchers.IO) {
+                                        DeveloperSettingsManager.ALL.map { s ->
+                                            val currentValue = developerSettingsManager.getCurrentValue(s)
+                                            val isEnabledByApp = developerSettingsManager.isEnabledByUs(s)
+                                            DevSettingUiState(
+                                                setting = s,
+                                                isAlreadyOn = currentValue == s.enableValue && !isEnabledByApp,
+                                                isEnabledByApp = isEnabledByApp
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            onOpenDeveloperSettings = {
+                                startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
+                            },
+                            onDismiss = {
+                                getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE)
+                                    .edit { putBoolean("dev_settings_guide_shown", true) }
+                                showDevSettingsGuide = false
+                            }
+                        )
                     }
 
                     // --- System Requirements Check (5C) ---
@@ -919,6 +986,13 @@ class MainActivity : ComponentActivity() {
         }
 
         requestPermissionsLauncher.launch(requiredPermissions.toTypedArray())
+    }
+
+    override fun onDestroy() {
+        val t = Thread { developerSettingsManager.restoreAll() }
+        t.start()
+        t.join(5_000)
+        super.onDestroy()
     }
 
     /**
