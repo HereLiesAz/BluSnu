@@ -4,8 +4,10 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.ActionLogger
+import com.hereliesaz.blusnu.data.BleHidController
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.DuckyScriptParser
+import com.hereliesaz.blusnu.data.HidKeyMap
 import com.hereliesaz.blusnu.data.KeystrokeInjectionModule
 import com.hereliesaz.blusnu.data.TargetDevice
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +40,7 @@ data class KeystrokeInjectionState(
 class KeystrokeInjectionViewModel(
     application: Application,
     private val keystrokeInjectionModule: KeystrokeInjectionModule,
+    private val bleHidController: BleHidController,
     deviceRepository: DeviceRepository
 ) : AndroidViewModel(application) {
 
@@ -74,9 +77,25 @@ class KeystrokeInjectionViewModel(
                         // Send newline char to simulate Enter.
                         keystrokeInjectionModule.sendKeystrokes("\n")
                     }
+                    // Fix 2.6: Implement GUI (Windows/Command) key command
                     DuckyScriptParser.CommandType.GUI -> {
                         log("PRESS: GUI ${cmd.args}")
-                        // Placeholder for special key support.
+                        val args = cmd.args.trim().lowercase()
+                        if (args.isEmpty()) {
+                            // GUI key alone (no combo key)
+                            bleHidController.sendKeyPress(0x00, HidKeyMap.MOD_LEFT_GUI)
+                            bleHidController.sendKeyRelease()
+                        } else {
+                            // GUI + key combo (e.g., GUI r -> Win+R, GUI d -> Win+D)
+                            val mapping = HidKeyMap.charToHid(args[0])
+                            if (mapping != null) {
+                                val combinedModifiers = (HidKeyMap.MOD_LEFT_GUI.toInt() or mapping.modifier.toInt()).toByte()
+                                bleHidController.sendKeyPress(mapping.keyCode, combinedModifiers)
+                                bleHidController.sendKeyRelease()
+                            } else {
+                                log("Unknown GUI key combo: ${cmd.args}")
+                            }
+                        }
                     }
                     else -> log("Skipping unsupported command: ${cmd.type}")
                 }
@@ -119,6 +138,12 @@ class KeystrokeInjectionViewModel(
                 log("Failed to send keystrokes.")
             }
         }
+    }
+
+    // Fix 2.7: Clean up GATT server and advertising when ViewModel is destroyed
+    override fun onCleared() {
+        super.onCleared()
+        bleHidController.cleanup()
     }
 
     private fun log(message: String) {
