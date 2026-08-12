@@ -3,7 +3,6 @@ package com.hereliesaz.blusnu.ui.blespam
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,7 +16,6 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -46,6 +44,7 @@ import com.hereliesaz.blusnu.data.PayloadType
 fun BleSpamScreen(viewModel: BleSpamViewModel) {
     val isAdvertising by viewModel.isAdvertising.collectAsState()
     val selectedPayloadType by viewModel.selectedPayloadType.collectAsState()
+    val error by viewModel.error.collectAsState()
     var expanded by remember { mutableStateOf(false) }
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
@@ -91,7 +90,7 @@ fun BleSpamScreen(viewModel: BleSpamViewModel) {
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
                 ) {
-                    PayloadType.values().forEach { type ->
+                    PayloadType.entries.forEach { type ->
                         DropdownMenuItem(
                             text = { Text(type.name) },
                             onClick = {
@@ -101,6 +100,16 @@ fun BleSpamScreen(viewModel: BleSpamViewModel) {
                         )
                     }
                 }
+            }
+
+            // Error message display.
+            error?.let { errorMessage ->
+                Text(
+                    text = errorMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
 
             Spacer(modifier = Modifier.weight(1f))
