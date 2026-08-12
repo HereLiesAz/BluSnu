@@ -42,7 +42,9 @@ fun DashboardScreen(
     savedSessions: List<com.hereliesaz.blusnu.data.SavedSession> = emptyList(),
     attackChainTemplates: List<com.hereliesaz.blusnu.data.AttackChainTemplate> = emptyList(),
     activeTasks: List<ActiveTask> = emptyList(),
-    onStartScanClicked: () -> Unit = {}
+    onStartScanClicked: () -> Unit = {},
+    onSessionClicked: (com.hereliesaz.blusnu.data.SavedSession) -> Unit = {},
+    onTemplateClicked: (com.hereliesaz.blusnu.data.AttackChainTemplate) -> Unit = {}
 ) {
     Column(
         modifier = modifier
@@ -131,7 +133,11 @@ fun DashboardScreen(
             } else {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(savedSessions) { session ->
-                        DashboardCard(title = session.name, description = session.date)
+                        DashboardCard(
+                            title = session.name,
+                            description = session.date,
+                            onClick = { onSessionClicked(session) }
+                        )
                     }
                 }
             }
@@ -148,7 +154,11 @@ fun DashboardScreen(
             } else {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(attackChainTemplates) { template ->
-                        DashboardCard(title = template.name, description = template.description)
+                        DashboardCard(
+                            title = template.name,
+                            description = template.description,
+                            onClick = { onTemplateClicked(template) }
+                        )
                     }
                 }
             }
@@ -181,12 +191,13 @@ private fun DeviceCountCard(label: String, count: Int, modifier: Modifier = Modi
 }
 
 @Composable
-fun DashboardCard(title: String, description: String) {
+fun DashboardCard(title: String, description: String, onClick: (() -> Unit)? = null) {
     Card(
         modifier = Modifier
             .width(180.dp)
             .height(80.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        onClick = onClick ?: {}
     ) {
         Column(
             modifier = Modifier

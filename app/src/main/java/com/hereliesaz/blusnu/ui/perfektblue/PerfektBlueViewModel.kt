@@ -2,6 +2,8 @@ package com.hereliesaz.blusnu.ui.perfektblue
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.blusnu.data.ActionLogger
+import com.hereliesaz.blusnu.data.ActiveTaskManager
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.PerfektBlueModule
 import com.hereliesaz.blusnu.data.Protocol
@@ -15,8 +17,10 @@ import kotlinx.coroutines.launch
  *
  * Interfaces with [PerfektBlueModule] to run auditing logic.
  */
-class PerfektBlueViewModel(private val deviceRepository: DeviceRepository) : ViewModel() {
-    private val perfektBlueModule = PerfektBlueModule()
+class PerfektBlueViewModel(
+    private val deviceRepository: DeviceRepository,
+    private val perfektBlueModule: PerfektBlueModule
+) : ViewModel() {
 
     private val _devices = MutableStateFlow<List<TargetDevice>>(emptyList())
     val devices: StateFlow<List<TargetDevice>> = _devices
@@ -55,11 +59,23 @@ class PerfektBlueViewModel(private val deviceRepository: DeviceRepository) : Vie
         _isRunning.value = true
         _logs.value = emptyList()
 
+        val taskId = "perfektblue_${System.currentTimeMillis()}"
+        ActionLogger.log("PerfektBlue: Starting audit on ${device.name ?: device.macAddress}")
+        ActiveTaskManager.add(taskId, "PerfektBlue Audit", "Targeting ${device.name ?: device.macAddress}")
+
         viewModelScope.launch {
-            perfektBlueModule.startAudit(device).collect { log ->
-                _logs.value = _logs.value + log
+            try {
+                perfektBlueModule.startAudit(device).collect { log ->
+                    _logs.value = _logs.value + log
+                }
+                // Log the final result summary (5F).
+                val resultSummary = _logs.value.joinToString("\n").take(200)
+                ActionLogger.log("PerfektBlue: Finished audit on ${device.name ?: device.macAddress}")
+                ActionLogger.log("Result: $resultSummary")
+            } finally {
+                _isRunning.value = false
+                ActiveTaskManager.remove(taskId)
             }
-            _isRunning.value = false
         }
     }
 }

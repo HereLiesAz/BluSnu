@@ -2,6 +2,8 @@ package com.hereliesaz.blusnu.ui.smpbypass
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.blusnu.data.ActionLogger
+import com.hereliesaz.blusnu.data.ActiveTaskManager
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.SmpBypassModule
@@ -33,9 +35,10 @@ class SmpBypassViewModel(private val deviceRepository: DeviceRepository) : ViewM
     init {
         viewModelScope.launch {
             deviceRepository.allDevices.collect { allDevices ->
-                // SMP Bypass targets Android devices (likely Classic/Dual or BLE).
-                // Assuming BLE SMP for now, but CVE context might imply Classic.
-                _devices.value = allDevices
+                // SMP Bypass targets BLE pairing. Filter out Classic-only devices.
+                _devices.value = allDevices.filter {
+                    it.protocol == Protocol.BLE || it.protocol == Protocol.DUAL
+                }
             }
         }
     }
@@ -54,11 +57,23 @@ class SmpBypassViewModel(private val deviceRepository: DeviceRepository) : ViewM
         _isRunning.value = true
         _logs.value = emptyList()
 
+        val taskId = "smpbypass_${System.currentTimeMillis()}"
+        ActionLogger.log("SMP Bypass: Starting attack on ${device.name ?: device.macAddress}")
+        ActiveTaskManager.add(taskId, "SMP Bypass", "Targeting ${device.name ?: device.macAddress}")
+
         viewModelScope.launch {
-            smpBypassModule.startAttack(device).collect { log ->
-                _logs.value = _logs.value + log
+            try {
+                smpBypassModule.startAttack(device).collect { log ->
+                    _logs.value = _logs.value + log
+                }
+                // Log the final result summary (5F).
+                val resultSummary = _logs.value.joinToString("\n").take(200)
+                ActionLogger.log("SMP Bypass: Finished attack on ${device.name ?: device.macAddress}")
+                ActionLogger.log("Result: $resultSummary")
+            } finally {
+                _isRunning.value = false
+                ActiveTaskManager.remove(taskId)
             }
-            _isRunning.value = false
         }
     }
 }

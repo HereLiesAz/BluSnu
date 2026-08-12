@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.ActiveTask
+import com.hereliesaz.blusnu.data.ActiveTaskManager
 import com.hereliesaz.blusnu.data.AttackChainTemplate
 import com.hereliesaz.blusnu.data.AttackChainTemplateRepository
 import com.hereliesaz.blusnu.data.DeviceRepository
@@ -33,39 +34,26 @@ class DashboardViewModel(
 ) : AndroidViewModel(application) {
 
     /**
-     * The single source of truth for the Dashboard UI state.
-     *
-     * It combines flows from three repositories:
-     * 1. All Devices -> to calculate counts and map data.
-     * 2. Saved Sessions -> for the recent activity list.
-     * 3. Attack Templates -> for the quick action cards.
-     */
-    /**
-     * Currently running background tasks. Exposed as a flow so future work (scans, attacks,
-     * file transfers) can push [ActiveTask] entries here; for now it starts empty but the
-     * plumbing to the dashboard is in place.
-     */
-    private val _activeTasks = MutableStateFlow<List<ActiveTask>>(emptyList())
-
-    /**
      * Registers a running background task so it appears on the dashboard.
+     * Delegates to the global [ActiveTaskManager] singleton so any ViewModel
+     * in the app can push tasks without holding a reference to the dashboard.
      */
     fun addActiveTask(task: ActiveTask) {
-        _activeTasks.value = _activeTasks.value + task
+        ActiveTaskManager.add(task)
     }
 
     /**
      * Removes a completed/cancelled task from the dashboard by id.
      */
     fun removeActiveTask(taskId: String) {
-        _activeTasks.value = _activeTasks.value.filterNot { it.id == taskId }
+        ActiveTaskManager.remove(taskId)
     }
 
     val state: StateFlow<DashboardState> = combine(
         deviceRepository.allDevices,
         savedSessionRepository.allSessions,
         attackChainTemplateRepository.allTemplates,
-        _activeTasks
+        ActiveTaskManager.tasks
     ) { devices, sessions, templates, activeTasks ->
         // Calculate derived statistics.
         val bleCount = devices.count { it.protocol == Protocol.BLE }

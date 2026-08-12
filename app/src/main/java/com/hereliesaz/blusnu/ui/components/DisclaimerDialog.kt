@@ -42,12 +42,10 @@ fun DisclaimerDialog(onConfirm: (Boolean) -> Unit) {
             )
         },
         dismissButton = {
-            // "Decline" button.
-            // Note: The text says "Decline and Accept" which seems contradictory/typo in original code.
-            // Documentation reflects current code state.
+            // "Decline" button. Declining keeps the dialog visible (the activity cannot proceed).
             AzButton(
                 onClick = { onConfirm(false) },
-                text = "Decline and Accept",
+                text = "Decline",
                 shape = AzButtonShape.RECTANGLE
             )
         }

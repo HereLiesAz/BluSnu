@@ -112,6 +112,13 @@ class FileTransferController(private val context: Context) {
                         if (bytesRead == -1) break
 
                         outStream.write(byteArrayOf(FileTransferProtocol.MSG_FILE_DATA))
+                        // 4-byte big-endian length prefix
+                        outStream.write(byteArrayOf(
+                            ((bytesRead shr 24) and 0xFF).toByte(),
+                            ((bytesRead shr 16) and 0xFF).toByte(),
+                            ((bytesRead shr 8) and 0xFF).toByte(),
+                            (bytesRead and 0xFF).toByte()
+                        ))
                         outStream.write(buffer, 0, bytesRead)
                         outStream.flush()
                         totalSent += bytesRead
@@ -230,22 +237,34 @@ class FileTransferController(private val context: Context) {
             _transferProgress.value = 0f
             _statusMessage.emit("Receiving $fileName (${formatSize(fileSize)})...")
 
-            // Save to Downloads
+            // Save to Downloads -- sanitize filename to prevent path traversal
             val downloadsDir = context.getExternalFilesDir(null) ?: context.filesDir
-            val outFile = File(downloadsDir, fileName)
+            val sanitizedName = File(fileName).name
+            val outFile = File(downloadsDir, sanitizedName)
+            if (!outFile.canonicalPath.startsWith(downloadsDir.canonicalPath)) {
+                _statusMessage.emit("Rejected file: path traversal detected in filename.")
+                _transferStatus.value = TransferStatus.FAILED
+                socket.close()
+                return
+            }
             var totalReceived = 0L
 
             outFile.outputStream().use { fileOut ->
-                val buffer = ByteArray(FileTransferProtocol.CHUNK_SIZE + 1) // +1 for message type byte
-
                 while (true) {
-                    val bytesRead = inStream.read(buffer)
-                    if (bytesRead <= 0) break
+                    val typeByte = inStream.read()
+                    if (typeByte == -1) break
 
-                    when (buffer[0]) {
+                    when (typeByte.toByte()) {
                         FileTransferProtocol.MSG_FILE_DATA -> {
-                            fileOut.write(buffer, 1, bytesRead - 1)
-                            totalReceived += (bytesRead - 1)
+                            // Read 4-byte big-endian length prefix
+                            val lengthBytes = readExactly(inStream, 4)
+                            val chunkLen = ((lengthBytes[0].toInt() and 0xFF) shl 24) or
+                                    ((lengthBytes[1].toInt() and 0xFF) shl 16) or
+                                    ((lengthBytes[2].toInt() and 0xFF) shl 8) or
+                                    (lengthBytes[3].toInt() and 0xFF)
+                            val chunkData = readExactly(inStream, chunkLen)
+                            fileOut.write(chunkData)
+                            totalReceived += chunkLen
                             _transferProgress.value = if (fileSize > 0) totalReceived.toFloat() / fileSize else 0f
                         }
                         FileTransferProtocol.MSG_FILE_END -> break
@@ -322,6 +341,21 @@ class FileTransferController(private val context: Context) {
             }
         }
         return 0L
+    }
+
+    /**
+     * Reads exactly [count] bytes from the stream, looping until all bytes
+     * are received or the stream ends prematurely.
+     */
+    private fun readExactly(stream: InputStream, count: Int): ByteArray {
+        val buffer = ByteArray(count)
+        var offset = 0
+        while (offset < count) {
+            val bytesRead = stream.read(buffer, offset, count - offset)
+            if (bytesRead == -1) throw IOException("Unexpected end of stream (expected $count bytes, got $offset)")
+            offset += bytesRead
+        }
+        return buffer
     }
 
     private fun formatSize(bytes: Long): String = when {

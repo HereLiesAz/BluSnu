@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
+import com.hereliesaz.blusnu.ui.components.ResultActions
 
 /**
  * Screen for the PerfektBlue audit module.
@@ -100,6 +101,13 @@ fun PerfektBlueScreen(viewModel: PerfektBlueViewModel) {
                             }
                         )
                     }
+                    if (devices.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text("No devices found -- run a scan first") },
+                            onClick = { expanded = false },
+                            enabled = false
+                        )
+                    }
                 }
             }
 
@@ -116,6 +124,15 @@ fun PerfektBlueScreen(viewModel: PerfektBlueViewModel) {
                         Text(text = log, style = MaterialTheme.typography.bodySmall, color = Color.White)
                     }
                 }
+            }
+
+            // Copy/Share result actions (5E).
+            if (logs.isNotEmpty()) {
+                ResultActions(
+                    resultText = logs.joinToString("\n"),
+                    label = "PerfektBlue Audit Results",
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
 
             if (isRunning) {

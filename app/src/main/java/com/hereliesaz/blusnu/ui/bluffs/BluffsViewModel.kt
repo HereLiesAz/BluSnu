@@ -2,6 +2,8 @@ package com.hereliesaz.blusnu.ui.bluffs
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.blusnu.data.ActionLogger
+import com.hereliesaz.blusnu.data.ActiveTaskManager
 import com.hereliesaz.blusnu.data.BluffsMode
 import com.hereliesaz.blusnu.data.BluffsModule
 import com.hereliesaz.blusnu.data.DeviceRepository
@@ -79,12 +81,24 @@ class BluffsViewModel(
         _isRunning.value = true
         _logs.value = emptyList()
 
+        val taskId = "bluffs_${System.currentTimeMillis()}"
+        ActionLogger.log("BLUFFS: Starting ${_selectedMode.value.name} attack on ${device.name ?: device.macAddress}")
+        ActiveTaskManager.add(taskId, "BLUFFS Attack", "${_selectedMode.value.name} on ${device.name ?: device.macAddress}")
+
         viewModelScope.launch {
-            // Collect logs from the Flow returned by the module.
-            bluffsModule.startAttack(device, _selectedMode.value).collect { log ->
-                _logs.value = _logs.value + log
+            try {
+                // Collect logs from the Flow returned by the module.
+                bluffsModule.startAttack(device, _selectedMode.value).collect { log ->
+                    _logs.value = _logs.value + log
+                }
+                // Log the final result summary (5F).
+                val resultSummary = _logs.value.joinToString("\n").take(200)
+                ActionLogger.log("BLUFFS: Finished attack on ${device.name ?: device.macAddress}")
+                ActionLogger.log("Result: $resultSummary")
+            } finally {
+                _isRunning.value = false
+                ActiveTaskManager.remove(taskId)
             }
-            _isRunning.value = false
         }
     }
 }

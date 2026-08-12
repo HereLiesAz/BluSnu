@@ -53,7 +53,7 @@ fun SystemRequirementsDialog(
     ) {
         Column(
             modifier = Modifier
-                .background(Color.White, shape = RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(16.dp))
                 .padding(24.dp)
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -62,13 +62,13 @@ fun SystemRequirementsDialog(
                 text = "System Requirements",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "The following settings must be enabled for BluSnu to function correctly:",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(16.dp))
 

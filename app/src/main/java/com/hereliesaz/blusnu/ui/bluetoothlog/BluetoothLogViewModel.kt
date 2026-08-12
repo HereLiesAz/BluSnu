@@ -1,8 +1,10 @@
 package com.hereliesaz.blusnu.ui.bluetoothlog
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +16,10 @@ data class BluetoothLogState(
     val originalLogs: List<String> = emptyList(),
     val filter: String = "",
     val isFiltered: Boolean = false,
-    val selectedDevice: com.hereliesaz.blusnu.data.TargetDevice? = null
+    val selectedDevice: com.hereliesaz.blusnu.data.TargetDevice? = null,
+    val devices: List<com.hereliesaz.blusnu.data.TargetDevice> = emptyList(),
+    /** Set to true when the UI should launch the SAF CreateDocument picker. */
+    val requestSaveFile: Boolean = false
 )
 
 class BluetoothLogViewModel(
@@ -34,6 +39,13 @@ class BluetoothLogViewModel(
                     logs = it.logs + formatted,
                     originalLogs = it.originalLogs + formatted
                 ) }
+            }
+        }
+
+        // Populate device list for the picker.
+        viewModelScope.launch {
+            deviceRepository.allDevices.collect { allDevices ->
+                _state.update { it.copy(devices = allDevices) }
             }
         }
     }
@@ -68,14 +80,35 @@ class BluetoothLogViewModel(
         }
     }
 
+    /**
+     * Signals the UI to launch the SAF CreateDocument picker.
+     */
     fun onSaveToFile() {
+        _state.update { it.copy(requestSaveFile = true) }
+    }
+
+    /**
+     * Called after the SAF picker returns. Resets the request flag.
+     */
+    fun onSaveFileRequestHandled() {
+        _state.update { it.copy(requestSaveFile = false) }
+    }
+
+    /**
+     * Writes the current logs to the user-chosen URI via the Storage Access Framework.
+     */
+    fun writeLogsToUri(uri: Uri) {
         val logs = _state.value.logs.joinToString("\n")
-        val file = java.io.File(
-            android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS),
-            "bluetooth_log.txt"
-        )
-        file.writeText(logs)
-        log("Saved logs to ${file.absolutePath}")
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                getApplication<Application>().contentResolver.openOutputStream(uri)?.use { out ->
+                    out.write(logs.toByteArray())
+                }
+                log("Saved logs to selected file.")
+            } catch (e: Exception) {
+                log("Failed to save logs: ${e.message}")
+            }
+        }
     }
 
     private fun log(message: String) {
