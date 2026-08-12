@@ -4,6 +4,8 @@ import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -45,7 +47,7 @@ class BtlejackingModule(private val hardwareManager: HardwareManager) {
     private val _state = MutableStateFlow(BtlejackingState.IDLE)
     val state = _state.asStateFlow()
 
-    private val scope = CoroutineScope(Dispatchers.IO + Job())
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var attackJob: Job? = null
 
     /**
@@ -147,10 +149,13 @@ class BtlejackingModule(private val hardwareManager: HardwareManager) {
      */
     fun stop() {
         attackJob?.cancel()
+        attackJob = null
+        _state.value = BtlejackingState.IDLE
+        hardwareManager.sendCommand("stop")
+    }
 
-        scope.launch {
-            _state.value = BtlejackingState.IDLE
-            hardwareManager.sendCommand("stop")
-        }
+    fun close() {
+        stop()
+        scope.cancel()
     }
 }

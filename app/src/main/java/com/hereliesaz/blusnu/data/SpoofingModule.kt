@@ -1,6 +1,7 @@
 package com.hereliesaz.blusnu.data
 
 import android.util.Log
+import com.hereliesaz.blusnu.utils.MacValidator
 import com.hereliesaz.blusnu.utils.RootExecutor
 
 /**
@@ -17,9 +18,6 @@ class SpoofingModule {
 
     companion object {
         private const val TAG = "SpoofingModule"
-
-        /** Regex pattern for a valid MAC address in colon-separated hex format. */
-        private val MAC_REGEX = Regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$")
     }
 
     /**
@@ -36,8 +34,7 @@ class SpoofingModule {
      * @return true if the adapter reports the new address after the operation, false otherwise.
      */
     suspend fun spoofMacAddress(macAddress: String): Boolean {
-        // Validate MAC format
-        if (!MAC_REGEX.matches(macAddress)) {
+        if (!MacValidator.isValid(macAddress)) {
             Log.e(TAG, "Invalid MAC address format: $macAddress (expected XX:XX:XX:XX:XX:XX)")
             return false
         }

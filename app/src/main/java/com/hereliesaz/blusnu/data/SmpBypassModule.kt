@@ -1,6 +1,7 @@
 package com.hereliesaz.blusnu.data
 
 import android.util.Log
+import com.hereliesaz.blusnu.utils.MacValidator
 import com.hereliesaz.blusnu.utils.RootExecutor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -44,7 +45,7 @@ class SmpBypassModule {
      * @return A Flow emitting progress logs.
      */
     fun startAttack(targetDevice: TargetDevice): Flow<String> = flow {
-        val mac = targetDevice.macAddress
+        val mac = MacValidator.requireValid(targetDevice.macAddress)
         emit("Initializing SMP Bypass attack...")
         emit("Target: ${targetDevice.name ?: mac}")
 

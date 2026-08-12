@@ -1,6 +1,7 @@
 package com.hereliesaz.blusnu.data
 
 import android.util.Log
+import com.hereliesaz.blusnu.utils.MacValidator
 import com.hereliesaz.blusnu.utils.RootExecutor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -65,7 +66,7 @@ class BluffsModule {
      * @return A Flow of status strings for the UI console.
      */
     fun startAttack(targetDevice: TargetDevice, mode: BluffsMode): Flow<String> = flow {
-        val mac = targetDevice.macAddress
+        val mac = MacValidator.requireValid(targetDevice.macAddress)
         emit("Starting BLUFFS attack (CVE-2023-24023) on ${targetDevice.name ?: mac} using mode $mode")
 
         // Root is strictly required -- no simulation fallback

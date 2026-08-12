@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.util.Log
+import com.hereliesaz.blusnu.utils.MacValidator
 import com.hereliesaz.blusnu.utils.RootExecutor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -77,7 +78,7 @@ class PerfektBlueModule {
      * @return A Flow emitting audit logs.
      */
     fun startAudit(targetDevice: TargetDevice): Flow<String> = flow {
-        val mac = targetDevice.macAddress
+        val mac = MacValidator.requireValid(targetDevice.macAddress)
         emit("Initializing PerfektBlue Audit...")
         emit("Target: ${targetDevice.name ?: mac}")
 
