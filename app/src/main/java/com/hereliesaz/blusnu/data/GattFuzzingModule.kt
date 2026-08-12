@@ -204,11 +204,6 @@ class GattFuzzingModule {
         return results.toString()
     }
 
-    // Kept for backward compatibility with existing ViewModel signature
-    fun executeAttack(device: BluetoothDevice) {
-        // No-op without context; use the suspend variant with context instead
-    }
-
     private fun generateFuzzPayloads(): List<Pair<String, ByteArray>> = listOf(
         "empty" to byteArrayOf(),
         "zero-1" to byteArrayOf(0x00),
