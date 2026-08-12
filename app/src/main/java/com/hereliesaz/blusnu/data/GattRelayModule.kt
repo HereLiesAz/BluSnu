@@ -149,8 +149,11 @@ class GattRelayModule(
      * preventing IllegalStateException when a timeout has already cancelled it.
      */
     private fun <T> CancellableContinuation<T>.safeResume(value: T) {
-        val token = tryResume(value)
-        if (token != null) completeResume(token)
+        try {
+            resume(value)
+        } catch (_: IllegalStateException) {
+            // Continuation already resumed or cancelled — safe to ignore.
+        }
     }
 
     // ── GATT client callback (Node A) ────────────────────────────────────────

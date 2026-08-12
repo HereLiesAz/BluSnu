@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -141,21 +142,24 @@ fun BlueSmackScreen(viewModel: BlueSmackViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (!isRunning) {
-            Button(
-                onClick = { viewModel.startAttack() },
-                enabled = selectedDevice != null,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Start Attack")
-            }
-        } else {
-            Button(
+        if (isRunning) {
+            OutlinedButton(
                 onClick = { viewModel.stopAttack() },
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                ),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Stop Attack")
+            }
+        } else {
+            Button(
+                onClick = { viewModel.startAttack() },
+                enabled = selectedDevice != null,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Start Attack")
             }
         }
 

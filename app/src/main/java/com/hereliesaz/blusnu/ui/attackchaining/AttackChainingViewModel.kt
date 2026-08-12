@@ -4,6 +4,8 @@ import android.app.Application
 import android.bluetooth.BluetoothAdapter
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.blusnu.data.ActionLogger
+import com.hereliesaz.blusnu.data.ActiveTaskManager
 import com.hereliesaz.blusnu.data.AttackChainRepository
 import com.hereliesaz.blusnu.data.AttackChainTemplates
 import com.hereliesaz.blusnu.data.BluesnarfingModule
@@ -58,8 +60,8 @@ class AttackChainingViewModel(
     private val _uiState = MutableStateFlow(AttackChainingState())
     val uiState: StateFlow<AttackChainingState> = _uiState.asStateFlow()
 
-    /** Tracks the currently running execution job so it can be cancelled (13.5). */
     private var executionJob: Job? = null
+    private var currentTaskId: String? = null
 
     /** Reason the last addConnection() call was rejected, or null. */
     private val _connectionError = MutableStateFlow<String?>(null)
@@ -257,19 +259,28 @@ class AttackChainingViewModel(
         bluetoothAdapter?.let { services[ChainServices.BLUETOOTH_ADAPTER] = it }
         services[ChainServices.BLUESNARFING_MODULE] = BluesnarfingModule()
         services[ChainServices.KEYSTROKE_INJECTION_MODULE] = keystrokeInjectionModule
+
+        val taskId = "attackchain_${System.currentTimeMillis()}"
+        currentTaskId = taskId
+        val nodeCount = _uiState.value.nodes.size
+        ActionLogger.log("Attack Chain: Starting execution ($nodeCount nodes)")
+        ActiveTaskManager.add(taskId, "Attack Chain", "$nodeCount nodes")
+
         _uiState.update { it.copy(isExecuting = true) }
         executionJob = executor.execute(uiState.value, viewModelScope, services) {
-            // Completion callback -- reset isExecuting.
             _uiState.update { it.copy(isExecuting = false) }
+            currentTaskId?.let { ActiveTaskManager.remove(it) }
+            currentTaskId = null
+            ActionLogger.log("Attack Chain: Execution complete")
         }
     }
 
-    /**
-     * 13.5: Cancels the currently running chain execution.
-     */
     fun cancelExecution() {
         executionJob?.cancel()
         executionJob = null
         _uiState.update { it.copy(isExecuting = false) }
+        currentTaskId?.let { ActiveTaskManager.remove(it) }
+        currentTaskId = null
+        ActionLogger.log("Attack Chain: Execution cancelled by user")
     }
 }

@@ -3,6 +3,8 @@ package com.hereliesaz.blusnu.ui.gattrelay
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.blusnu.data.ActionLogger
+import com.hereliesaz.blusnu.data.ActiveTaskManager
 import com.hereliesaz.blusnu.data.GattRelayModule
 import com.hereliesaz.blusnu.data.RelayRole
 import kotlinx.coroutines.Job
@@ -26,6 +28,7 @@ class GattRelayViewModel(application: Application) : AndroidViewModel(applicatio
     val logs: StateFlow<List<String>> = _logs
 
     private var relayJob: Job? = null
+    private var currentTaskId: String? = null
 
     fun selectRole(role: RelayRole) {
         _selectedRole.value = role
@@ -40,11 +43,26 @@ class GattRelayViewModel(application: Application) : AndroidViewModel(applicatio
         _isRunning.value = true
         _logs.value = emptyList()
 
+        val role = _selectedRole.value
+        val taskId = "gattrelay_${System.currentTimeMillis()}"
+        currentTaskId = taskId
+        ActionLogger.log("GATT Relay: Starting as ${role.name}")
+        ActiveTaskManager.add(taskId, "GATT Relay", role.name)
+
         relayJob = viewModelScope.launch {
-            gattRelayModule.startRelay(_selectedRole.value, _targetAddress.value).collect { log ->
-                _logs.value = _logs.value + log
+            try {
+                gattRelayModule.startRelay(role, _targetAddress.value).collect { log ->
+                    _logs.value = _logs.value + log
+                }
+                val resultSummary = _logs.value.joinToString("\n").take(200)
+                ActionLogger.log("GATT Relay: Finished on ${role.name}")
+                ActionLogger.log("Result: $resultSummary")
+            } finally {
+                _isRunning.value = false
+                currentTaskId?.let { ActiveTaskManager.remove(it) }
+                currentTaskId = null
+                relayJob = null
             }
-            _isRunning.value = false
         }
     }
 
@@ -53,10 +71,17 @@ class GattRelayViewModel(application: Application) : AndroidViewModel(applicatio
         relayJob = null
         gattRelayModule.stop()
         _isRunning.value = false
+        currentTaskId?.let { ActiveTaskManager.remove(it) }
+        currentTaskId = null
+        ActionLogger.log("GATT Relay: Stopped by user")
     }
 
     override fun onCleared() {
         super.onCleared()
+        relayJob?.cancel()
+        relayJob = null
         gattRelayModule.stop()
+        currentTaskId?.let { ActiveTaskManager.remove(it) }
+        currentTaskId = null
     }
 }

@@ -9,47 +9,37 @@ import com.hereliesaz.blusnu.data.BluffsModule
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.TargetDevice
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/**
- * ViewModel for the BLUFFS attack screen.
- *
- * Coordinates device selection and attack execution via [BluffsModule].
- */
 class BluffsViewModel(
     private val deviceRepository: DeviceRepository,
     private val bluffsModule: BluffsModule
 ) : ViewModel() {
 
-    // List of eligible targets.
     private val _devices = MutableStateFlow<List<TargetDevice>>(emptyList())
     val devices: StateFlow<List<TargetDevice>> = _devices
 
-    // Currently selected target.
     private val _selectedDevice = MutableStateFlow<TargetDevice?>(null)
     val selectedDevice: StateFlow<TargetDevice?> = _selectedDevice
 
-    // Selected attack vector/mode.
     private val _selectedMode = MutableStateFlow(BluffsMode.A1)
     val selectedMode: StateFlow<BluffsMode> = _selectedMode
 
-    // Busy state.
     private val _isRunning = MutableStateFlow(false)
     val isRunning: StateFlow<Boolean> = _isRunning
 
-    // Real-time logs from the attack module.
     private val _logs = MutableStateFlow<List<String>>(emptyList())
     val logs: StateFlow<List<String>> = _logs
+
+    private var attackJob: Job? = null
+    private var currentTaskId: String? = null
 
     init {
         viewModelScope.launch {
             deviceRepository.allDevices.collect { allDevices ->
-                // BLUFFS targets BR/EDR (Classic). Filter out BLE-only devices.
                 _devices.value = allDevices.filter {
                     it.protocol == Protocol.CLASSIC || it.protocol == Protocol.DUAL
                 }
@@ -57,23 +47,14 @@ class BluffsViewModel(
         }
     }
 
-    /**
-     * Updates selected device.
-     */
     fun selectDevice(device: TargetDevice) {
         _selectedDevice.value = device
     }
 
-    /**
-     * Updates selected attack mode.
-     */
     fun selectMode(mode: BluffsMode) {
         _selectedMode.value = mode
     }
 
-    /**
-     * Starts the attack coroutine.
-     */
     fun startAttack() {
         val device = _selectedDevice.value ?: return
         if (_isRunning.value) return
@@ -82,23 +63,41 @@ class BluffsViewModel(
         _logs.value = emptyList()
 
         val taskId = "bluffs_${System.currentTimeMillis()}"
+        currentTaskId = taskId
         ActionLogger.log("BLUFFS: Starting ${_selectedMode.value.name} attack on ${device.name ?: device.macAddress}")
         ActiveTaskManager.add(taskId, "BLUFFS Attack", "${_selectedMode.value.name} on ${device.name ?: device.macAddress}")
 
-        viewModelScope.launch {
+        attackJob = viewModelScope.launch {
             try {
-                // Collect logs from the Flow returned by the module.
                 bluffsModule.startAttack(device, _selectedMode.value).collect { log ->
                     _logs.value = _logs.value + log
                 }
-                // Log the final result summary (5F).
                 val resultSummary = _logs.value.joinToString("\n").take(200)
                 ActionLogger.log("BLUFFS: Finished attack on ${device.name ?: device.macAddress}")
                 ActionLogger.log("Result: $resultSummary")
             } finally {
                 _isRunning.value = false
-                ActiveTaskManager.remove(taskId)
+                currentTaskId?.let { ActiveTaskManager.remove(it) }
+                currentTaskId = null
+                attackJob = null
             }
         }
+    }
+
+    fun stopAttack() {
+        attackJob?.cancel()
+        attackJob = null
+        _isRunning.value = false
+        currentTaskId?.let { ActiveTaskManager.remove(it) }
+        currentTaskId = null
+        ActionLogger.log("BLUFFS: Attack stopped by user")
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        attackJob?.cancel()
+        attackJob = null
+        currentTaskId?.let { ActiveTaskManager.remove(it) }
+        currentTaskId = null
     }
 }

@@ -1,6 +1,7 @@
 package com.hereliesaz.blusnu.ui.blespam
 
 import androidx.lifecycle.ViewModel
+import com.hereliesaz.blusnu.data.ActionLogger
 import com.hereliesaz.blusnu.data.BleSpamModule
 import com.hereliesaz.blusnu.data.PayloadType
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,8 +41,10 @@ class BleSpamViewModel(private val bleSpamModule: BleSpamModule) : ViewModel() {
     fun toggleSpam() {
         if (isAdvertising.value) {
             bleSpamModule.stopSpam()
+            ActionLogger.log("BLE Spam: Stopped ${_selectedPayloadType.value.name} advertising")
         } else {
             bleSpamModule.startSpam(_selectedPayloadType.value)
+            ActionLogger.log("BLE Spam: Started ${_selectedPayloadType.value.name} advertising")
         }
     }
 

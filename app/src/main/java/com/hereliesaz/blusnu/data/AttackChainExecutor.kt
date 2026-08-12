@@ -7,7 +7,6 @@ import com.hereliesaz.blusnu.ui.attackchaining.nodes.StartNode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.coroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -96,7 +95,7 @@ class AttackChainExecutor {
         depth: Int = 0
     ) {
         // 13.5: Check cancellation between nodes so a cancelled Job stops promptly.
-        coroutineContext.ensureActive()
+        ensureActive()
 
         // Recursion / cycle guard: chains can contain loops, so bound the total depth to
         // guarantee termination and avoid a StackOverflowError.
@@ -116,7 +115,7 @@ class AttackChainExecutor {
         _output.emit("Result: ${result.output}")
 
         // 13.5: Check cancellation after node execution too.
-        coroutineContext.ensureActive()
+        ensureActive()
 
         // Determine which nodes are connected to this node's output ports.
         // We filter the list of connections to find those originating from this node.
@@ -134,7 +133,7 @@ class AttackChainExecutor {
         // Iterate through the selected downstream nodes.
         for (connection in connections) {
             // 13.5: Check cancellation between successor traversals.
-            coroutineContext.ensureActive()
+            ensureActive()
 
             // Retrieve the actual Node object using the ID from the connection destination.
             val nextNode = state.nodes[connection.second.nodeId] ?: continue

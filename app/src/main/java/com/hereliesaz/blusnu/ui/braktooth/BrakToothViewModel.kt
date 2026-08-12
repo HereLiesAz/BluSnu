@@ -9,6 +9,7 @@ import com.hereliesaz.blusnu.data.BrakToothVector
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.TargetDevice
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -44,6 +45,9 @@ class BrakToothViewModel(
 
     private val _logs = MutableStateFlow<List<String>>(emptyList())
     val logs: StateFlow<List<String>> = _logs
+
+    private var fuzzingJob: Job? = null
+    private var currentTaskId: String? = null
 
     init {
         viewModelScope.launch {
@@ -99,10 +103,11 @@ class BrakToothViewModel(
         _logs.value = emptyList()
 
         val taskId = "braktooth_${System.currentTimeMillis()}"
+        currentTaskId = taskId
         ActionLogger.log("BrakTooth: Starting ${_selectedVector.value.name} on ${device.name ?: device.macAddress}")
         ActiveTaskManager.add(taskId, "BrakTooth Fuzzer", "${_selectedVector.value.name} on ${device.name ?: device.macAddress}")
 
-        viewModelScope.launch {
+        fuzzingJob = viewModelScope.launch {
             try {
                 brakToothModule.startFuzzing(device, _selectedVector.value).collect { log ->
                     _logs.value = _logs.value + log
@@ -118,8 +123,27 @@ class BrakToothViewModel(
                 ActionLogger.log("BrakTooth: Error during fuzzing -- ${e.message}")
             } finally {
                 _isRunning.value = false
-                ActiveTaskManager.remove(taskId)
+                currentTaskId?.let { ActiveTaskManager.remove(it) }
+                currentTaskId = null
+                fuzzingJob = null
             }
         }
+    }
+
+    fun stopFuzzing() {
+        fuzzingJob?.cancel()
+        fuzzingJob = null
+        _isRunning.value = false
+        currentTaskId?.let { ActiveTaskManager.remove(it) }
+        currentTaskId = null
+        ActionLogger.log("BrakTooth: Fuzzing stopped by user")
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        fuzzingJob?.cancel()
+        fuzzingJob = null
+        currentTaskId?.let { ActiveTaskManager.remove(it) }
+        currentTaskId = null
     }
 }

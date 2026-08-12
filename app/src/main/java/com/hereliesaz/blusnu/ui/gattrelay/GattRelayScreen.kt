@@ -17,6 +17,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.RelayRole
+import com.hereliesaz.blusnu.ui.components.ResultActions
 
 /**
  * Screen for configuring and running a GATT Relay Attack.
@@ -112,26 +114,37 @@ fun GattRelayScreen(viewModel: GattRelayViewModel) {
                 }
             }
 
+            // Copy/Share result actions.
+            if (logs.isNotEmpty()) {
+                ResultActions(
+                    resultText = logs.joinToString("\n"),
+                    label = "GATT Relay Logs",
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             if (isRunning) {
                 CircularProgressIndicator()
             }
 
             // Action Buttons.
-            if (!isRunning) {
+            if (isRunning) {
+                OutlinedButton(
+                    onClick = { viewModel.stopRelay() },
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("STOP RELAY")
+                }
+            } else {
                 Button(
                     onClick = { viewModel.startRelay() },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("START RELAY")
-                }
-            } else {
-                Button(
-                    onClick = { viewModel.stopRelay() },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onErrorContainer),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("STOP RELAY")
                 }
             }
 
