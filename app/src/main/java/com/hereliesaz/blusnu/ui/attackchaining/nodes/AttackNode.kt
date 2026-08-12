@@ -27,7 +27,9 @@ data class ExecutionContext(
     val lastResult: String? = null,
     val targetDevice: TargetDevice? = null,
     val loopCounters: Map<NodeId, Int> = emptyMap(),
-    val services: Map<String, Any> = emptyMap()
+    val services: Map<String, Any> = emptyMap(),
+    /** Data passed between connected nodes keyed by connector id. */
+    val connectorData: Map<String, String> = emptyMap()
 )
 
 data class ExecutionResult(
@@ -38,7 +40,26 @@ data class ExecutionResult(
 
 typealias NodeId = String
 
-data class NodeConnector(val id: String, val nodeId: NodeId)
+/**
+ * Role of a connector: INPUT receives data, OUTPUT sends data.
+ * Connections are only valid from an OUTPUT connector to an INPUT connector.
+ */
+enum class ConnectorRole { INPUT, OUTPUT }
+
+data class NodeConnector(val id: String, val nodeId: NodeId, val role: ConnectorRole)
+
+/**
+ * Serialization-safe position data class.
+ * Compose [Offset] does not serialize correctly with Gson; this plain data class
+ * is used for persistence and converted to/from [Offset] at the UI boundary.
+ */
+data class NodePosition(val x: Float, val y: Float) {
+    fun toOffset(): Offset = Offset(x, y)
+
+    companion object {
+        fun fromOffset(offset: Offset): NodePosition = NodePosition(offset.x, offset.y)
+    }
+}
 
 // Service registry keys
 object ChainServices {
@@ -53,7 +74,7 @@ data class StartNode(
     override val id: NodeId,
     override val position: Offset = Offset.Zero,
     override val inputs: List<NodeConnector> = emptyList(),
-    override val outputs: List<NodeConnector> = listOf(NodeConnector("start", id)),
+    override val outputs: List<NodeConnector> = listOf(NodeConnector("start", id, ConnectorRole.OUTPUT)),
     override val name: String = "Start",
     override val targetDevice: TargetDevice? = null
 ) : AttackNode {
@@ -69,8 +90,11 @@ data class StartNode(
 data class IfElseNode(
     override val id: NodeId,
     override val position: Offset = Offset.Zero,
-    override val inputs: List<NodeConnector> = listOf(NodeConnector("condition", id)),
-    override val outputs: List<NodeConnector> = listOf(NodeConnector("true", id), NodeConnector("false", id)),
+    override val inputs: List<NodeConnector> = listOf(NodeConnector("condition", id, ConnectorRole.INPUT)),
+    override val outputs: List<NodeConnector> = listOf(
+        NodeConnector("true", id, ConnectorRole.OUTPUT),
+        NodeConnector("false", id, ConnectorRole.OUTPUT)
+    ),
     override val name: String = "If/Else",
     override val targetDevice: TargetDevice? = null
 ) : AttackNode {
@@ -91,8 +115,8 @@ data class IfElseNode(
 data class WaitNode(
     override val id: NodeId,
     override val position: Offset = Offset.Zero,
-    override val inputs: List<NodeConnector> = listOf(NodeConnector("in", id)),
-    override val outputs: List<NodeConnector> = listOf(NodeConnector("out", id)),
+    override val inputs: List<NodeConnector> = listOf(NodeConnector("in", id, ConnectorRole.INPUT)),
+    override val outputs: List<NodeConnector> = listOf(NodeConnector("out", id, ConnectorRole.OUTPUT)),
     override val name: String = "Wait",
     override val targetDevice: TargetDevice? = null,
     val durationMs: Long = 1000
@@ -109,8 +133,11 @@ data class WaitNode(
 data class LoopNode(
     override val id: NodeId,
     override val position: Offset = Offset.Zero,
-    override val inputs: List<NodeConnector> = listOf(NodeConnector("start", id)),
-    override val outputs: List<NodeConnector> = listOf(NodeConnector("loop_body", id), NodeConnector("end", id)),
+    override val inputs: List<NodeConnector> = listOf(NodeConnector("start", id, ConnectorRole.INPUT)),
+    override val outputs: List<NodeConnector> = listOf(
+        NodeConnector("loop_body", id, ConnectorRole.OUTPUT),
+        NodeConnector("end", id, ConnectorRole.OUTPUT)
+    ),
     override val name: String = "Loop",
     override val targetDevice: TargetDevice? = null,
     val maxIterations: Int = 3
@@ -138,22 +165,27 @@ data class LoopNode(
 
 // --- Action Nodes ---
 
+/**
+ * Pass-through node: forwards the pre-selected target (or reports none).
+ * Renamed from "Scan BLE Devices" because this node does not perform actual BLE
+ * scanning -- it simply relays the target device already assigned via the UI.
+ */
 data class ScanBleNode(
     override val id: NodeId,
     override val position: Offset = Offset.Zero,
-    override val inputs: List<NodeConnector> = listOf(NodeConnector("trigger", id)),
-    override val outputs: List<NodeConnector> = listOf(NodeConnector("devices", id)),
-    override val name: String = "Scan BLE Devices",
+    override val inputs: List<NodeConnector> = listOf(NodeConnector("trigger", id, ConnectorRole.INPUT)),
+    override val outputs: List<NodeConnector> = listOf(NodeConnector("devices", id, ConnectorRole.OUTPUT)),
+    override val name: String = "Target Pass-through",
     override val targetDevice: TargetDevice? = null
 ) : AttackNode {
-    override val title: String = "Scan BLE Devices"
+    override val title: String = "Target Pass-through"
     override suspend fun execute(context: ExecutionContext): ExecutionResult {
-        ActionLogger.log("Chain: BLE scan step reached")
+        ActionLogger.log("Chain: target pass-through step reached")
         val target = targetDevice ?: context.targetDevice
         return if (target != null) {
-            ExecutionResult("Scan: using pre-selected target ${target.name ?: target.macAddress}", target)
+            ExecutionResult("Pass-through: using target ${target.name ?: target.macAddress}", target)
         } else {
-            ExecutionResult("Scan: no target device selected — select a target before running the chain", null)
+            ExecutionResult("Pass-through: no target device selected -- select a target before running the chain", null)
         }
     }
     override fun copy(position: Offset): AttackNode = this.copy(position = position)
@@ -163,8 +195,8 @@ data class ScanBleNode(
 data class BluesnarfNode(
     override val id: NodeId,
     override val position: Offset = Offset.Zero,
-    override val inputs: List<NodeConnector> = listOf(NodeConnector("target_mac", id)),
-    override val outputs: List<NodeConnector> = listOf(NodeConnector("data", id)),
+    override val inputs: List<NodeConnector> = listOf(NodeConnector("target_mac", id, ConnectorRole.INPUT)),
+    override val outputs: List<NodeConnector> = listOf(NodeConnector("data", id, ConnectorRole.OUTPUT)),
     override val name: String = "Bluesnarf",
     override val targetDevice: TargetDevice? = null
 ) : AttackNode {
@@ -206,8 +238,11 @@ data class BluesnarfNode(
 data class KeystrokeInjectionNode(
     override val id: NodeId,
     override val position: Offset = Offset.Zero,
-    override val inputs: List<NodeConnector> = listOf(NodeConnector("target_mac", id), NodeConnector("payload", id)),
-    override val outputs: List<NodeConnector> = listOf(NodeConnector("success", id)),
+    override val inputs: List<NodeConnector> = listOf(
+        NodeConnector("target_mac", id, ConnectorRole.INPUT),
+        NodeConnector("payload", id, ConnectorRole.INPUT)
+    ),
+    override val outputs: List<NodeConnector> = listOf(NodeConnector("success", id, ConnectorRole.OUTPUT)),
     override val name: String = "Keystroke Injection",
     override val targetDevice: TargetDevice? = null,
     val payload: String = ""
@@ -226,7 +261,15 @@ data class KeystrokeInjectionNode(
             return ExecutionResult("Keystroke Injection: pairing failed on ${target.macAddress}", target)
         }
 
-        val text = payload.ifEmpty { context.lastResult ?: "echo pwned" }
+        // 13.12: Read payload from the incoming connection's ExecutionContext data.
+        // If the "payload" connector has data wired from an upstream node, use it.
+        // Otherwise fall back to the node's configured default, then lastResult.
+        val connectorPayload = context.connectorData["payload"]
+        val text = when {
+            !connectorPayload.isNullOrEmpty() -> connectorPayload
+            payload.isNotEmpty() -> payload
+            else -> context.lastResult ?: "echo pwned"
+        }
         val sent = module.sendKeystrokes(text)
         return if (sent) {
             ActionLogger.log("Chain: Keystrokes sent to ${target.macAddress}")
