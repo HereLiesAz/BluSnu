@@ -1,4 +1,4 @@
-name: Merged Build & Release
+name: Merged Build (Debug)
 
 on:
   push:
@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-release:
+  build-debug:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -80,34 +80,13 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Decode Keystore
-        env:
-          KEYSTORE_PRIVATE: ${{ secrets.KEYSTORE_PRIVATE }}
-        run: |
-          if [ -n "$KEYSTORE_PRIVATE" ]; then
-            # Attempt to decode. Using -i to ignore garbage (e.g. newlines)
-            if echo "$KEYSTORE_PRIVATE" | base64 -d -i > app/release.keystore 2>/dev/null; then
-               echo "Keystore decoded successfully."
-            else
-               echo "Warning: Keystore decoding failed. Proceeding with unsigned build."
-               rm -f app/release.keystore
-            fi
-          else
-            echo "KEYSTORE_PRIVATE secret not found. Skipping."
-          fi
-
-      - name: Build with Gradle
+      - name: Build Debug with Gradle
         id: gradle-build
-        env:
-          KEYSTORE_PATH: release.keystore
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           set +e
           
-          # Build the APK
-          ./gradlew assembleRelease -PversionCode=$BUILD_NUMBER -PversionName=$VERSION_NAME --build-cache > build.log 2>&1
+          # Build the Debug APK (Universal)
+          ./gradlew assembleDebug -PversionCode=$BUILD_NUMBER -PversionName=$VERSION_NAME --build-cache > build.log 2>&1
           
           EXIT_CODE=$?
           echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
@@ -156,7 +135,7 @@ jobs:
         if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         id: release_vars
         run: |
-          TAG_NAME="latest-release-v${MAJOR}.${MINOR}"
+          TAG_NAME="latest-debug-v${MAJOR}.${MINOR}"
           
           # Dynamic App Name from settings.gradle
           if [ -f "settings.gradle.kts" ]; then
@@ -167,8 +146,8 @@ jobs:
              APP_NAME="App"
           fi
           
-          # Locate built APK
-          APK_ORIGINAL=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          # Locate built Debug APK
+          APK_ORIGINAL=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
           
           if [ -z "$APK_ORIGINAL" ]; then
              echo "Error: No APK found to release!"
@@ -176,7 +155,7 @@ jobs:
           fi
 
           # Use static name to allow overwriting (clobbering) the existing asset
-          TARGET_NAME="${APP_NAME}-${VERSION_NAME}-release.apk"
+          TARGET_NAME="${APP_NAME}-${VERSION_NAME}-debug.apk"
           
           # Rename for release
           mv "$APK_ORIGINAL" "$TARGET_NAME"
@@ -208,7 +187,7 @@ jobs:
           if gh release view $TAG_NAME > /dev/null 2>&1; then
              echo "Updating existing release..."
              gh release edit $TAG_NAME --prerelease \
-               --title "Latest Release Build ($TAG_NAME)" \
+               --title "Latest Debug Build ($TAG_NAME)" \
                --notes "Auto-build from commit $GITHUB_SHA" \
                --target $GITHUB_SHA
              gh release upload $TAG_NAME "$APK_FILE" --clobber
@@ -216,7 +195,7 @@ jobs:
           else
              echo "Creating new release..."
              gh release create $TAG_NAME "$APK_FILE" --prerelease \
-               --title "Latest Release Build ($TAG_NAME)" \
+               --title "Latest Debug Build ($TAG_NAME)" \
                --notes "Auto-build from commit $GITHUB_SHA" \
                --target $GITHUB_SHA
              [ -f "$BUILD_TOOLS" ] && gh release upload $TAG_NAME "$BUILD_TOOLS" --clobber
