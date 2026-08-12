@@ -8,6 +8,7 @@ import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.PerfektBlueModule
 import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.TargetDevice
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -33,6 +34,8 @@ class PerfektBlueViewModel(
 
     private val _logs = MutableStateFlow<List<String>>(emptyList())
     val logs: StateFlow<List<String>> = _logs
+
+    private var attackJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -63,7 +66,7 @@ class PerfektBlueViewModel(
         ActionLogger.log("PerfektBlue: Starting audit on ${device.name ?: device.macAddress}")
         ActiveTaskManager.add(taskId, "PerfektBlue Audit", "Targeting ${device.name ?: device.macAddress}")
 
-        viewModelScope.launch {
+        attackJob = viewModelScope.launch {
             try {
                 perfektBlueModule.startAudit(device).collect { log ->
                     _logs.value = _logs.value + log
@@ -77,5 +80,16 @@ class PerfektBlueViewModel(
                 ActiveTaskManager.remove(taskId)
             }
         }
+    }
+
+    fun stopAttack() {
+        attackJob?.cancel()
+        attackJob = null
+        _isRunning.value = false
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        attackJob?.cancel()
     }
 }

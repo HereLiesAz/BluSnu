@@ -10,6 +10,7 @@ import com.hereliesaz.blusnu.data.BluebuggingModule
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.TargetDevice
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,7 +32,12 @@ class BluebuggingViewModel(application: Application, deviceRepository: DeviceRep
     private val _devices = MutableStateFlow<List<TargetDevice>>(emptyList())
     val devices: StateFlow<List<TargetDevice>> = _devices.asStateFlow()
 
+    private val _isRunning = MutableStateFlow(false)
+    val isRunning: StateFlow<Boolean> = _isRunning
+
     private val bluetoothAdapter: BluetoothAdapter? = (application.getSystemService(BluetoothManager::class.java) as BluetoothManager).adapter
+
+    private var attackJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -49,6 +55,8 @@ class BluebuggingViewModel(application: Application, deviceRepository: DeviceRep
     }
 
     fun startAttack() {
+        if (_isRunning.value) return
+
         if (bluetoothAdapter == null) {
             _status.value = "Bluetooth is not supported on this device"
             return
@@ -64,19 +72,35 @@ class BluebuggingViewModel(application: Application, deviceRepository: DeviceRep
 
         ActionLogger.log("Bluebugging attack started against ${selected.macAddress}")
 
-        viewModelScope.launch {
-            val output = StringBuilder()
-            bluebuggingModule.executeCommonCommands(device).collect { line ->
-                _status.value = line
-                output.appendLine(line)
+        _isRunning.value = true
+        attackJob = viewModelScope.launch {
+            try {
+                val output = StringBuilder()
+                bluebuggingModule.executeCommonCommands(device).collect { line ->
+                    _status.value = line
+                    output.appendLine(line)
+                }
+                _result.value = output.toString()
+                ActionLogger.log("Bluebugging attack finished against ${selected.macAddress}")
+            } catch (e: Exception) {
+                _status.value = "Error: ${e.message}"
+            } finally {
+                _isRunning.value = false
             }
-            _result.value = output.toString()
-            ActionLogger.log("Bluebugging attack finished against ${selected.macAddress}")
         }
+    }
+
+    fun stopAttack() {
+        attackJob?.cancel()
+        attackJob = null
+        _isRunning.value = false
+        bluebuggingModule.disconnect()
+        _status.value = "Attack stopped."
     }
 
     override fun onCleared() {
         super.onCleared()
+        attackJob?.cancel()
         bluebuggingModule.disconnect()
     }
 }
