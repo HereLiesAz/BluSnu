@@ -97,6 +97,7 @@ class BleHidController(private val context: Context) {
             device: BluetoothDevice?, requestId: Int, offset: Int,
             characteristic: BluetoothGattCharacteristic?
         ) {
+            device ?: return
             val value = characteristic?.value ?: ByteArray(0)
             gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, value)
         }
@@ -105,6 +106,7 @@ class BleHidController(private val context: Context) {
             device: BluetoothDevice?, requestId: Int, offset: Int,
             descriptor: BluetoothGattDescriptor?
         ) {
+            device ?: return
             val value = descriptor?.value ?: ByteArray(0)
             gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, value)
         }
@@ -115,6 +117,7 @@ class BleHidController(private val context: Context) {
             preparedWrite: Boolean, responseNeeded: Boolean,
             offset: Int, value: ByteArray?
         ) {
+            device ?: return
             if (descriptor?.uuid == CLIENT_CONFIG_UUID) {
                 descriptor.value = value
             }
@@ -129,6 +132,7 @@ class BleHidController(private val context: Context) {
             preparedWrite: Boolean, responseNeeded: Boolean,
             offset: Int, value: ByteArray?
         ) {
+            device ?: return
             if (responseNeeded) {
                 gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
             }
