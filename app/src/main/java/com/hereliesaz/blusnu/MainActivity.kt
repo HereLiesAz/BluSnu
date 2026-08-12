@@ -178,7 +178,7 @@ class MainActivity : ComponentActivity() {
                         FindViewModel(application, deviceRepository, hardwareManager) as T
                     }
                     modelClass.isAssignableFrom(KeystrokeInjectionViewModel::class.java) -> {
-                        KeystrokeInjectionViewModel(application, keystrokeInjectionModule, deviceRepository) as T
+                        KeystrokeInjectionViewModel(application, keystrokeInjectionModule, bleHidController, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(AttackChainingViewModel::class.java) -> {
                         val repository = com.hereliesaz.blusnu.data.AttackChainRepository(application)
@@ -210,7 +210,7 @@ class MainActivity : ComponentActivity() {
                         BluetoothLogViewModel(application, bluetoothLog, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(HidViewModel::class.java) -> {
-                        HidViewModel(application) as T
+                        HidViewModel(application, bleHidController) as T
                     }
                     modelClass.isAssignableFrom(FileTransferViewModel::class.java) -> {
                         FileTransferViewModel(application) as T
