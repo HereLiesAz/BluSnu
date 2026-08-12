@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.hereliesaz.blusnu.data.BtlejuiceState
 import com.hereliesaz.blusnu.data.TargetDevice
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -134,7 +135,7 @@ fun BtlejuiceScreen(
             Row {
                 Button(
                     onClick = { onStartProxy(selectedDevice) },
-                    enabled = selectedDevice != null && !btlejuiceState.isProxying,
+                    enabled = selectedDevice != null && btlejuiceState == BtlejuiceState.IDLE,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("Start Proxy")
@@ -142,7 +143,7 @@ fun BtlejuiceScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = onStopProxy,
-                    enabled = btlejuiceState.isProxying,
+                    enabled = btlejuiceState != BtlejuiceState.IDLE,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("Stop Proxy")

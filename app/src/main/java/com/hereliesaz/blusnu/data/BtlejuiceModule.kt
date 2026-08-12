@@ -9,83 +9,88 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Enum defining the state of the Btlejuice Proxy.
  */
 enum class BtlejuiceState {
-    IDLE,           // Proxy is not running.
-    PROXYING,       // Setup phase: Hardware is configuring itself to spoof the target.
-    INTERCEPTING    // Active phase: Traffic is flowing through the proxy.
+    IDLE,
+    PROXYING,
+    INTERCEPTING
 }
 
 /**
  * Module responsible for executing the Btlejuice-style Man-in-the-Middle (MitM) attack.
  *
- * Btlejuice (originally a Node.js tool) works by placing an attacker machine between
- * a BLE peripheral and a Central. It requires two Bluetooth radios:
- * 1. One to act as the "Fake Peripheral" (advertises to the Central).
- * 2. One to act as the "Fake Central" (connects to the real Peripheral).
- *
- * This module controls the external hardware required to achieve this dual-role capability.
+ * Uses real USB serial hardware via [HardwareManager] to perform dual-radio BLE proxying.
+ * One radio acts as the "Fake Peripheral" (advertises to the Central), and the other
+ * acts as the "Fake Central" (connects to the real Peripheral).
  *
  * @property hardwareManager Interface to control the external Bluetooth dongle/SDR.
  */
 class BtlejuiceModule(private val hardwareManager: HardwareManager) {
 
-    // Internal state flow for UI updates.
+    companion object {
+        private const val TAG = "BtlejuiceModule"
+        private const val PROXY_SETUP_TIMEOUT_MS = 30_000L
+    }
+
     private val _state = MutableStateFlow(BtlejuiceState.IDLE)
-    // Exposed immutable state.
     val state = _state.asStateFlow()
 
-    // SharedFlow to emit real-time logs of intercepted packets (Read/Write/Notify).
-    // SharedFlow is used here because we want to broadcast events to the UI log console.
-    private val _interceptedTraffic = MutableSharedFlow<String>()
+    private val _interceptedTraffic = MutableSharedFlow<String>(extraBufferCapacity = 64)
     val interceptedTraffic = _interceptedTraffic.asSharedFlow()
 
-    // Coroutine scope for managing the attack lifecycle.
     private val scope = CoroutineScope(Dispatchers.IO + Job())
-    // Handle to the active job.
     private var proxyJob: Job? = null
 
     /**
      * Starts the MitM proxy against a specific target.
      *
+     * Sends the btlejuice command to hardware and then listens for real output
+     * from the device log stream to track proxy setup and traffic interception.
+     *
      * @param target The BLE peripheral to impersonate and intercept.
      */
     fun startProxy(target: TargetDevice) {
-        // Prevent starting if already active.
         if (proxyJob?.isActive == true) return
 
         proxyJob = scope.launch {
             _state.value = BtlejuiceState.PROXYING
 
-            // Command the hardware to clone the target's advertisement data.
             hardwareManager.sendCommand("btlejuice --target ${target.macAddress}")
-            _interceptedTraffic.emit("Spoofing ${target.name}...")
+            _interceptedTraffic.emit("Sending proxy command for ${target.name ?: target.macAddress}...")
 
-            // Simulate setup delay (cloning advertisement, waiting for victim connection).
-            delay(3000)
+            // Collect hardware output and look for proxy establishment or traffic
+            hardwareManager.deviceLogs.collect { logLine ->
+                if (!isActive) return@collect
 
-            _state.value = BtlejuiceState.INTERCEPTING
-            _interceptedTraffic.emit("Proxy established. Intercepting traffic...")
+                when {
+                    // Proxy setup confirmed by hardware
+                    logLine.contains("proxy established", ignoreCase = true) ||
+                    logLine.contains("intercepting", ignoreCase = true) -> {
+                        if (_state.value == BtlejuiceState.PROXYING) {
+                            _state.value = BtlejuiceState.INTERCEPTING
+                            _interceptedTraffic.emit("Proxy established. Intercepting traffic...")
+                        }
+                    }
+                    // Hardware reports connection failure
+                    logLine.contains("failed", ignoreCase = true) ||
+                    logLine.contains("error", ignoreCase = true) -> {
+                        _interceptedTraffic.emit("Hardware: $logLine")
+                    }
+                }
 
-            // Main interception loop.
-            // In a real implementation, this would read from the hardware interface's stdout/socket.
-            while (isActive) {
-                // Simulate a READ request from the Central.
-                delay(2500)
-                _interceptedTraffic.emit("[READ] Handle 0x002A (Device Name)")
-
-                // Simulate a WRITE command from the Central (e.g., unlock command).
-                delay(500)
-                _interceptedTraffic.emit("[WRITE] Handle 0x0010, Value=0x01")
-
-                // Simulate a NOTIFICATION from the Peripheral (e.g., status update).
-                delay(3000)
-                _interceptedTraffic.emit("[NOTIFY] Handle 0x0012, Value=0x54-0x45-0x4D-0x50-3A-32-33-43")
+                // Forward all GATT traffic lines to the intercepted traffic flow
+                if (logLine.contains("[READ]", ignoreCase = true) ||
+                    logLine.contains("[WRITE]", ignoreCase = true) ||
+                    logLine.contains("[NOTIFY]", ignoreCase = true) ||
+                    logLine.contains("Handle", ignoreCase = true) ||
+                    logLine.contains("0x", ignoreCase = true)) {
+                    _interceptedTraffic.emit(logLine)
+                }
             }
         }
     }
@@ -94,13 +99,11 @@ class BtlejuiceModule(private val hardwareManager: HardwareManager) {
      * Stops the proxy and resets the hardware.
      */
     fun stopProxy() {
-        // Cancel the loop.
         proxyJob?.cancel()
         proxyJob = null
 
         scope.launch {
             _state.value = BtlejuiceState.IDLE
-            // Reset hardware.
             hardwareManager.sendCommand("stop")
             _interceptedTraffic.emit("Proxy stopped.")
         }

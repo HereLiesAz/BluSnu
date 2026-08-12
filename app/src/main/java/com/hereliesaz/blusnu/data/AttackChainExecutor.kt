@@ -37,15 +37,15 @@ class AttackChainExecutor {
      * @param state The current state of the canvas (nodes and connections).
      * @param scope The CoroutineScope in which to run the execution (usually ViewModel scope).
      */
-    fun execute(state: AttackChainingState, scope: CoroutineScope) {
+    fun execute(state: AttackChainingState, scope: CoroutineScope, services: Map<String, Any> = emptyMap()) {
         scope.launch {
-            // Find the unique StartNode to begin execution.
-            // Assumption: There is exactly one StartNode in valid chains.
             val startNode = state.nodes.values.find { it is StartNode }
 
             if (startNode != null) {
-                // Begin recursive execution from the start node.
-                executeNode(startNode, state)
+                val initialContext = com.hereliesaz.blusnu.ui.attackchaining.nodes.ExecutionContext(
+                    services = services
+                )
+                executeNode(startNode, state, initialContext)
             } else {
                 _output.emit("No start node found")
             }

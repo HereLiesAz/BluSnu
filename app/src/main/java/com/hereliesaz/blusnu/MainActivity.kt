@@ -43,6 +43,7 @@ import com.hereliesaz.blusnu.data.AttackChainTemplateRepository
 import com.hereliesaz.blusnu.data.BleSpamModule
 import com.hereliesaz.blusnu.data.BluffsModule
 import com.hereliesaz.blusnu.data.BrakToothModule
+import com.hereliesaz.blusnu.data.BtlejuiceModule
 import com.hereliesaz.blusnu.data.BtlejackingModule
 import com.hereliesaz.blusnu.data.CloudBackup
 import com.hereliesaz.blusnu.data.DeviceRepository
@@ -118,8 +119,9 @@ class MainActivity : ComponentActivity() {
     private val deviceRepository by lazy { com.hereliesaz.blusnu.data.DeviceRepository(database.targetDeviceDao()) }
     private val savedSessionRepository by lazy { SavedSessionRepository(database.savedSessionDao()) }
     private val attackChainTemplateRepository by lazy { AttackChainTemplateRepository(database.attackChainTemplateDao()) }
-    private val hardwareManager by lazy { HardwareManager() }
-    private val keystrokeInjectionModule by lazy { com.hereliesaz.blusnu.data.KeystrokeInjectionModule() }
+    private val hardwareManager by lazy { HardwareManager(applicationContext) }
+    private val bleHidController by lazy { com.hereliesaz.blusnu.data.BleHidController(applicationContext) }
+    private val keystrokeInjectionModule by lazy { com.hereliesaz.blusnu.data.KeystrokeInjectionModule(bleHidController) }
     private val vulnerabilityCorrelator by lazy { VulnerabilityCorrelator(applicationContext) }
     private val httpClient by lazy {
         io.ktor.client.HttpClient(io.ktor.client.engine.android.Android) {
@@ -159,7 +161,8 @@ class MainActivity : ComponentActivity() {
                         BtlejackingViewModel(application, hardwareManager, btlejackingModule, deviceRepository) as T
                     }
                     modelClass.isAssignableFrom(BtlejuiceViewModel::class.java) -> {
-                        BtlejuiceViewModel(application, deviceRepository) as T
+                        val btlejuiceModule = BtlejuiceModule(hardwareManager)
+                        BtlejuiceViewModel(application, deviceRepository, hardwareManager, btlejuiceModule) as T
                     }
                     modelClass.isAssignableFrom(GeolocationViewModel::class.java) -> {
                         GeolocationViewModel(application, deviceRepository, bluetoothScanner) as T
@@ -172,7 +175,7 @@ class MainActivity : ComponentActivity() {
                     }
                     modelClass.isAssignableFrom(AttackChainingViewModel::class.java) -> {
                         val repository = com.hereliesaz.blusnu.data.AttackChainRepository(application)
-                        AttackChainingViewModel(application, repository, deviceRepository) as T
+                        AttackChainingViewModel(application, repository, deviceRepository, bluetoothAdapter, keystrokeInjectionModule) as T
                     }
                     modelClass.isAssignableFrom(DashboardViewModel::class.java) -> {
                         DashboardViewModel(application, deviceRepository, savedSessionRepository, attackChainTemplateRepository) as T
@@ -209,13 +212,13 @@ class MainActivity : ComponentActivity() {
                         BluffsViewModel(deviceRepository, BluffsModule()) as T
                     }
                     modelClass.isAssignableFrom(BrakToothViewModel::class.java) -> {
-                        BrakToothViewModel(deviceRepository, BrakToothModule()) as T
+                        BrakToothViewModel(deviceRepository, BrakToothModule(hardwareManager)) as T
                     }
                     modelClass.isAssignableFrom(BleSpamViewModel::class.java) -> {
                         BleSpamViewModel(BleSpamModule(applicationContext)) as T
                     }
                     modelClass.isAssignableFrom(GattRelayViewModel::class.java) -> {
-                        GattRelayViewModel() as T
+                        GattRelayViewModel(application) as T
                     }
                     modelClass.isAssignableFrom(PerfektBlueViewModel::class.java) -> {
                         PerfektBlueViewModel(deviceRepository) as T

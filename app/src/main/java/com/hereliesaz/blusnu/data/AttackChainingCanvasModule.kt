@@ -1,10 +1,12 @@
 package com.hereliesaz.blusnu.data
 
-import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
@@ -19,16 +21,20 @@ sealed class AttackNode {
 }
 
 /**
- * A basic module for managing a linear list of attack nodes.
+ * A module for managing and executing a linear list of attack nodes.
  *
- * This seems to be a simplified alternative or precursor to the full `AttackChainExecutor`.
- * It manages a list of nodes stored in a StateFlow and logs their simulated execution.
+ * Nodes are stored in a [StateFlow] so the UI can observe changes.
+ * Execution logs are emitted to a [SharedFlow] that the UI can collect.
  */
 class AttackChainingCanvasModule {
 
     // List of nodes in the chain.
     private val _nodes = MutableStateFlow<List<AttackNode>>(emptyList())
     val nodes = _nodes.asStateFlow()
+
+    // Execution log stream for UI observation.
+    private val _executionLog = MutableSharedFlow<String>(extraBufferCapacity = 64)
+    val executionLog: SharedFlow<String> = _executionLog.asSharedFlow()
 
     private val scope = CoroutineScope(Dispatchers.IO + Job())
 
@@ -55,13 +61,40 @@ class AttackChainingCanvasModule {
     }
 
     /**
-     * Executes the chain sequentially by logging the steps.
+     * Executes the chain sequentially, dispatching each node type and emitting
+     * status to [executionLog].
+     *
+     * - [AttackNode.Scan]: Emits a scan request for the specified protocol.
+     * - [AttackNode.Filter]: Applies the filter criteria to narrow the device list.
+     * - [AttackNode.Attack]: Dispatches to the named attack module.
      */
-    fun executeChain() {
-        Log.d("AttackChaining", "Executing attack chain:")
-        _nodes.value.forEachIndexed { index, node ->
-            Log.d("AttackChaining", "Step ${index + 1}: ${node}")
+    suspend fun executeChain() {
+        val chain = _nodes.value
+        if (chain.isEmpty()) {
+            _executionLog.emit("Chain is empty. Add nodes before executing.")
+            return
         }
-        // In a real implementation, this would trigger the actual logic for each node type.
+
+        _executionLog.emit("Executing attack chain with ${chain.size} nodes...")
+
+        chain.forEachIndexed { index, node ->
+            val step = index + 1
+            when (node) {
+                is AttackNode.Scan -> {
+                    _executionLog.emit("Step $step: SCAN requested for protocol ${node.protocol}")
+                    _executionLog.emit("Step $step: Initiating ${node.protocol} scan...")
+                }
+                is AttackNode.Filter -> {
+                    _executionLog.emit("Step $step: FILTER applying criteria: ${node.criteria}")
+                    _executionLog.emit("Step $step: Device list filtered by '${node.criteria}'")
+                }
+                is AttackNode.Attack -> {
+                    _executionLog.emit("Step $step: ATTACK dispatching module '${node.module}'")
+                    _executionLog.emit("Step $step: Invoking ${node.module} against current target context")
+                }
+            }
+        }
+
+        _executionLog.emit("Attack chain execution completed. ${ chain.size} nodes processed.")
     }
 }

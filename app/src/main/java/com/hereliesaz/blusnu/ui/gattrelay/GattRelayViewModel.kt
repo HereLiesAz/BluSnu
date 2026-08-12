@@ -1,20 +1,17 @@
 package com.hereliesaz.blusnu.ui.gattrelay
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.GattRelayModule
 import com.hereliesaz.blusnu.data.RelayRole
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-/**
- * ViewModel for the GATT Relay feature.
- *
- * Interfaces with [GattRelayModule] to manage the relay lifecycle.
- */
-class GattRelayViewModel : ViewModel() {
-    private val gattRelayModule = GattRelayModule()
+class GattRelayViewModel(application: Application) : AndroidViewModel(application) {
+    private val gattRelayModule = GattRelayModule(application)
 
     private val _selectedRole = MutableStateFlow(RelayRole.NODE_A_CAR_SIDE)
     val selectedRole: StateFlow<RelayRole> = _selectedRole
@@ -28,6 +25,8 @@ class GattRelayViewModel : ViewModel() {
     private val _logs = MutableStateFlow<List<String>>(emptyList())
     val logs: StateFlow<List<String>> = _logs
 
+    private var relayJob: Job? = null
+
     fun selectRole(role: RelayRole) {
         _selectedRole.value = role
     }
@@ -36,19 +35,28 @@ class GattRelayViewModel : ViewModel() {
         _targetAddress.value = address
     }
 
-    /**
-     * Starts the relay logic.
-     */
     fun startRelay() {
         if (_isRunning.value) return
         _isRunning.value = true
         _logs.value = emptyList()
 
-        viewModelScope.launch {
+        relayJob = viewModelScope.launch {
             gattRelayModule.startRelay(_selectedRole.value, _targetAddress.value).collect { log ->
                 _logs.value = _logs.value + log
             }
             _isRunning.value = false
         }
+    }
+
+    fun stopRelay() {
+        relayJob?.cancel()
+        relayJob = null
+        gattRelayModule.stop()
+        _isRunning.value = false
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        gattRelayModule.stop()
     }
 }
