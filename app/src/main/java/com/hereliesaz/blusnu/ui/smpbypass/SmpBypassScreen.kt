@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,6 +21,7 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -36,9 +38,10 @@ import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.ui.components.ResultActions
 
 /**
- * Screen for SMP (Security Manager Protocol) Bypass.
+ * Screen for SMP Pairing Auditor.
  *
- * Targets authentication bypass vulnerabilities in BLE pairing.
+ * Audits BLE pairing method negotiation to identify devices accepting weak
+ * (Just Works) pairing when stronger methods should be required.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,24 +65,28 @@ fun SmpBypassScreen(viewModel: SmpBypassViewModel) {
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Header.
+            // Header (5.1: reframed honestly, no CVE claim).
             Text(
-                text = "Android SMP Bypass (CVE-2024-34722)",
+                text = "SMP Pairing Auditor",
                 style = MaterialTheme.typography.headlineSmall
             )
             Text(
-                text = "Attempts to bypass Security Manager Protocol (SMP) pairing by injecting out-of-order packets.",
+                text = "Tests which pairing method a BLE target negotiates " +
+                        "(Just Works, Passkey, Numeric Comparison, OOB) " +
+                        "and flags weak pairing configurations.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            // Device Selection.
+            // Device Selection (5.9: show address as fallback for null names).
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }
             ) {
                 TextField(
-                    value = selectedDevice?.name ?: "Select Target Device",
+                    value = selectedDevice?.let { device ->
+                        device.name ?: "Unknown Device (${device.macAddress})"
+                    } ?: "Select Target Device",
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Target Device") },
@@ -92,7 +99,9 @@ fun SmpBypassScreen(viewModel: SmpBypassViewModel) {
                 ) {
                     devices.forEach { device ->
                         DropdownMenuItem(
-                            text = { Text(device.name ?: device.macAddress) },
+                            text = {
+                                Text(device.name ?: "Unknown Device (${device.macAddress})")
+                            },
                             onClick = {
                                 viewModel.selectDevice(device)
                                 expanded = false
@@ -124,11 +133,11 @@ fun SmpBypassScreen(viewModel: SmpBypassViewModel) {
                 }
             }
 
-            // Copy/Share result actions (5E).
+            // Copy/Share result actions.
             if (logs.isNotEmpty()) {
                 ResultActions(
                     resultText = logs.joinToString("\n"),
-                    label = "SMP Bypass Results",
+                    label = "SMP Pairing Audit Results",
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -137,14 +146,35 @@ fun SmpBypassScreen(viewModel: SmpBypassViewModel) {
                 CircularProgressIndicator()
             }
 
-            // Action Button.
-            Button(
-                onClick = { viewModel.startAttack() },
-                enabled = selectedDevice != null && !isRunning,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                modifier = Modifier.fillMaxWidth()
+            // Action buttons (5.7: stop button added).
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(if (isRunning) "ATTACK IN PROGRESS..." else "EXECUTE BYPASS")
+                if (isRunning) {
+                    // Stop button (5.7)
+                    OutlinedButton(
+                        onClick = { viewModel.stopAttack() },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("STOP AUDIT")
+                    }
+                } else {
+                    // Start button
+                    Button(
+                        onClick = { viewModel.startAttack() },
+                        enabled = selectedDevice != null,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("RUN PAIRING AUDIT")
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.fillMaxWidth().height(screenHeight * 0.1f))
