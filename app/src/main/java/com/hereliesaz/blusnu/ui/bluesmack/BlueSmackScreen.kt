@@ -40,6 +40,7 @@ fun BlueSmackScreen(viewModel: BlueSmackViewModel) {
     val packetSize by viewModel.packetSize.collectAsState()
     val packetCount by viewModel.packetCount.collectAsState()
     val interfaceName by viewModel.interfaceName.collectAsState()
+    val validationError by viewModel.validationError.collectAsState()
     var expanded by remember { mutableStateOf(false) }
 
     Column(
@@ -97,11 +98,11 @@ fun BlueSmackScreen(viewModel: BlueSmackViewModel) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Attack parameters
         OutlinedTextField(
             value = packetSize,
             onValueChange = { viewModel.onPacketSizeChanged(it) },
             label = { Text("Packet Size (bytes)") },
+            supportingText = { Text("Range: 1 - 65535") },
             enabled = !isRunning,
             modifier = Modifier.fillMaxWidth()
         )
@@ -112,6 +113,7 @@ fun BlueSmackScreen(viewModel: BlueSmackViewModel) {
             value = packetCount,
             onValueChange = { viewModel.onPacketCountChanged(it) },
             label = { Text("Packet Count") },
+            supportingText = { Text("Range: 1 - 100000") },
             enabled = !isRunning,
             modifier = Modifier.fillMaxWidth()
         )
@@ -122,9 +124,20 @@ fun BlueSmackScreen(viewModel: BlueSmackViewModel) {
             value = interfaceName,
             onValueChange = { viewModel.onInterfaceNameChanged(it) },
             label = { Text("Interface Name") },
+            supportingText = { Text("HCI interface (e.g. hci0). Alphanumeric only.") },
             enabled = !isRunning,
             modifier = Modifier.fillMaxWidth()
         )
+
+        // Validation error message
+        validationError?.let { error ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = error,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
