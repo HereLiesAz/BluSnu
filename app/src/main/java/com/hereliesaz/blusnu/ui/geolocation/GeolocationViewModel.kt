@@ -197,5 +197,6 @@ class GeolocationViewModel(
         super.onCleared()
         trackingJobs.forEach { it.cancel() }
         trackingJobs.clear()
+        bluetoothScanner.stopBleScan()
     }
 }

@@ -160,4 +160,11 @@ class LmpFuzzingViewModel(
         _logs.value = _logs.value + "Fuzzing stopped by user."
         ActionLogger.log("LMP Fuzzing: Stopped by user")
     }
+
+    override fun onCleared() {
+        super.onCleared()
+        lmpFuzzingModule.stopFuzzing()
+        fuzzingJob?.cancel()
+        fuzzingJob = null
+    }
 }

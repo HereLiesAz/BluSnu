@@ -10,17 +10,17 @@ This document details the technical implementation of the attack modules within 
 - **Target:** Bluetooth Classic (BR/EDR).
 - **CVE:** CVE-2023-24023.
 - **Mechanism:** Forces a session key derivation downgrade by injecting crafted LMP Key Negotiation packets during authentication. Modes A1–A6 model different combinations of LSC and SC key request manipulation.
-- **Status:** Simulated — requires InternalBlue or custom firmware for over-the-air execution.
+- **Status:** Root Required — InternalBlue or custom HCI firmware.
 
 ### BrakTooth — `BrakToothModule.kt`
 - **Target:** Bluetooth Classic (BR/EDR).
 - **Mechanism:** LMP crash vector suite targeting SoC link managers — Feature Response flooding (`LMP_features_req_ext` barrage), malformed paging requests, and truncated LMP PDUs.
-- **Status:** Simulated — requires ESP32 with custom HCI firmware for live execution.
+- **Status:** ESP32 Required — custom HCI firmware.
 
 ### Breaktooth — `BreaktoothModule.kt`
 - **Target:** Bluetooth Classic (BR/EDR).
 - **Mechanism:** Extended BrakTooth crash vectors targeting additional LMP state-machine edge cases discovered after the original BrakTooth disclosure.
-- **Status:** Simulated.
+- **Status:** ESP32 Required — custom HCI firmware.
 
 ### Bluesnarfing — `BluesnarfingModule.kt`
 - **Target:** Bluetooth Classic (OBEX Push / OBEX FTP).
@@ -38,47 +38,47 @@ This document details the technical implementation of the attack modules within 
 - **Target:** Android / Linux kernel Bluetooth stack.
 - **CVE:** CVE-2020-0022.
 - **Mechanism:** Injects crafted fragmented L2CAP packets that trigger a heap overflow in the kernel's packet reassembly path.
-- **Status:** Simulated.
+- **Status:** Root Required.
 
 ### BlueBorne — `BlueBorneModule.kt`
 - **Target:** Android, Linux, Windows, iOS Bluetooth stacks.
 - **CVEs:** CVE-2017-0781, CVE-2017-0782, CVE-2017-0783, CVE-2017-0785.
 - **Mechanism:** Multi-vector suite — RCE via SDP information disclosure, Man-in-the-Middle via logical transport hijacking, and heap overflow via L2CAP fragmentation.
-- **Status:** Simulated.
+- **Status:** Root Required.
 
 ### BlueSpy (CVE-2021-43400) — `BlueSpyModule.kt`
 - **Target:** Bluetooth headsets (HSP/HFP).
 - **CVE:** CVE-2021-43400.
 - **Mechanism:** Abuses GATT callback registration on HSP/HFP devices that do not enforce pairing before allowing audio stream access.
-- **Status:** Simulated.
+- **Status:** Root Required.
 
 ### BIAS (CVE-2020-10135) — `BiasModule.kt`
 - **Target:** Bluetooth Classic authentication.
 - **CVE:** CVE-2020-10135.
 - **Mechanism:** Exploits the ability to switch master/slave roles before the mutual authentication check, allowing an attacker to authenticate as a previously bonded device without knowing the link key.
-- **Status:** Simulated.
+- **Status:** Root Required.
 
 ### BLUR (CVE-2020-12762) — `BlurModule.kt`
 - **Target:** Embedded BLE stacks that use `json-c` or similar JSON parsers.
 - **CVE:** CVE-2020-12762.
 - **Mechanism:** Sends malformed advertisement fields crafted to trigger integer overflow in the JSON parser's integer handling, leading to heap corruption.
-- **Status:** Simulated.
+- **Status:** Root Required.
 
 ### KNOB (CVE-2019-9506) — `KnobModule.kt`
 - **Target:** Bluetooth Classic key negotiation.
 - **CVE:** CVE-2019-9506.
 - **Mechanism:** During LMP Encryption Key Size Negotiation, proposes a 1-byte key length. Vulnerable devices accept the weak key, enabling brute-force decryption of the session.
-- **Status:** Simulated.
+- **Status:** Root Required.
 
 ### SweynTooth — `SweynToothModule.kt`
 - **Target:** BLE SoC SDKs (Nordic, TI, Cypress, Telink, Microchip, Dialog).
 - **Mechanism:** Link-layer crash vectors — sequence number mismatch, invalid `llid` field values, truncated LL control PDUs, and connection establishment state-machine abuse.
-- **Status:** Simulated.
+- **Status:** Root Required.
 
 ### Method Confusion — `MethodConfusionModule.kt`
 - **Target:** BLE pairing.
 - **Mechanism:** Responds to IO capability requests with values that force the pairing to use a weaker method (e.g., Just Works instead of Numeric Comparison), enabling a passive MitM.
-- **Status:** Simulated.
+- **Status:** Root Required.
 
 ### LMP Fuzzing — `LmpFuzzingModule.kt`
 - **Target:** Bluetooth Classic LMP layer.
@@ -95,24 +95,24 @@ This document details the technical implementation of the attack modules within 
 ### GATT Relay (MitM) — `GattRelayModule.kt`
 - **Target:** BLE GATT client/server pair.
 - **Mechanism:** Two-node relay. Node A connects to the real peripheral; Node B advertises a spoofed clone and accepts connections from the legitimate central. All PDUs are forwarded over a local relay transport with RTT measurement.
-- **Status:** Simulated (relay transport is local, not over-the-air).
+- **Status:** Two-device setup; relay transport operates locally (all PDUs forwarded over loopback between Node A and Node B).
 
 ### BLESA — `BlesaModule.kt`
 - **Target:** BLE reconnection procedure.
 - **Mechanism:** Exploits insufficient authentication during reconnection — impersonates a previously bonded peripheral by advertising with the bonded device's address and service data, causing the central to reconnect without re-verifying identity.
-- **Status:** Simulated.
+- **Status:** Root Required.
 
 ### SMP Bypass (CVE-2024-34722) — `SmpBypassModule.kt`
 - **Target:** Android Bluetooth SMP implementation.
 - **CVE:** CVE-2024-34722.
 - **Mechanism:** Injects out-of-order `SMP_PAIRING_RANDOM` packets to skip mutual confirmation checks and complete pairing without the legitimate peer's participation.
-- **Status:** Simulated.
+- **Status:** Root Required.
 
 ### Injectable (InjectaBLE / CVE-2021-31615) — `InjectableModule.kt`
 - **Target:** Active BLE connections.
 - **CVE:** CVE-2021-31615.
 - **Mechanism:** Injects malicious packets into an established BLE connection by synchronising to the connection event timing.
-- **Status:** Simulated.
+- **Status:** Root Required.
 
 ### L2CAP Fuzzing — `L2capFuzzingModule.kt`
 - **Target:** L2CAP signalling channel (BLE and Classic).
@@ -125,28 +125,28 @@ This document details the technical implementation of the attack modules within 
 ### Screaming Channels — `ScreamingChannelsModule.kt`
 - **Target:** BLE devices that couple the radio and MCU on a shared die.
 - **Mechanism:** Correlates electromagnetic side-channel emissions with known BLE advertisement timing to extract cryptographic keys from the MCU.
-- **Status:** Simulated — requires dedicated SDR equipment for live execution.
+- **Status:** SDR Hardware Required — dedicated SDR for EM capture.
 
 ### Btlejacking (CVE-2018-7252) — `BtlejackingModule.kt`
 - **Target:** Active BLE connections.
 - **CVE:** CVE-2018-7252.
 - **Mechanism:** Identifies an active BLE connection, jams it at the right moment to desynchronize the peripheral, then hijacks the session when the peripheral initiates reconnection.
-- **Status:** Simulated — requires Ubertooth One or compatible hardware for live execution.
+- **Status:** Ubertooth One Required.
 
 ### Btlejuice (GATT Proxy) — `BtlejuiceModule.kt`
 - **Target:** BLE GATT traffic.
 - **Mechanism:** Acts as a transparent GATT proxy. Clones the real peripheral's service tree. All central Read/Write/Notification requests are intercepted, optionally modified, and forwarded to the real peripheral.
-- **Status:** Simulated (local proxy, not over-the-air relay).
+- **Status:** Two-device setup; Node A and Node B communicate over a local transport (all PDUs forwarded via loopback).
 
 ### KNOB BLE — `KnobBleModule.kt`
 - **Target:** BLE LE Secure Connections key negotiation.
 - **Mechanism:** BLE-specific variant of the KNOB attack — proposes a minimal key size during LE link setup.
-- **Status:** Simulated.
+- **Status:** Root Required.
 
 ### Passkey Reflection — `PasskeyReflectionModule.kt`
 - **Target:** BLE Passkey Entry pairing.
 - **Mechanism:** Reflects the passkey from one pairing session back to another — a timing-based MitM that extracts the passkey without user interaction.
-- **Status:** Simulated.
+- **Status:** Root Required.
 
 ### Mesh Provisioning — `MeshProvisioningModule.kt`
 - **Target:** Bluetooth Mesh networks.
@@ -161,7 +161,7 @@ This document details the technical implementation of the attack modules within 
 - **BLE Layer:** Manufacturer data `companyId = 0x004C`, status byte = `0x12`.
 - **Modes:**
   - **Scan:** Passive scan filtering on Apple Find My manufacturer data.
-  - **Broadcast:** Advertises as a Find My tag with a rotating synthetic 28-byte public key payload.
+  - **Broadcast:** Advertises as a Find My tag with a rotating synthetic 22-byte public key payload (27-byte manufacturer data total, fitting within the 31-byte legacy advertising PDU limit).
   - **Track Target:** Forges Find My advertisement keys to covertly track a target device via the Apple crowdsourced network (nRootTag "Snatcher" flow).
 - **Reference:** nRootTag (2024) — Milan et al.
 
@@ -195,7 +195,7 @@ This document details the technical implementation of the attack modules within 
 - **Target:** Bluetooth-capable hosts (computers, phones).
 - **CVE:** CVE-2023-45866.
 - **Mechanism:** Registers the Android device as a Bluetooth HID keyboard. Attempts "Just Works" pairing with the target host. Parses DuckyScript payloads and converts them into HID usage codes delivered via the HID Input Report characteristic.
-- **Root Path:** Raw L2CAP socket to bypass the Android pairing UI prompt (simulated).
+- **Root Path:** Raw L2CAP socket to bypass the Android pairing UI prompt (requires Root).
 
 ### HID Controller — `HidController.kt`
 - **Target:** HID-over-GATT hosts.
@@ -203,8 +203,8 @@ This document details the technical implementation of the attack modules within 
 
 ### Android BT RCE — `AndroidBtRceModule.kt`
 - **Target:** Android Bluetooth stack.
-- **Mechanism:** Researches and models known RCE CVEs targeting the Android Bluetooth stack, including Stagefright-era and post-2020 vulnerabilities. Each vector is encapsulated in an `AndroidRceVector` enum entry with its CVE identifier.
-- **Status:** Simulated.
+- **Mechanism:** Researches known RCE CVEs targeting the Android Bluetooth stack, including Stagefright-era and post-2020 vulnerabilities. Each vector is encapsulated in an `AndroidRceVector` enum entry with its CVE identifier.
+- **Status:** Root Required.
 
 ### Bad Bluetooth (BadBluetooth) — `BadBluetoothModule.kt`
 - **Target:** Host OS Bluetooth pairing stack.
@@ -236,7 +236,7 @@ This document details the technical implementation of the attack modules within 
 ### PerfektBlue (Automotive RCE) — `PerfektBlueModule.kt`
 - **Target:** Automotive IVI Bluetooth stacks.
 - **Mechanism:** Fuzzes AVRCP metadata strings and L2CAP PDUs with malformed values. Monitors connection health to detect stack crashes in IVI units.
-- **Status:** Simulated.
+- **Status:** Root Required.
 
 ### BlueTrust — `BlueTrustModule.kt`
 - **Target:** BLE/Classic devices with persistent bond stores.

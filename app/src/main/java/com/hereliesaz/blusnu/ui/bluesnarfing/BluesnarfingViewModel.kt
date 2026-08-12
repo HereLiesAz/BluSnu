@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.ActionLogger
+import com.hereliesaz.blusnu.data.ActiveTaskManager
 import com.hereliesaz.blusnu.data.BluesnarfingModule
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.Protocol
@@ -40,6 +41,7 @@ class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRe
     private val bluetoothAdapter: BluetoothAdapter? = (application.getSystemService(BluetoothManager::class.java) as BluetoothManager).adapter
 
     private var attackJob: Job? = null
+    private var currentTaskId: String? = null
 
     init {
         viewModelScope.launch {
@@ -74,11 +76,14 @@ class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRe
             return
         }
 
-        // Finding 4.12: Clear stale results before starting a new attack run
         _result.value = ""
         _status.value = ""
-
         _isRunning.value = true
+
+        val taskId = "bluesnarfing_${System.currentTimeMillis()}"
+        currentTaskId = taskId
+        ActiveTaskManager.add(taskId, "Bluesnarfing", "Phonebook from ${selected.name ?: selected.macAddress}")
+
         attackJob = viewModelScope.launch {
             try {
                 _status.value = "Connecting..."
@@ -88,23 +93,25 @@ class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRe
                 _status.value = "Finished"
                 result.onSuccess {
                     _result.value = it
+                    ActionLogger.log("Bluesnarfing: Success against ${selected.macAddress}")
                 }.onFailure {
                     _result.value = it.message ?: "Unknown error"
+                    ActionLogger.log("Bluesnarfing: Failed against ${selected.macAddress} — ${it.message}")
                 }
             } catch (e: Exception) {
-                // Finding 4.7: Rethrow CancellationException instead of swallowing it
                 if (e is CancellationException) throw e
                 _status.value = "Error: ${e.message}"
+                ActionLogger.log("Bluesnarfing: Error — ${e.message}")
             } finally {
                 _isRunning.value = false
+                currentTaskId?.let { ActiveTaskManager.remove(it) }
+                currentTaskId = null
+                attackJob = null
             }
         }
     }
 
     fun stopAttack() {
-        // Finding 4.8: Close the socket to interrupt any blocking RFCOMM read,
-        // then cancel the coroutine. The blocking read() will throw IOException
-        // which the module's catch block handles gracefully.
         bluesnarfingModule.closeActiveSocket()
         attackJob?.cancel()
         attackJob = null
@@ -116,5 +123,7 @@ class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRe
         super.onCleared()
         bluesnarfingModule.closeActiveSocket()
         attackJob?.cancel()
+        currentTaskId?.let { ActiveTaskManager.remove(it) }
+        currentTaskId = null
     }
 }

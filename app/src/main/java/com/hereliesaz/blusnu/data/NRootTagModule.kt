@@ -25,7 +25,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
@@ -180,7 +179,7 @@ class NRootTagModule(private val context: Context) {
 
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-            .setReportDelay(SCAN_REPORT_INTERVAL_MS)
+            .setReportDelay(0L)
             .build()
 
         try {
@@ -427,17 +426,22 @@ class NRootTagModule(private val context: Context) {
      * @return A list of byte arrays suitable for manufacturer data (0x004C).
      */
     private fun generateFindMyPayloads(): List<ByteArray> {
+        // Apple Find My manufacturer data (after 0x004C company ID):
+        // [0] type=0x12, [1] length=0x19=25 (bytes after the length field),
+        // [2] status, [3..24] 22-byte public key, [25] hint, [26] reserved.
+        // Total: 27 bytes → AD struct = 4 overhead + 27 = 31 bytes (at limit).
         return (0..4).map { index ->
             byteArrayOf(
-                FIND_MY_CONTINUITY_TYPE,  // Offline Finding type
-                FIND_MY_PAYLOAD_LENGTH,   // Payload length
-                0x00,                     // Status byte
-                // Simulated public key bytes (28 bytes, rotating per payload)
+                FIND_MY_CONTINUITY_TYPE,  // 0x12
+                FIND_MY_PAYLOAD_LENGTH,   // 0x19 = 25
+                0x00,                     // status
+                // 22-byte synthetic public key (rotates per payload)
                 (0x10 + index).toByte(), 0xAA.toByte(), 0xBB.toByte(), 0xCC.toByte(),
                 0xDD.toByte(), 0xEE.toByte(), 0xFF.toByte(), 0x01,
                 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
-                0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11,
-                0x12, 0x13, 0x14, 0x15
+                0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+                // hint bits, reserved
+                0x00, 0x00
             )
         }
     }
@@ -458,16 +462,17 @@ class NRootTagModule(private val context: Context) {
 
         return (0..4).map { index ->
             byteArrayOf(
-                FIND_MY_CONTINUITY_TYPE,  // Offline Finding type
-                FIND_MY_PAYLOAD_LENGTH,   // Payload length
-                0x00,                     // Status byte
-                // Public key bytes seeded with target MAC for association
+                FIND_MY_CONTINUITY_TYPE,  // 0x12
+                FIND_MY_PAYLOAD_LENGTH,   // 0x19 = 25
+                0x00,                     // status
+                // 22-byte key: MAC seed in first 6 bytes, remaining bytes synthetic
                 macBytes[0], macBytes[1], macBytes[2],
                 macBytes[3], macBytes[4], macBytes[5],
                 (0x20 + index).toByte(), 0x01,
                 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
-                0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11,
-                0x12, 0x13, 0x14, 0x15
+                0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+                // hint bits, reserved
+                0x00, 0x00
             )
         }
     }

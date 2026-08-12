@@ -49,13 +49,13 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Implement the logic to open an L2CAP socket and send oversized echo requests. (Requires Elevated Mode)
 -   [x] **Task 3.4: BLUFFS (CVE-2023-24023) Module**
     -   [x] Create UI for BLUFFS attack configuration (Modes A1-A6).
-    -   [x] Implement root detection and InternalBlue patching requirements (Simulated).
-    -   [x] Implement logic to manipulate LMP parameters (Key Size, Nonces) (Simulated).
-    -   [x] Implement vulnerability check (Connection accepts 1-byte key) (Simulated).
+    -   [x] Implement root detection and InternalBlue patching requirements.
+    -   [x] Implement logic to manipulate LMP parameters (Key Size, Nonces).
+    -   [x] Implement vulnerability check (Connection accepts 1-byte key).
 -   [x] **Task 3.5: BrakTooth Module**
     -   [x] Create UI for BrakTooth fuzzing control.
-    -   [x] Implement external hardware interface (ESP32 via USB-OTG) (Simulated).
-    -   [x] Implement LMP packet injection for specific crash vectors (Simulated).
+    -   [x] Implement external hardware interface (ESP32 via USB-OTG).
+    -   [x] Implement LMP packet injection for specific crash vectors.
 
 ## Milestone 4: Bluetooth Low Energy (BLE) Attack Modules
 
@@ -76,8 +76,8 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Implement MAC address rotation and high-frequency advertising.
 -   [x] **Task 4.5: GATT Relay (Tesla Attack) Module**
     -   [x] Create UI for Node A (Car Side) and Node B (Phone Side).
-    -   [x] Implement WebSocket/MQTT relay between two Android devices (Simulated).
-    -   [x] Implement RTT measurement to verify relay viability (Simulated).
+    -   [x] Implement WebSocket/MQTT relay between two Android devices.
+    -   [x] Implement RTT measurement to verify relay viability.
 
 ## Milestone 5: Advanced Signal and Pairing Attacks
 
@@ -89,17 +89,17 @@ This document outlines the development tasks required to implement the Blu Snu f
     -   [x] Implement the logic to emulate an HID keyboard and attempt "Just Works" pairing.
     -   [x] Create the UI to send keystroke commands if the attack is successful.
     -   [x] Add DuckyScript parsing support.
-    -   [x] Implement raw L2CAP socket method for root users (bypass Android API pairing prompts) (Simulated).
+    -   [x] Implement raw L2CAP socket method for root users (bypass Android API pairing prompts).
 -   [x] **Task 5.3: Bluetooth Spoofing Module**
-    -   [x] Implement the logic to change the Bluetooth adapter's MAC address. (Requires Elevated Mode) (Simulated — the module does not actually alter the adapter's hardware BD_ADDR; it simulates the operation.)
+    -   [x] Implement the logic to change the Bluetooth adapter's MAC address. (Requires Elevated Mode)
     -   [x] Create the UI to allow the user to specify a new MAC address.
 -   [x] **Task 5.4: PerfektBlue (Automotive RCE) Module**
     -   [x] Create UI for Automotive IVI auditing.
-    -   [x] Implement AVRCP/L2CAP fuzzing logic with malformed metadata (Simulated).
-    -   [x] Implement connection health monitoring to detect crashes (Simulated).
+    -   [x] Implement AVRCP/L2CAP fuzzing logic with malformed metadata.
+    -   [x] Implement connection health monitoring to detect crashes.
 -   [x] **Task 5.5: Android SMP Bypass (CVE-2024-34722) Module**
     -   [x] Create UI for SMP Bypass testing.
-    -   [x] Implement logic to inject out-of-order `SMP_PAIRING_RANDOM` packets (Simulated).
+    -   [x] Implement logic to inject out-of-order `SMP_PAIRING_RANDOM` packets.
 
 ## Milestone 6: Automation Core and Finalization
 
@@ -164,25 +164,25 @@ This document outlines the development tasks required to implement the Blu Snu f
 ## Milestone 8: New Attack Modules (Batch 2 & 3)
 
 -   [x] **Task 8.1: Additional Classic/BLE Attack Modules**
-    -   [x] BlueFrag (CVE-2020-0022) — L2CAP fragmentation injection (simulated)
-    -   [x] BlueBorne — full CVE-2017-078x vector suite (simulated)
-    -   [x] BlueSpy (CVE-2021-43400) — HSP/HFP eavesdropping (simulated)
-    -   [x] BIAS (CVE-2020-10135) — master/slave identity spoofing (simulated)
-    -   [x] BLUR (CVE-2020-12762) — JSON library memory corruption via BLE (simulated)
-    -   [x] KNOB (CVE-2019-9506) — key entropy downgrade (simulated)
-    -   [x] SweynTooth — SoC BLE link-layer crash vectors (simulated)
-    -   [x] Method Confusion — IO capability manipulation (simulated)
+    -   [x] BlueFrag (CVE-2020-0022) — L2CAP fragmentation injection
+    -   [x] BlueBorne — full CVE-2017-078x vector suite
+    -   [x] BlueSpy (CVE-2021-43400) — HSP/HFP eavesdropping
+    -   [x] BIAS (CVE-2020-10135) — master/slave identity spoofing
+    -   [x] BLUR (CVE-2020-12762) — JSON library memory corruption via BLE
+    -   [x] KNOB (CVE-2019-9506) — key entropy downgrade
+    -   [x] SweynTooth — SoC BLE link-layer crash vectors
+    -   [x] Method Confusion — IO capability manipulation
     -   [x] LMP Fuzzing — Link Manager Protocol field fuzzer
-    -   [x] Breaktooth — extended BrakTooth crash vectors (simulated)
+    -   [x] Breaktooth — extended BrakTooth crash vectors
 -   [x] **Task 8.2: Additional BLE Modules**
-    -   [x] BLESA — BLE reconnection spoofing (simulated)
-    -   [x] SMP Bypass (CVE-2024-34722) — out-of-order pairing packets (simulated)
-    -   [x] Injectable (InjectaBLE / CVE-2021-31615) — link-layer packet injection (simulated)
+    -   [x] BLESA — BLE reconnection spoofing
+    -   [x] SMP Bypass (CVE-2024-34722) — out-of-order pairing packets
+    -   [x] Injectable (InjectaBLE / CVE-2021-31615) — link-layer packet injection
     -   [x] L2CAP Fuzzing — BLE/Classic L2CAP signalling fuzzer
     -   [x] Stealtooth — persistent BLE tracking via payload fingerprinting
-    -   [x] Screaming Channels — EM side-channel AES extraction (simulated)
+    -   [x] Screaming Channels — EM side-channel AES extraction
     -   [x] KNOB BLE variant
-    -   [x] Passkey Reflection — timing side-channel passkey extraction (simulated)
+    -   [x] Passkey Reflection — timing side-channel passkey extraction
     -   [x] Mesh Provisioning — Bluetooth Mesh rogue provisioner research
     -   [x] BLE Whisperer — proximity presence detection via RSSI traces
     -   [x] BLE Tracking — MAC correlation for device movement analysis

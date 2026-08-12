@@ -201,14 +201,20 @@ class SpoofingViewModel(
         mitmAttack = attack
 
         mitmJob = viewModelScope.launch {
-            val success = attack.start()
-            _state.update { it.copy(isMitmRunning = false) }
-            if (success) {
-                log("MITM attack sequence completed successfully.")
-            } else {
-                log("MITM attack sequence failed.")
+            try {
+                val success = attack.start()
+                if (success) {
+                    log("MITM attack sequence completed successfully.")
+                } else {
+                    log("MITM attack sequence failed.")
+                }
+            } catch (e: Exception) {
+                if (e is kotlin.coroutines.cancellation.CancellationException) throw e
+                log("MITM attack error: ${e.message}")
+            } finally {
+                _state.update { it.copy(isMitmRunning = false) }
+                mitmAttack = null
             }
-            mitmAttack = null
         }
     }
 

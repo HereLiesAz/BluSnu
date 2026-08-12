@@ -10,9 +10,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -95,17 +97,26 @@ fun GattFuzzingScreen(viewModel: GattFuzzingViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = { viewModel.startAttack() },
-            enabled = selectedDevice != null && !isRunning,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(if (isRunning) "Fuzzing..." else "Start Fuzzing")
-        }
-
         if (isRunning) {
+            OutlinedButton(
+                onClick = { viewModel.stopAttack() },
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("STOP")
+            }
             Spacer(modifier = Modifier.height(8.dp))
             CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+        } else {
+            Button(
+                onClick = { viewModel.startAttack() },
+                enabled = selectedDevice != null,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Start Fuzzing")
+            }
         }
 
         if (status.isNotBlank()) {

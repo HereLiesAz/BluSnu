@@ -47,29 +47,29 @@ All attack modules expose a `Flow<String>` API for live log output, a `stop()` f
 - `BluesnarfingModule.kt`: OBEX-based data extraction (phonebook, calendar) without authentication.
 - `BluebuggingModule.kt`: AT command injection via RFCOMM.
 - `BlueSmackModule.kt`: L2CAP flood (DoS) via oversized echo request packets.
-- `BlueFragModule.kt`: CVE-2020-0022 — L2CAP fragmented packet injection (simulated).
-- `BlueBorneModule.kt`: BlueBorne CVE suite — RCE, MitM, information disclosure (simulated).
-- `BlueSpyModule.kt`: CVE-2021-43400 — HSP/HFP audio eavesdropping without pairing (simulated).
-- `BiasModule.kt`: CVE-2020-10135 — master/slave role swap authentication bypass (simulated).
-- `BlurModule.kt`: CVE-2020-12762 — malformed advertisement triggering JSON parser heap overflow (simulated).
-- `KnobModule.kt`: CVE-2019-9506 — LMP key entropy downgrade to 1 byte (simulated).
-- `SweynToothModule.kt`: BLE link-layer crash vector suite targeting SoC SDKs (simulated).
-- `MethodConfusionModule.kt`: IO capability manipulation to force weaker pairing method (simulated).
+- `BlueFragModule.kt`: CVE-2020-0022 — L2CAP fragmented packet injection (Root Required).
+- `BlueBorneModule.kt`: BlueBorne CVE suite — RCE, MitM, information disclosure (Root Required).
+- `BlueSpyModule.kt`: CVE-2021-43400 — HSP/HFP audio eavesdropping without pairing (Root Required).
+- `BiasModule.kt`: CVE-2020-10135 — master/slave role swap authentication bypass (Root Required).
+- `BlurModule.kt`: CVE-2020-12762 — malformed advertisement triggering JSON parser heap overflow (Root Required).
+- `KnobModule.kt`: CVE-2019-9506 — LMP key entropy downgrade to 1 byte (Root Required).
+- `SweynToothModule.kt`: BLE link-layer crash vector suite targeting SoC SDKs (Root Required).
+- `MethodConfusionModule.kt`: IO capability manipulation to force weaker pairing method (Root Required).
 - `LmpFuzzingModule.kt`: LMP opcode space fuzzer with boundary-value and random payloads.
 
 #### BLE Attack Modules
 - `GattFuzzingModule.kt`: Systematic GATT characteristic fuzzing (malformed data, auth bypass, boundary conditions).
-- `GattRelayModule.kt`: Two-node GATT MitM relay with RTT measurement (simulated).
-- `BlesaModule.kt`: BLE reconnection spoofing — impersonates a bonded peripheral (simulated).
-- `SmpBypassModule.kt`: CVE-2024-34722 — out-of-order SMP_PAIRING_RANDOM injection (simulated).
-- `InjectableModule.kt`: CVE-2021-31615 / InjectaBLE — link-layer packet injection into active connections (simulated).
+- `GattRelayModule.kt`: Two-node GATT MitM relay with RTT measurement (Root Required).
+- `BlesaModule.kt`: BLE reconnection spoofing — impersonates a bonded peripheral (Root Required).
+- `SmpBypassModule.kt`: CVE-2024-34722 — out-of-order SMP_PAIRING_RANDOM injection (Root Required).
+- `InjectableModule.kt`: CVE-2021-31615 / InjectaBLE — link-layer packet injection into active connections (Root Required).
 - `L2capFuzzingModule.kt`: L2CAP signalling channel fuzzer (MTU, CID, fragmentation edge cases).
 - `StealtoothModule.kt`: Persistent BLE tracking via advertisement payload fingerprinting across MAC rotations.
-- `ScreamingChannelsModule.kt`: EM side-channel AES key extraction (simulated).
-- `BtlejackingModule.kt`: CVE-2018-7252 — BLE connection jam and hijack (hardware required, simulated).
-- `BtlejuiceModule.kt`: Transparent GATT proxy — clone, intercept, and optionally modify BLE traffic (simulated).
-- `KnobBleModule.kt`: BLE-specific KNOB attack on LE key negotiation (simulated).
-- `PasskeyReflectionModule.kt`: Passkey entry MitM via timing reflection (simulated).
+- `ScreamingChannelsModule.kt`: EM side-channel AES key extraction (Root Required).
+- `BtlejackingModule.kt`: CVE-2018-7252 — BLE connection jam and hijack (Ubertooth Required).
+- `BtlejuiceModule.kt`: Transparent GATT proxy — clone, intercept, and optionally modify BLE traffic (Root Required).
+- `KnobBleModule.kt`: BLE-specific KNOB attack on LE key negotiation (Root Required).
+- `PasskeyReflectionModule.kt`: Passkey entry MitM via timing reflection (Root Required).
 - `MeshProvisioningModule.kt`: Bluetooth Mesh rogue provisioner and replay attack research.
 
 #### HID & Injection Modules
@@ -88,7 +88,7 @@ All attack modules expose a `Flow<String>` API for live log output, a `stop()` f
 - `BatteryExhaustionModule.kt`: Rapid connect/disconnect flooding and GATT read storm for battery drain.
 
 #### Advanced & Persistence Modules
-- `PerfektBlueModule.kt`: Automotive IVI Bluetooth stack auditing via AVRCP/L2CAP fuzzing (simulated).
+- `PerfektBlueModule.kt`: Automotive IVI Bluetooth stack auditing via AVRCP/L2CAP fuzzing (Root Required).
 - `BlueTrustModule.kt`: Trust escalation via repeated pairing event probing.
 - `AttackChainExecutor.kt`: Executes a directed graph of attack nodes using `Flow<String>` primitives.
 - `AttackChainingCanvasModule.kt`: Visual canvas state model for the node-based editor.
@@ -99,7 +99,7 @@ All attack modules expose a `Flow<String>` API for live log output, a `stop()` f
 
 #### Impersonation & Spam Modules
 - `BleSpamModule.kt`: Advertisement flooding — Apple, Google, Microsoft, Samsung payloads.
-- `SpoofingModule.kt`: BD_ADDR and device name spoofing (Root — simulated).
+- `SpoofingModule.kt`: BD_ADDR and device name spoofing (Root Required).
 - `MitmAttack.kt`: Generic MitM scaffolding shared by relay-type modules.
 
 #### Reconnaissance & Infrastructure

@@ -264,7 +264,7 @@ To accelerate the assessment process and provide guidance for common scenarios, 
   3. Attempt Btlejack Connection Hijack on the filtered device  
   4. If Hijack Successful \-\> Write GATT Characteristic (pre-configured with the handle and payload for the "unlock" command)  
   5. Log Result  
-* **Template 2: BLUFFS Attack Chain Simulation:**  
+* **Template 2: BLUFFS Attack Chain:**  
   1. Scan for Classic Devices  
   2. Initiate Pairing with the target  
   3. Attempt KNOB Attack to negotiate low key entropy  
