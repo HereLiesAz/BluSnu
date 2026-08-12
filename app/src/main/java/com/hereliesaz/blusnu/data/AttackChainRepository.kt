@@ -1,6 +1,7 @@
 package com.hereliesaz.blusnu.data
 
 import android.content.Context
+import androidx.compose.ui.geometry.Offset
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
@@ -23,6 +24,7 @@ class AttackChainRepository(context: Context) {
 
     private val gson = GsonBuilder()
         .registerTypeAdapter(AttackNode::class.java, AttackNodeAdapter())
+        .registerTypeAdapter(Offset::class.java, OffsetAdapter())
         .create()
 
     fun saveAttackChain(name: String, state: AttackChainingState) {
@@ -41,6 +43,25 @@ class AttackChainRepository(context: Context) {
 
     fun getAllAttackChainNames(): Set<String> {
         return sharedPreferences.all.keys
+    }
+}
+
+/**
+ * 13.13: Custom Gson adapter for Compose [Offset].
+ *
+ * Compose Offset is an inline/value class that Gson cannot serialize correctly.
+ * This adapter serializes it as a plain {x, y} JSON object using [NodePosition]
+ * as the intermediate representation, converting to/from [Offset] at the boundary.
+ */
+private class OffsetAdapter : JsonSerializer<Offset>, JsonDeserializer<Offset> {
+    override fun serialize(src: Offset, typeOfSrc: Type, context: JsonSerializationContext): JsonElement {
+        val pos = NodePosition.fromOffset(src)
+        return context.serialize(pos, NodePosition::class.java)
+    }
+
+    override fun deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): Offset {
+        val pos = context.deserialize<NodePosition>(json, NodePosition::class.java)
+        return pos.toOffset()
     }
 }
 

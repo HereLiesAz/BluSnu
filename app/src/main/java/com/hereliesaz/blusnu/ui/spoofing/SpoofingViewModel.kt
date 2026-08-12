@@ -3,6 +3,8 @@ package com.hereliesaz.blusnu.ui.spoofing
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.blusnu.data.ActionLogger
+import com.hereliesaz.blusnu.data.ActiveTaskManager
 import com.hereliesaz.blusnu.data.DeviceRepository
 import com.hereliesaz.blusnu.data.MitmAttack
 import com.hereliesaz.blusnu.data.SpoofResult
@@ -149,6 +151,33 @@ class SpoofingViewModel(
             }
         }
     }
+        val taskId = "spoofing_${System.currentTimeMillis()}"
+        ActionLogger.log("Spoofing: Applying MAC address $macAddress")
+        ActiveTaskManager.add(taskId, "MAC Spoofing", "Changing to $macAddress")
+
+        viewModelScope.launch {
+            try {
+                log("Applying new MAC address: $macAddress")
+                // Call the data module to execute root commands.
+                val success = spoofingModule.spoofMacAddress(macAddress)
+                if (success) {
+                    log("Successfully changed MAC address to $macAddress")
+                    ActionLogger.log("Spoofing: Successfully changed MAC to $macAddress")
+                } else {
+                    log("Failed to change MAC address.")
+                    ActionLogger.log("Spoofing: Failed to change MAC address")
+                }
+            } finally {
+                ActiveTaskManager.remove(taskId)
+            }
+        }
+    }
+
+    /**
+     * Validates MAC address format (XX:XX:XX:XX:XX:XX) using the shared
+     * [MacValidator] to avoid regex divergence across the app.
+     */
+    private fun isValidMacAddress(mac: String): Boolean = MacValidator.isValid(mac)
 
     /**
      * Restores the adapter's original MAC address.

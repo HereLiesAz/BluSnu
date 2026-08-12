@@ -359,26 +359,28 @@ class FindViewModel(
         if (_uiState.value.selectedDevice?.macAddress == device.macAddress) {
             val updatedDevice = _uiState.value.selectedDevice?.copy(rssi = rssi)
 
-            // If a secondary hardware antenna is used, fuse the data
-            val usbRssi = if (_uiState.value.isUsbConnected) {
-                hardwareManager.getSecondaryRssi(device.macAddress)
-            } else {
-                null
+            viewModelScope.launch {
+                // If a secondary hardware antenna is used, fuse the data
+                val usbRssi = if (_uiState.value.isUsbConnected) {
+                    hardwareManager.getSecondaryRssi(device.macAddress)
+                } else {
+                    null
+                }
+
+                // Average them if available.
+                val combinedRssi = if (usbRssi != null) (rssi + usbRssi) / 2 else rssi
+
+                // Update the probability buckets for direction finding
+                updateDirectionProbability(combinedRssi)
+
+                _uiState.value = _uiState.value.copy(
+                    rssiDistance = distance,
+                    selectedDevice = updatedDevice
+                )
+
+                // 5. Broadcast update if tandem is active.
+                broadcastTandemData()
             }
-
-            // Average them if available.
-            val combinedRssi = if (usbRssi != null) (rssi + usbRssi) / 2 else rssi
-
-            // Update the probability buckets for direction finding
-            updateDirectionProbability(combinedRssi)
-
-            _uiState.value = _uiState.value.copy(
-                rssiDistance = distance,
-                selectedDevice = updatedDevice
-            )
-
-            // 5. Broadcast update if tandem is active.
-            broadcastTandemData()
         }
     }
 
