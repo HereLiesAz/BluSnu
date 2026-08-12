@@ -156,8 +156,12 @@ import com.hereliesaz.blusnu.ui.meshprovisioning.MeshProvisioningScreen
 import com.hereliesaz.blusnu.ui.meshprovisioning.MeshProvisioningViewModel
 import com.hereliesaz.blusnu.ui.methodconfusion.MethodConfusionScreen
 import com.hereliesaz.blusnu.ui.methodconfusion.MethodConfusionViewModel
+import com.hereliesaz.blusnu.ui.findhubtag.FindHubTagScreen
+import com.hereliesaz.blusnu.ui.findhubtag.FindHubTagViewModel
 import com.hereliesaz.blusnu.ui.nroottag.NRootTagScreen
 import com.hereliesaz.blusnu.ui.nroottag.NRootTagViewModel
+import com.hereliesaz.blusnu.ui.tiletracker.TileTrackerScreen
+import com.hereliesaz.blusnu.ui.tiletracker.TileTrackerViewModel
 import com.hereliesaz.blusnu.ui.passkeyreflection.PasskeyReflectionScreen
 import com.hereliesaz.blusnu.ui.passkeyreflection.PasskeyReflectionViewModel
 import com.hereliesaz.blusnu.ui.rfjamming.RfJammingScreen
@@ -363,8 +367,14 @@ class MainActivity : ComponentActivity() {
                     modelClass.isAssignableFrom(MethodConfusionViewModel::class.java) -> {
                         MethodConfusionViewModel(application, deviceRepository) as T
                     }
+                    modelClass.isAssignableFrom(FindHubTagViewModel::class.java) -> {
+                        FindHubTagViewModel(application) as T
+                    }
                     modelClass.isAssignableFrom(NRootTagViewModel::class.java) -> {
                         NRootTagViewModel(application, deviceRepository) as T
+                    }
+                    modelClass.isAssignableFrom(TileTrackerViewModel::class.java) -> {
+                        TileTrackerViewModel(application) as T
                     }
                     modelClass.isAssignableFrom(PasskeyReflectionViewModel::class.java) -> {
                         PasskeyReflectionViewModel(application, deviceRepository) as T
@@ -528,6 +538,8 @@ class MainActivity : ComponentActivity() {
                         azRailItem(id = "blur", text = "BLUR", route = "blur")
                         azRailItem(id = "bletracking", text = "Tracking", route = "bletracking")
                         azRailItem(id = "nroottag", text = "nRootTag", route = "nroottag")
+                        azRailItem(id = "findhubtag", text = "FindHub", route = "findhubtag")
+                        azRailItem(id = "tiletracker", text = "Tile", route = "tiletracker")
                         azRailItem(id = "batteryexhaustion", text = "Battery", route = "batteryexhaustion")
                         azRailItem(id = "l2capfuzzing", text = "L2CAP Fuzz", route = "l2capfuzzing")
                         azRailItem(id = "breaktooth", text = "Breaktooth", route = "breaktooth")
@@ -816,6 +828,14 @@ class MainActivity : ComponentActivity() {
                                 composable("nroottag") {
                                     val viewModel: NRootTagViewModel = viewModel(factory = viewModelFactory)
                                     NRootTagScreen(viewModel = viewModel)
+                                }
+                                composable("findhubtag") {
+                                    val viewModel: FindHubTagViewModel = viewModel(factory = viewModelFactory)
+                                    FindHubTagScreen(viewModel = viewModel)
+                                }
+                                composable("tiletracker") {
+                                    val viewModel: TileTrackerViewModel = viewModel(factory = viewModelFactory)
+                                    TileTrackerScreen(viewModel = viewModel)
                                 }
                                 composable("batteryexhaustion") {
                                     val viewModel: BatteryExhaustionViewModel = viewModel(factory = viewModelFactory)
