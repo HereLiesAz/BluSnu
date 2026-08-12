@@ -1,14 +1,17 @@
 package com.hereliesaz.blusnu.ui.spoofing
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -18,6 +21,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,9 +42,12 @@ fun SpoofingScreen(
     onMacAddressChanged: (String) -> Unit = {},
     onApplyClicked: () -> Unit = {},
     onDeviceSelected: (com.hereliesaz.blusnu.data.TargetDevice) -> Unit = {},
-    onStartMitmAttack: () -> Unit = {}
+    onStartMitmAttack: () -> Unit = {},
+    onStopMitmAttack: () -> Unit = {},
+    onRestoreOriginalMac: () -> Unit = {},
+    onNameChanged: (String) -> Unit = {},
+    onApplyNameClicked: () -> Unit = {}
 ) {
-    var macAddress by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
 
     Column(
@@ -48,9 +55,9 @@ fun SpoofingScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("MAC Spoofing", style = MaterialTheme.typography.headlineSmall)
+        Text("Identity Spoofing", style = MaterialTheme.typography.headlineSmall)
         Text(
-            "Change the Bluetooth adapter's MAC address to impersonate another device. Requires root.",
+            "Change the Bluetooth adapter's MAC address or name to impersonate another device. Requires root.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -80,8 +87,6 @@ fun SpoofingScreen(
                         text = { Text(device.name ?: device.macAddress) },
                         onClick = {
                             onDeviceSelected(device)
-                            macAddress = device.macAddress
-                            onMacAddressChanged(device.macAddress)
                             expanded = false
                         }
                     )
@@ -98,44 +103,98 @@ fun SpoofingScreen(
 
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            "Select a scanned device above to copy its MAC address, or enter one manually below. " +
-                "Your adapter's address will be changed to impersonate the target.",
+            "Select a scanned device above to copy its MAC address, or enter one manually below.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(8.dp))
 
+        // MAC address input -- single source of truth from state.macAddress
         OutlinedTextField(
-            value = macAddress,
-            onValueChange = {
-                macAddress = it
-                onMacAddressChanged(it)
-            },
+            value = state.macAddress,
+            onValueChange = { onMacAddressChanged(it) },
             label = { Text("Spoof Adapter MAC To") },
+            placeholder = { Text("XX:XX:XX:XX:XX:XX") },
             modifier = Modifier.fillMaxWidth(),
-            isError = state.isError
+            isError = state.isError,
+            supportingText = if (state.isError) {
+                { Text("Format: XX:XX:XX:XX:XX:XX (colon-separated hex)") }
+            } else null
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        Button(
-            onClick = onApplyClicked,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !state.isError && macAddress.isNotBlank()
-        ) {
-            Text("Apply MAC Address")
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = onApplyClicked,
+                modifier = Modifier.weight(1f),
+                enabled = !state.isError && state.macAddress.isNotBlank()
+            ) {
+                Text("Apply MAC")
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            OutlinedButton(
+                onClick = onRestoreOriginalMac,
+                modifier = Modifier.weight(1f),
+                enabled = state.originalMac != null
+            ) {
+                Text("Restore Original")
+            }
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Name spoofing section
+        OutlinedTextField(
+            value = state.spoofName,
+            onValueChange = { onNameChanged(it) },
+            label = { Text("Spoof Adapter Name") },
+            placeholder = { Text("e.g. AirPods Pro") },
+            modifier = Modifier.fillMaxWidth()
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Button(
-            onClick = onStartMitmAttack,
-            modifier = Modifier.fillMaxWidth()
+            onClick = onApplyNameClicked,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = state.spoofName.isNotBlank()
         ) {
-            Text("Start MITM Attack")
+            Text("Apply Name")
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // MITM Attack controls
+        if (state.isMitmRunning) {
+            Button(
+                onClick = onStopMitmAttack,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text("Stop MITM Attack")
+            }
+        } else {
+            Button(
+                onClick = onStartMitmAttack,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Start MITM Attack")
+            }
+        }
+
+        if (state.originalMac != null) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                "Original MAC: ${state.originalMac}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Combined log
         Card(
@@ -154,21 +213,17 @@ fun SpoofingScreen(
                         Text(message, style = MaterialTheme.typography.bodySmall)
                     }
                 }
-                if (state.mitmDevices.isNotEmpty()) {
+                if (state.mitmLogs.isNotEmpty()) {
                     item {
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                         Text("MITM Log", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                         Spacer(modifier = Modifier.height(4.dp))
                     }
-                    items(state.mitmDevices) { device ->
-                        Text(device.name ?: device.macAddress, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                        state.mitmLogs[device.macAddress]?.forEach { log ->
-                            Text(log, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
+                    items(state.mitmLogs) { log ->
+                        Text(log, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                if (state.logMessages.isEmpty() && state.mitmDevices.isEmpty()) {
+                if (state.logMessages.isEmpty() && state.mitmLogs.isEmpty()) {
                     item {
                         Text(
                             "No activity yet.",
@@ -189,7 +244,8 @@ fun SpoofingScreenPreview() {
         SpoofingScreen(
             state = SpoofingState(
                 logMessages = listOf("Ready.", "Applying new MAC address...", "Success!"),
-                isError = false
+                isError = false,
+                originalMac = "AA:BB:CC:DD:EE:FF"
             )
         )
     }
