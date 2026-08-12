@@ -232,7 +232,7 @@ class MainActivity : ComponentActivity() {
                         PerfektBlueViewModel(deviceRepository, perfektBlueModule) as T
                     }
                     modelClass.isAssignableFrom(SmpBypassViewModel::class.java) -> {
-                        SmpBypassViewModel(deviceRepository) as T
+                        SmpBypassViewModel(application, deviceRepository) as T
                     }
                     else -> throw IllegalArgumentException("Unknown ViewModel class")
                 }
@@ -355,7 +355,7 @@ class MainActivity : ComponentActivity() {
                         azRailItem(id = "gattfuzzing", text = "Fuzzing", route = "gattfuzzing")
                         azRailItem(id = "blespam", text = "Spam", route = "blespam")
                         azRailItem(id = "gattrelay", text = "Relay", route = "gattrelay")
-                        azRailItem(id = "smpbypass", text = "SMP Bypass", route = "smpbypass")
+                        azRailItem(id = "smpbypass", text = "SMP Audit", route = "smpbypass")
                         azRailItem(id = "btlejacking", text = "BtleJacking", route = "btlejacking")
                         azRailItem(id = "btlejuice", text = "BtleJuice", route = "btlejuice")
                         azDivider()
