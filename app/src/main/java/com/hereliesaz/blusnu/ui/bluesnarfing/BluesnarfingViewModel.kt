@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.cancellation.CancellationException
 
 class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRepository) : AndroidViewModel(application) {
 
@@ -73,6 +74,10 @@ class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRe
             return
         }
 
+        // Finding 4.12: Clear stale results before starting a new attack run
+        _result.value = ""
+        _status.value = ""
+
         _isRunning.value = true
         attackJob = viewModelScope.launch {
             try {
@@ -87,6 +92,8 @@ class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRe
                     _result.value = it.message ?: "Unknown error"
                 }
             } catch (e: Exception) {
+                // Finding 4.7: Rethrow CancellationException instead of swallowing it
+                if (e is CancellationException) throw e
                 _status.value = "Error: ${e.message}"
             } finally {
                 _isRunning.value = false
@@ -95,6 +102,10 @@ class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRe
     }
 
     fun stopAttack() {
+        // Finding 4.8: Close the socket to interrupt any blocking RFCOMM read,
+        // then cancel the coroutine. The blocking read() will throw IOException
+        // which the module's catch block handles gracefully.
+        bluesnarfingModule.closeActiveSocket()
         attackJob?.cancel()
         attackJob = null
         _isRunning.value = false
@@ -103,6 +114,7 @@ class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRe
 
     override fun onCleared() {
         super.onCleared()
+        bluesnarfingModule.closeActiveSocket()
         attackJob?.cancel()
     }
 }

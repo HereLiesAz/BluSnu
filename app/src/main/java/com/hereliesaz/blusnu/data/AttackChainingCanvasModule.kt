@@ -2,7 +2,8 @@ package com.hereliesaz.blusnu.data
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -36,7 +37,7 @@ class AttackChainingCanvasModule {
     private val _executionLog = MutableSharedFlow<String>(extraBufferCapacity = 64)
     val executionLog: SharedFlow<String> = _executionLog.asSharedFlow()
 
-    private val scope = CoroutineScope(Dispatchers.IO + Job())
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     /**
      * Adds a node to the end of the list.
@@ -96,5 +97,12 @@ class AttackChainingCanvasModule {
         }
 
         _executionLog.emit("Attack chain execution completed. ${ chain.size} nodes processed.")
+    }
+
+    /**
+     * Cancels the background scope, releasing any in-flight coroutines.
+     */
+    fun close() {
+        scope.cancel()
     }
 }

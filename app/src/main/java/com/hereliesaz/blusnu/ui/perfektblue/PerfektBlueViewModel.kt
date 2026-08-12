@@ -37,6 +37,9 @@ class PerfektBlueViewModel(
 
     private var attackJob: Job? = null
 
+    /** Tracks the current task ID so stopAttack() can remove it from ActiveTaskManager. */
+    private var currentTaskId: String? = null
+
     init {
         viewModelScope.launch {
             deviceRepository.allDevices.collect { allDevices ->
@@ -63,6 +66,7 @@ class PerfektBlueViewModel(
         _logs.value = emptyList()
 
         val taskId = "perfektblue_${System.currentTimeMillis()}"
+        currentTaskId = taskId
         ActionLogger.log("PerfektBlue: Starting audit on ${device.name ?: device.macAddress}")
         ActiveTaskManager.add(taskId, "PerfektBlue Audit", "Targeting ${device.name ?: device.macAddress}")
 
@@ -71,25 +75,40 @@ class PerfektBlueViewModel(
                 perfektBlueModule.startAudit(device).collect { log ->
                     _logs.value = _logs.value + log
                 }
-                // Log the final result summary (5F).
+                // Log the final result summary.
                 val resultSummary = _logs.value.joinToString("\n").take(200)
                 ActionLogger.log("PerfektBlue: Finished audit on ${device.name ?: device.macAddress}")
                 ActionLogger.log("Result: $resultSummary")
             } finally {
                 _isRunning.value = false
                 ActiveTaskManager.remove(taskId)
+                currentTaskId = null
             }
         }
     }
 
+    /**
+     * Stops the currently running audit.
+     *
+     * Cancels the coroutine job, closes the module's active socket to unblock
+     * any blocking reads, and removes the task from ActiveTaskManager.
+     */
     fun stopAttack() {
+        perfektBlueModule.stopAudit()
         attackJob?.cancel()
         attackJob = null
         _isRunning.value = false
+        // Remove from ActiveTaskManager (10.7)
+        currentTaskId?.let { ActiveTaskManager.remove(it) }
+        currentTaskId = null
+        ActionLogger.log("PerfektBlue: Audit stopped by user")
     }
 
     override fun onCleared() {
         super.onCleared()
+        perfektBlueModule.stopAudit()
         attackJob?.cancel()
+        currentTaskId?.let { ActiveTaskManager.remove(it) }
+        currentTaskId = null
     }
 }

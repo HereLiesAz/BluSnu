@@ -2,6 +2,7 @@ package com.hereliesaz.blusnu.utils
 
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import java.io.DataOutputStream
 import java.io.InputStream
@@ -53,10 +54,14 @@ object RootExecutor {
                 os.flush()
                 os.close()
 
-                // Read both output buffers. (stderr is drained too so it can be reported and to
-                // avoid the child process blocking on a full stderr pipe.)
-                val stdout = `is`.bufferedReader().readText()
-                val stderr = errStream.bufferedReader().readText()
+                // Read stdout and stderr concurrently to avoid deadlock. If stderr
+                // fills its OS pipe buffer (~64 KB) before stdout is fully consumed,
+                // the child blocks on its stderr write and never closes stdout,
+                // causing the sequential reader to hang forever.
+                val stdoutDeferred = async { `is`.bufferedReader().readText() }
+                val stderrDeferred = async { errStream.bufferedReader().readText() }
+                val stdout = stdoutDeferred.await()
+                val stderr = stderrDeferred.await()
 
                 // Wait for the process to terminate and capture the exit code.
                 val exitCode = process.waitFor()

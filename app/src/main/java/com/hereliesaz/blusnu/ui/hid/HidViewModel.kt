@@ -32,10 +32,15 @@ data class HidUiState(
     val bleSupported: Boolean = false
 )
 
-class HidViewModel(application: Application) : AndroidViewModel(application) {
+// Fix 2.10: Accept shared BleHidController instance instead of creating a new one.
+// Both HidViewModel and KeystrokeInjectionViewModel now share the same BleHidController,
+// avoiding duplicate GATT servers.
+class HidViewModel(
+    application: Application,
+    private val bleController: BleHidController
+) : AndroidViewModel(application) {
 
     private val classicController = HidController(application)
-    private val bleController = BleHidController(application)
 
     private val _mode = MutableStateFlow(HidMode.BLE)
     private val _tab = MutableStateFlow(HidTab.KEYBOARD)
@@ -138,9 +143,11 @@ class HidViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun initialize() {
-        when (_mode.value) {
-            HidMode.CLASSIC -> classicController.initialize()
-            HidMode.BLE -> bleController.initialize()
+        viewModelScope.launch {
+            when (_mode.value) {
+                HidMode.CLASSIC -> classicController.initialize()
+                HidMode.BLE -> bleController.initialize()
+            }
         }
     }
 
@@ -177,36 +184,44 @@ class HidViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun sendSpecialKey(keyCode: Byte, modifiers: Byte = HidKeyMap.MOD_NONE) {
-        when (_mode.value) {
-            HidMode.CLASSIC -> {
-                classicController.sendKeyPress(keyCode, modifiers)
-                classicController.sendKeyRelease()
-            }
-            HidMode.BLE -> {
-                bleController.sendKeyPress(keyCode, modifiers)
-                bleController.sendKeyRelease()
+        viewModelScope.launch {
+            when (_mode.value) {
+                HidMode.CLASSIC -> {
+                    classicController.sendKeyPress(keyCode, modifiers)
+                    classicController.sendKeyRelease()
+                }
+                HidMode.BLE -> {
+                    bleController.sendKeyPress(keyCode, modifiers)
+                    bleController.sendKeyRelease()
+                }
             }
         }
     }
 
     fun sendMouseMove(dx: Int, dy: Int) {
-        when (_mode.value) {
-            HidMode.CLASSIC -> classicController.sendMouseMove(dx, dy)
-            HidMode.BLE -> bleController.sendMouseMove(dx, dy)
+        viewModelScope.launch {
+            when (_mode.value) {
+                HidMode.CLASSIC -> classicController.sendMouseMove(dx, dy)
+                HidMode.BLE -> bleController.sendMouseMove(dx, dy)
+            }
         }
     }
 
     fun sendMouseClick(button: Byte = HidKeyMap.MOUSE_BUTTON_LEFT) {
-        when (_mode.value) {
-            HidMode.CLASSIC -> classicController.sendMouseClick(button)
-            HidMode.BLE -> bleController.sendMouseClick(button)
+        viewModelScope.launch {
+            when (_mode.value) {
+                HidMode.CLASSIC -> classicController.sendMouseClick(button)
+                HidMode.BLE -> bleController.sendMouseClick(button)
+            }
         }
     }
 
     fun sendMouseScroll(delta: Int) {
-        when (_mode.value) {
-            HidMode.CLASSIC -> classicController.sendMouseScroll(delta)
-            HidMode.BLE -> bleController.sendMouseScroll(delta)
+        viewModelScope.launch {
+            when (_mode.value) {
+                HidMode.CLASSIC -> classicController.sendMouseScroll(delta)
+                HidMode.BLE -> bleController.sendMouseScroll(delta)
+            }
         }
     }
 
