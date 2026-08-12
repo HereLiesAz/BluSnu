@@ -69,7 +69,8 @@ fun StealtoothScreen(viewModel: StealtoothViewModel) {
             // Header
             Text(
                 text = "Stealtooth Pairing Attack",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Tests whether a device accepts silent automatic re-pairing, " +

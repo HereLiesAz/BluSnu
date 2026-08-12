@@ -68,7 +68,8 @@ fun BlueSpyScreen(viewModel: BlueSpyViewModel) {
             // Header.
             Text(
                 text = "BlueSpy Audio Interception",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Connects to audio devices with insecure (Just Works) pairing " +

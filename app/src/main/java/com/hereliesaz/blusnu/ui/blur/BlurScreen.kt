@@ -69,7 +69,8 @@ fun BlurScreen(viewModel: BlurViewModel) {
             // Header
             Text(
                 text = "BLUR Attack (CVE-2020-15802)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Tests Cross-Transport Key Derivation (CTKD) between BR/EDR " +

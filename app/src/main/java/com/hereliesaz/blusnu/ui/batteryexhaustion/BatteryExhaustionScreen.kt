@@ -71,7 +71,8 @@ fun BatteryExhaustionScreen(viewModel: BatteryExhaustionViewModel) {
             // Header.
             Text(
                 text = "BLE Battery Exhaustion",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Targeted DoS against battery-powered IoT devices via " +

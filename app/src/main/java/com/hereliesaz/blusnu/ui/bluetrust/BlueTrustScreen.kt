@@ -68,7 +68,8 @@ fun BlueTrustScreen(viewModel: BlueTrustViewModel) {
             // Header
             Text(
                 text = "BlueTrust (Relationship Mapping)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Maps Bluetooth pairing relationships between devices by probing " +

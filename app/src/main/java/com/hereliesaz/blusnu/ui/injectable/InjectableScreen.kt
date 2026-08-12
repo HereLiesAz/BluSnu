@@ -75,7 +75,8 @@ fun InjectableScreen(viewModel: InjectableViewModel) {
             // Header
             Text(
                 text = "InjectaBLE (Packet Injection)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Injects packets into active BLE connections via external nRF52 hardware. " +

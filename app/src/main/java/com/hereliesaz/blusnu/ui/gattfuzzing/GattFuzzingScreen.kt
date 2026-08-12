@@ -47,7 +47,7 @@ fun GattFuzzingScreen(viewModel: GattFuzzingViewModel) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("GATT Fuzzing", style = MaterialTheme.typography.headlineSmall)
+        Text("GATT Fuzzing", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         Text(
             "Connects to the target's GATT server, discovers services and characteristics, then sends malformed data to test for vulnerabilities.",
             style = MaterialTheme.typography.bodyMedium,

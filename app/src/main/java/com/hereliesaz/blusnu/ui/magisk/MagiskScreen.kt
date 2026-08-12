@@ -25,7 +25,7 @@ fun MagiskScreen() {
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Text("Magisk Setup", style = MaterialTheme.typography.headlineSmall)
+        Text("Magisk Setup", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         Text(
             "Install BlueZ tools via Magisk module for root-based Bluetooth commands.",
             style = MaterialTheme.typography.bodyMedium,

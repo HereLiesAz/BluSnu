@@ -96,7 +96,7 @@ private fun TrackTab(viewModel: GeolocationViewModel) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("Geolocation", style = MaterialTheme.typography.headlineSmall)
+        Text("Geolocation", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         Text(
             "Locates a BLE device by collecting RSSI readings as you walk around. Select a device, start tracking, and move in different directions.",
             style = MaterialTheme.typography.bodyMedium,

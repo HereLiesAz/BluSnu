@@ -74,7 +74,8 @@ fun NRootTagScreen(viewModel: NRootTagViewModel) {
             // Header.
             Text(
                 text = "nRootTag (Find My Abuse)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Exploits Apple's Find My network for device tracking. " +

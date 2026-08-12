@@ -70,7 +70,8 @@ fun KnobScreen(viewModel: KnobViewModel) {
             // Header.
             Text(
                 text = "KNOB Attack (CVE-2019-9506)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Tests whether a device accepts reduced encryption key entropy " +

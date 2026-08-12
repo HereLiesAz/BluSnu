@@ -55,7 +55,7 @@ fun SpoofingScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("Identity Spoofing", style = MaterialTheme.typography.headlineSmall)
+        Text("Identity Spoofing", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         Text(
             "Change the Bluetooth adapter's MAC address or name to impersonate another device. Requires root.",
             style = MaterialTheme.typography.bodyMedium,

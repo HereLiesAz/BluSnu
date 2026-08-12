@@ -46,7 +46,7 @@ fun BluesnarfingScreen(viewModel: BluesnarfingViewModel) {
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Text("Bluesnarfing", style = MaterialTheme.typography.headlineSmall)
+        Text("Bluesnarfing", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         Text(
             "Attempts to retrieve the phonebook from a target device via OBEX Object Push Profile over RFCOMM.",
             style = MaterialTheme.typography.bodyMedium,

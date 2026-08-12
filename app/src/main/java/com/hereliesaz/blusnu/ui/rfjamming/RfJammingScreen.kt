@@ -78,7 +78,8 @@ fun RfJammingScreen(viewModel: RfJammingViewModel) {
             // Header.
             Text(
                 text = "RF Jamming (Selective DoS)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Targeted RF jamming via external SDR/ESP32 hardware. " +

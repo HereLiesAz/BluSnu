@@ -52,7 +52,7 @@ fun BtlejuiceScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("BtleJuice", style = MaterialTheme.typography.headlineSmall)
+        Text("BtleJuice", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         Text(
             "BLE MITM proxy. Intercepts and modifies GATT traffic between a target device and its host. Requires external BtleJack hardware and USB dongle.",
             style = MaterialTheme.typography.bodyMedium,

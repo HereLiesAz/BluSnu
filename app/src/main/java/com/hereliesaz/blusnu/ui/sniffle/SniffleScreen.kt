@@ -60,7 +60,7 @@ fun SniffleScreen(viewModel: SniffleViewModel) {
             .padding(16.dp)
     ) {
         // Header
-        Text("Sniffle BLE Sniffer", style = MaterialTheme.typography.headlineSmall)
+        Text("Sniffle BLE Sniffer", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         Text(
             "Captures BLE packets using an external TI CC26x2/CC1352 Sniffle dongle via USB-OTG. " +
                     "Supports advertising sniffing, connection following, and passive monitoring.",

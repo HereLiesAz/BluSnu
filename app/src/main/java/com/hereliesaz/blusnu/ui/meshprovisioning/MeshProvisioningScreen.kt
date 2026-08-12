@@ -74,7 +74,8 @@ fun MeshProvisioningScreen(viewModel: MeshProvisioningViewModel) {
             // Header.
             Text(
                 text = "Mesh Provisioning Attack",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Tests Bluetooth Mesh provisioning security -- exploits " +

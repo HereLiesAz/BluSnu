@@ -74,7 +74,8 @@ fun L2capFuzzingScreen(viewModel: L2capFuzzingViewModel) {
             // Header.
             Text(
                 text = "L2CAP Stateful Fuzzing",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Stateful protocol fuzzing of L2CAP signaling layer -- " +

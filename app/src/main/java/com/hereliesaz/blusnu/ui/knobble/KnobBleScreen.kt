@@ -72,7 +72,8 @@ fun KnobBleScreen(viewModel: KnobBleViewModel) {
             // Header.
             Text(
                 text = "KNOB-BLE (Key Entropy)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Tests BLE key entropy downgrade -- forces BLE session keys to the " +

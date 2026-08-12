@@ -73,7 +73,7 @@ fun FileTransferScreen(viewModel: FileTransferViewModel) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("File Transfer", style = MaterialTheme.typography.headlineSmall)
+        Text("File Transfer", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         Text(
             "Shows paired Bluetooth devices. Pair via system Settings first.",
             style = MaterialTheme.typography.bodySmall,

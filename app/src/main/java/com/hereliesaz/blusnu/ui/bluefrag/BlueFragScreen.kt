@@ -71,7 +71,8 @@ fun BlueFragScreen(viewModel: BlueFragViewModel) {
             // Header.
             Text(
                 text = "BlueFrag (CVE-2020-0022)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Tests for the BlueFrag RCE vulnerability in Android's Bluetooth " +

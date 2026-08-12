@@ -72,7 +72,8 @@ fun BadBluetoothScreen(viewModel: BadBluetoothViewModel) {
             // Header.
             Text(
                 text = "BadBluetooth (Profile Confusion)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Tests Bluetooth profile confusion -- advertises benign profiles " +

@@ -49,7 +49,7 @@ fun BlueSmackScreen(viewModel: BlueSmackViewModel) {
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Text("BlueSmack", style = MaterialTheme.typography.headlineSmall)
+        Text("BlueSmack", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         Text(
             "L2CAP ping flood attack. Sends oversized l2ping packets to overwhelm the target device. Requires root.",
             style = MaterialTheme.typography.bodyMedium,

@@ -74,7 +74,8 @@ fun AndroidBtRceScreen(viewModel: AndroidBtRceViewModel) {
             // Header.
             Text(
                 text = "Android BT Stack RCE",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Tests for Android Bluetooth stack vulnerabilities " +

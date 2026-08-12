@@ -68,7 +68,8 @@ fun MethodConfusionScreen(viewModel: MethodConfusionViewModel) {
             // Header
             Text(
                 text = "Method Confusion Attack",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Tests pairing method confusion (CVE-2022-25836/25837) " +

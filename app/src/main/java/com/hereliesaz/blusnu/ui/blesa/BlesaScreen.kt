@@ -68,7 +68,8 @@ fun BlesaScreen(viewModel: BlesaViewModel) {
             // Header
             Text(
                 text = "BLESA (Reconnection Spoofing)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Tests BLE reconnection authentication -- spoofs a disconnected " +

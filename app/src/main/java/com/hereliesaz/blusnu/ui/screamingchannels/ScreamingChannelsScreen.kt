@@ -75,7 +75,8 @@ fun ScreamingChannelsScreen(viewModel: ScreamingChannelsViewModel) {
             // Header
             Text(
                 text = "Screaming Channels (Side-Channel)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Captures electromagnetic leakage from BLE chips via SDR hardware. " +

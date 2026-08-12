@@ -27,7 +27,7 @@ fun RawCommandsScreen(viewModel: RawCommandsViewModel) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("Raw Commands", style = MaterialTheme.typography.headlineSmall)
+        Text("Raw Commands", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         Text(
             "Execute raw BlueZ commands with root privileges. Requires Magisk + BlueZ tools.",
             style = MaterialTheme.typography.bodyMedium,

@@ -71,7 +71,8 @@ fun Esp32HciScreen(viewModel: Esp32HciViewModel) {
             // Header.
             Text(
                 text = "ESP32 HCI Exploitation",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Exploits undocumented vendor HCI commands (CVE-2025-27840) " +

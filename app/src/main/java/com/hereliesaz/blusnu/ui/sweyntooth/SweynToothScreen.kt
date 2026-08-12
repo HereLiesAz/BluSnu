@@ -75,7 +75,8 @@ fun SweynToothScreen(viewModel: SweynToothViewModel) {
             // Header.
             Text(
                 text = "SweynTooth (BLE Link Layer)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Tests for SweynTooth BLE link layer vulnerabilities via external " +

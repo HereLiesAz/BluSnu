@@ -68,7 +68,8 @@ fun SmpBypassScreen(viewModel: SmpBypassViewModel) {
             // Header (5.1: reframed honestly, no CVE claim).
             Text(
                 text = "SMP Pairing Auditor",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Tests which pairing method a BLE target negotiates " +

@@ -69,7 +69,8 @@ fun BreaktoothScreen(viewModel: BreaktoothViewModel) {
             // Header
             Text(
                 text = "Breaktooth (Sleep Mode Hijack)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Tests BLE sleep mode session hijacking -- exploits the lack of " +

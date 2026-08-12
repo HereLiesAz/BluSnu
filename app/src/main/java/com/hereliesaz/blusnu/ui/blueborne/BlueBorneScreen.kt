@@ -74,7 +74,8 @@ fun BlueBorneScreen(viewModel: BlueBorneViewModel) {
             // Header.
             Text(
                 text = "BlueBorne (Zero-Click RCE)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Tests for BlueBorne vulnerabilities (CVE-2017-0781/0782/0785/1000251) " +

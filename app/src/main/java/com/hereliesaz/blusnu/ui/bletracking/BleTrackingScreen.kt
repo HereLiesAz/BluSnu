@@ -57,7 +57,8 @@ fun BleTrackingScreen(viewModel: BleTrackingViewModel) {
             // Header.
             Text(
                 text = "BLE Tracking (MAC Bypass)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Persistent device tracking despite BLE MAC address randomization. " +

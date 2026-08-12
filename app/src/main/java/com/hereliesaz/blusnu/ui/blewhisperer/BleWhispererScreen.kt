@@ -59,7 +59,8 @@ fun BleWhispererScreen(viewModel: BleWhispererViewModel) {
             // Header.
             Text(
                 text = "BLEWhisperer (Data Exfiltration)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Covert data exfiltration via BLE advertisements. " +

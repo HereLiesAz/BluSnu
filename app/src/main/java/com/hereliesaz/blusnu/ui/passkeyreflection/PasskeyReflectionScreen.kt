@@ -69,7 +69,8 @@ fun PasskeyReflectionScreen(viewModel: PasskeyReflectionViewModel) {
             // Header.
             Text(
                 text = "Passkey Reflection MITM",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Tests SSP passkey reflection -- captures and replays the passkey " +

@@ -71,7 +71,8 @@ fun BiasScreen(viewModel: BiasViewModel) {
             // Header.
             Text(
                 text = "BIAS Attack (CVE-2020-10135)",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Tests whether a device is vulnerable to Bluetooth Impersonation " +

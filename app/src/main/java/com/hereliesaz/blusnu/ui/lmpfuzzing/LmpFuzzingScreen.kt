@@ -77,7 +77,8 @@ fun LmpFuzzingScreen(viewModel: LmpFuzzingViewModel) {
             // Header.
             Text(
                 text = "LMP/Baseband Fuzzing",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = "Sends malformed LMP packets via external hardware (ESP32) or root binary to test firmware-level vulnerability to BrakTooth-class denial-of-service attacks.",
