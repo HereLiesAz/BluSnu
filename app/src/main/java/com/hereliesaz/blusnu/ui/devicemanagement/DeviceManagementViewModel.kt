@@ -8,7 +8,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.BluetoothScanner
 import com.hereliesaz.blusnu.data.DeviceRepository
+import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.TargetDevice
+import com.hereliesaz.blusnu.ui.FilterProtocol
+import com.hereliesaz.blusnu.ui.SortOption
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.launchIn
@@ -47,6 +50,43 @@ class DeviceManagementViewModel(
         }
     }
 
+    // --- Sort & Filter (5B) ---
+    private val _sortOption = MutableStateFlow(SortOption.NONE)
+    val sortOption: StateFlow<SortOption> = _sortOption
+
+    private val _filterProtocol = MutableStateFlow(FilterProtocol.ALL)
+    val filterProtocol: StateFlow<FilterProtocol> = _filterProtocol
+
+    /** Changes the sort order for the device list. */
+    fun setSortOption(option: SortOption) {
+        _sortOption.value = option
+        recomputeVisibleDevices()
+    }
+
+    /** Changes the protocol filter for the device list. */
+    fun setFilterProtocol(filter: FilterProtocol) {
+        _filterProtocol.value = filter
+        recomputeVisibleDevices()
+    }
+
+    /**
+     * Re-derives [DeviceManagementScreenState.devices] from the latest raw list
+     * by applying the current filter and sort.
+     */
+    private fun recomputeVisibleDevices() {
+        val filtered = when (_filterProtocol.value) {
+            FilterProtocol.ALL -> latestDevices
+            FilterProtocol.CLASSIC -> latestDevices.filter { it.protocol == Protocol.CLASSIC || it.protocol == Protocol.DUAL }
+            FilterProtocol.BLE -> latestDevices.filter { it.protocol == Protocol.BLE || it.protocol == Protocol.DUAL }
+        }
+        val sorted = when (_sortOption.value) {
+            SortOption.NONE -> filtered
+            SortOption.RSSI_ASC -> filtered.sortedBy { it.rssi }
+            SortOption.RSSI_DESC -> filtered.sortedByDescending { it.rssi }
+        }
+        _state.value = _state.value.copy(devices = sorted)
+    }
+
     // Snapshot of the MAC addresses that were already in the DB at the moment the current
     // scan started. A device is "new in this scan" only if its MAC is NOT in this snapshot.
     // Because the DB stores exactly one row per MAC (upsert), we cannot detect "new" by
@@ -75,11 +115,12 @@ class DeviceManagementViewModel(
                     device.macAddress !in macsSeenBeforeScan
                 }
                 _state.value = _state.value.copy(
-                    devices = devices,
                     devicesInCurrentScan = devicesInCurrentScan.size,
                     newDevicesInCurrentScan = newDevicesInCurrentScan.size,
                     totalDevicesInDb = devices.size
                 )
+                // Apply current sort/filter to update the visible device list.
+                recomputeVisibleDevices()
             }
         }
     }

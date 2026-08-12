@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.blusnu.data.BluffsMode
+import com.hereliesaz.blusnu.ui.components.ResultActions
 
 /**
  * Screen for the BLUFFS attack (Bluetooth Forward and Future Secrecy).
@@ -104,6 +105,13 @@ fun BluffsScreen(viewModel: BluffsViewModel) {
                             }
                         )
                     }
+                    if (devices.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text("No devices found -- run a scan first") },
+                            onClick = { deviceExpanded = false },
+                            enabled = false
+                        )
+                    }
                 }
             }
 
@@ -113,7 +121,7 @@ fun BluffsScreen(viewModel: BluffsViewModel) {
                 onExpandedChange = { modeExpanded = !modeExpanded }
             ) {
                 TextField(
-                    value = selectedMode.name,
+                    value = "${selectedMode.name}: ${selectedMode.description}",
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Attack Mode") },
@@ -126,7 +134,7 @@ fun BluffsScreen(viewModel: BluffsViewModel) {
                 ) {
                     BluffsMode.values().forEach { mode ->
                         DropdownMenuItem(
-                            text = { Text(mode.name) },
+                            text = { Text("${mode.name}: ${mode.description}") },
                             onClick = {
                                 viewModel.selectMode(mode)
                                 modeExpanded = false
@@ -149,6 +157,15 @@ fun BluffsScreen(viewModel: BluffsViewModel) {
                         Text(text = log, style = MaterialTheme.typography.bodySmall, color = Color.White)
                     }
                 }
+            }
+
+            // Copy/Share result actions (5E).
+            if (logs.isNotEmpty()) {
+                ResultActions(
+                    resultText = logs.joinToString("\n"),
+                    label = "BLUFFS Attack Results",
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
 
             if (isRunning) {

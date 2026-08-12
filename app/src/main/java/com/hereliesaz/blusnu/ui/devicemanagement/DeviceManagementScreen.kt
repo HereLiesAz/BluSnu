@@ -17,7 +17,10 @@ import android.util.Log
 import com.hereliesaz.aznavrail.AzButton
 import com.hereliesaz.aznavrail.AzTextBox
 import com.hereliesaz.aznavrail.model.AzButtonShape
+import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.TargetDevice
+import com.hereliesaz.blusnu.ui.FilterProtocol
+import com.hereliesaz.blusnu.ui.SortOption
 
 /**
  * Screen for managing discovered Bluetooth devices (Targets).
@@ -34,7 +37,7 @@ import com.hereliesaz.blusnu.data.TargetDevice
 fun DeviceManagementScreen(
     viewModel: DeviceManagementViewModel,
     startScan: Boolean = false,
-    onNavigateToBtlejuice: (TargetDevice) -> Unit
+    onNavigateToAttack: (TargetDevice, String) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     var selectedDevice by remember { mutableStateOf<TargetDevice?>(null) }
@@ -55,8 +58,8 @@ fun DeviceManagementScreen(
             onNotesChanged = { notes ->
                 viewModel.updateDeviceNotes(selectedDevice!!, notes)
             },
-            onBtlejuiceClick = {
-                onNavigateToBtlejuice(selectedDevice!!)
+            onAttackSelected = { route ->
+                onNavigateToAttack(selectedDevice!!, route)
             }
         )
     }
@@ -94,6 +97,52 @@ fun DeviceManagementScreen(
             Text("Found: ${state.devicesInCurrentScan}")
             Text("New: ${state.newDevicesInCurrentScan}")
             Text("Total: ${state.totalDevicesInDb}")
+        }
+
+        // Sort & Filter Controls (5B).
+        val currentSort by viewModel.sortOption.collectAsState()
+        val currentFilter by viewModel.filterProtocol.collectAsState()
+
+        // Protocol filter chips.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterProtocol.values().forEach { protocol ->
+                FilterChip(
+                    selected = currentFilter == protocol,
+                    onClick = { viewModel.setFilterProtocol(protocol) },
+                    label = { Text(protocol.name) }
+                )
+            }
+        }
+
+        // Sort toggle row.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Sort:", style = MaterialTheme.typography.bodySmall)
+            SortOption.values().forEach { option ->
+                FilterChip(
+                    selected = currentSort == option,
+                    onClick = { viewModel.setSortOption(option) },
+                    label = {
+                        Text(
+                            when (option) {
+                                SortOption.NONE -> "Default"
+                                SortOption.RSSI_ASC -> "RSSI (weak first)"
+                                SortOption.RSSI_DESC -> "RSSI (strong first)"
+                            }
+                        )
+                    }
+                )
+            }
         }
 
         // Device List.
@@ -167,7 +216,7 @@ fun DeviceRow(device: TargetDevice, isNew: Boolean, onClick: () -> Unit, onLongC
 }
 
 /**
- * Detailed view of a device.
+ * Detailed view of a device with protocol-aware "Attack with..." menu.
  */
 @Composable
 fun DeviceDetailsDialog(
@@ -175,9 +224,31 @@ fun DeviceDetailsDialog(
     vendor: String?,
     onDismiss: () -> Unit,
     onNotesChanged: (String) -> Unit,
-    onBtlejuiceClick: () -> Unit
+    onAttackSelected: (String) -> Unit
 ) {
     var notes by remember { mutableStateOf(device.notes) }
+    var attackMenuExpanded by remember { mutableStateOf(false) }
+
+    // Build attack options based on device protocol.
+    val classicAttacks = listOf(
+        "Bluebugging" to "bluebugging",
+        "Bluesnarfing" to "bluesnarfing",
+        "BlueSmack" to "bluesmack",
+        "BLUFFS" to "bluffs",
+        "PerfektBlue" to "perfektblue"
+    )
+    val bleAttacks = listOf(
+        "GATT Fuzzing" to "gattfuzzing",
+        "BLE Spam" to "blespam",
+        "SMP Bypass" to "smpbypass",
+        "BtleJuice" to "btlejuice"
+    )
+
+    val availableAttacks = when (device.protocol) {
+        Protocol.CLASSIC -> classicAttacks
+        Protocol.BLE -> bleAttacks
+        Protocol.DUAL -> classicAttacks + bleAttacks
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -201,13 +272,35 @@ fun DeviceDetailsDialog(
                     onSubmit = {}, // Notes update live on change
                     modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                // Protocol-aware "Attack with..." menu.
+                Box {
+                    Button(
+                        onClick = { attackMenuExpanded = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Attack with...")
+                    }
+                    DropdownMenu(
+                        expanded = attackMenuExpanded,
+                        onDismissRequest = { attackMenuExpanded = false }
+                    ) {
+                        availableAttacks.forEach { (label, route) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    attackMenuExpanded = false
+                                    onAttackSelected(route)
+                                }
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             AzButton(onClick = onDismiss, text = "Close", shape = AzButtonShape.RECTANGLE)
         },
-        dismissButton = {
-            AzButton(onClick = onBtlejuiceClick, text = "Btlejuice", shape = AzButtonShape.RECTANGLE)
-        }
+        dismissButton = {} // Attack menu is now inline in the dialog body.
     )
 }

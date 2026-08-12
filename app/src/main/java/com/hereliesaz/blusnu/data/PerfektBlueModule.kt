@@ -3,7 +3,9 @@ package com.hereliesaz.blusnu.data
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothSocket
+import android.content.Context
 import android.util.Log
 import com.hereliesaz.blusnu.utils.MacValidator
 import com.hereliesaz.blusnu.utils.RootExecutor
@@ -28,7 +30,7 @@ import java.util.UUID
  * All privileged operations are executed through [RootExecutor].
  */
 @SuppressLint("MissingPermission")
-class PerfektBlueModule {
+class PerfektBlueModule(private val context: Context) {
 
     companion object {
         private const val TAG = "PerfektBlueModule"
@@ -211,7 +213,8 @@ class PerfektBlueModule {
     ): FuzzResult = withContext(Dispatchers.IO) {
         var socket: BluetoothSocket? = null
         try {
-            val adapter = BluetoothAdapter.getDefaultAdapter()
+            val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+            val adapter = manager?.adapter
             if (adapter == null) {
                 Log.e(TAG, "BluetoothAdapter not available")
                 return@withContext FuzzResult.CONNECTION_FAILED
@@ -238,18 +241,36 @@ class PerfektBlueModule {
                 }
             }
 
-            // After sending, try to read to see if the connection is still alive
-            try {
-                // Brief wait then check if connection is still open
-                Thread.sleep(500)
-                if (iStream.available() >= 0) {
-                    // Try a non-blocking read -- if the socket is dead this will throw
-                    socket.isConnected // Check connection status
+            // After sending, do a blocking read with a timeout to detect crashes.
+            // BluetoothSocket does not support soTimeout, so we use a reader thread
+            // with a join timeout. If the read completes with EOF (-1) or throws
+            // IOException, the target likely crashed. If the thread times out
+            // (still blocking on read), the connection is alive and the target is stable.
+            var readResult: Int? = null
+            var readException: IOException? = null
+            val readThread = Thread {
+                try {
+                    readResult = iStream.read()
+                } catch (e: IOException) {
+                    readException = e
                 }
+            }
+            readThread.start()
+            readThread.join(1000)
+
+            if (readThread.isAlive) {
+                // Timed out waiting for data -- connection still alive, target is stable
+                readThread.interrupt()
                 FuzzResult.TARGET_STABLE
-            } catch (e: IOException) {
-                Log.w(TAG, "$profileName connection dropped after payloads", e)
+            } else if (readException != null) {
+                Log.w(TAG, "$profileName connection dropped after payloads", readException)
                 FuzzResult.TARGET_CRASHED
+            } else if (readResult == -1) {
+                // EOF: target closed the connection
+                Log.w(TAG, "$profileName connection EOF after payloads")
+                FuzzResult.TARGET_CRASHED
+            } else {
+                FuzzResult.TARGET_STABLE
             }
         } catch (e: IOException) {
             Log.d(TAG, "Could not connect to $profileName on $mac: ${e.message}")

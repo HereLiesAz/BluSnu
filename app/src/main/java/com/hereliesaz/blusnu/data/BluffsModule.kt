@@ -10,13 +10,13 @@ import kotlinx.coroutines.flow.flow
  * Modes of operation for the BLUFFS attack (CVE-2023-24023).
  * Represents different strategies for forcing Key Derivation Function (KDF) weakness.
  */
-enum class BluffsMode {
-    A1, // Force legacy SC (Secure Connections) mode
-    A2, // Manipulate Key Diversification
-    A3, // Attack 3 strategy
-    A4, // Attack 4 strategy
-    A5, // Attack 5 strategy
-    A6  // Attack 6 strategy
+enum class BluffsMode(val description: String) {
+    A1("Force legacy SC (Secure Connections) mode"),
+    A2("Manipulate Key Diversification"),
+    A3("Downgrade LSC to unauthenticated pairing"),
+    A4("Force short key via LMP negotiation"),
+    A5("Inject renegotiation after encryption start"),
+    A6("Force null LTK via cross-transport attack")
 }
 
 /**

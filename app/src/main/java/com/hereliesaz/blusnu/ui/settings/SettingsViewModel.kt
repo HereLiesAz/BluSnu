@@ -91,6 +91,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     /**
      * Refreshes permission status map.
      */
+    override fun onCleared() {
+        super.onCleared()
+        databaseUpdater.close()
+    }
+
     fun checkPermissions() {
         val permissions = mutableListOf(
             android.Manifest.permission.ACCESS_FINE_LOCATION,

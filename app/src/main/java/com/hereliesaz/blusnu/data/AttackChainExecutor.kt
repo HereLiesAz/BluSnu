@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 class AttackChainExecutor {
 
     // A shared flow to emit real-time execution logs/results to the UI.
-    private val _output = MutableSharedFlow<String>()
+    private val _output = MutableSharedFlow<String>(replay = 0, extraBufferCapacity = 64)
     val output = _output.asSharedFlow()
 
     companion object {

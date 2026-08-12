@@ -5,6 +5,7 @@ import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import java.io.Closeable
 import java.io.File
 import java.security.MessageDigest
 
@@ -16,7 +17,7 @@ import java.security.MessageDigest
  *
  * @property context Application context.
  */
-class DatabaseUpdater(private val context: Context) {
+class DatabaseUpdater(private val context: Context) : Closeable {
 
     companion object {
         /** Remote URL to fetch the latest vulnerability database from. */
@@ -27,6 +28,14 @@ class DatabaseUpdater(private val context: Context) {
     }
 
     private val httpClient = HttpClient(CIO)
+
+    /**
+     * Closes the underlying HTTP client to release connections and threads.
+     * Should be called from the owning lifecycle (e.g. ViewModel.onCleared()).
+     */
+    override fun close() {
+        httpClient.close()
+    }
 
     /**
      * Checks for updates by comparing the local vulnerability database against

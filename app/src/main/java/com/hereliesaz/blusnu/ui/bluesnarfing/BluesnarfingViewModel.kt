@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.ActionLogger
 import com.hereliesaz.blusnu.data.BluesnarfingModule
 import com.hereliesaz.blusnu.data.DeviceRepository
+import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.TargetDevice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,8 +36,11 @@ class BluesnarfingViewModel(application: Application, deviceRepository: DeviceRe
 
     init {
         viewModelScope.launch {
-            deviceRepository.allDevices.collect {
-                _devices.value = it
+            deviceRepository.allDevices.collect { allDevices ->
+                // Bluesnarfing targets BR/EDR (Classic). Filter out BLE-only devices.
+                _devices.value = allDevices.filter {
+                    it.protocol == Protocol.CLASSIC || it.protocol == Protocol.DUAL
+                }
             }
         }
     }

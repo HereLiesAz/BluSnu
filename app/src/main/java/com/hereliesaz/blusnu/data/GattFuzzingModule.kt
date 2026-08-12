@@ -7,7 +7,9 @@ import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothProfile
+import android.bluetooth.BluetoothStatusCodes
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
@@ -149,14 +151,22 @@ class GattFuzzingModule {
                         for ((name, payload) in fuzzPayloads) {
                             try {
                                 writeDeferred = CompletableDeferred()
-                                characteristic.value = payload
-                                characteristic.writeType =
+                                val writeType =
                                     if (props and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE != 0)
                                         BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
                                     else
                                         BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
 
-                                val wrote = gatt?.writeCharacteristic(characteristic) ?: false
+                                val wrote = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    gatt?.writeCharacteristic(characteristic, payload, writeType) ==
+                                        BluetoothStatusCodes.SUCCESS
+                                } else {
+                                    @Suppress("DEPRECATION")
+                                    characteristic.value = payload
+                                    characteristic.writeType = writeType
+                                    @Suppress("DEPRECATION")
+                                    gatt?.writeCharacteristic(characteristic) ?: false
+                                }
                                 if (wrote) {
                                     val success = try {
                                         withTimeout(2000) { writeDeferred!!.await() }

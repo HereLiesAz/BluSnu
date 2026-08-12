@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
+import com.hereliesaz.blusnu.ui.components.ResultActions
 
 /**
  * Screen for SMP (Security Manager Protocol) Bypass.
@@ -98,6 +99,13 @@ fun SmpBypassScreen(viewModel: SmpBypassViewModel) {
                             }
                         )
                     }
+                    if (devices.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text("No devices found -- run a scan first") },
+                            onClick = { expanded = false },
+                            enabled = false
+                        )
+                    }
                 }
             }
 
@@ -114,6 +122,15 @@ fun SmpBypassScreen(viewModel: SmpBypassViewModel) {
                         Text(text = log, style = MaterialTheme.typography.bodySmall, color = Color.White)
                     }
                 }
+            }
+
+            // Copy/Share result actions (5E).
+            if (logs.isNotEmpty()) {
+                ResultActions(
+                    resultText = logs.joinToString("\n"),
+                    label = "SMP Bypass Results",
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
 
             if (isRunning) {

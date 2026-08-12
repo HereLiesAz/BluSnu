@@ -62,10 +62,10 @@ fun SpoofingScreen(
             onExpandedChange = { expanded = it }
         ) {
             OutlinedTextField(
-                value = state.selectedDevice?.let { it.name ?: it.macAddress } ?: "Select a device to spoof",
+                value = state.selectedDevice?.let { it.name ?: it.macAddress } ?: "Select a device to clone",
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Target Device") },
+                label = { Text("Clone Identity From") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier
                     .menuAnchor(MenuAnchorType.PrimaryNotEditable)
@@ -96,6 +96,13 @@ fun SpoofingScreen(
             }
         }
 
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            "Select a scanned device above to copy its MAC address, or enter one manually below. " +
+                "Your adapter's address will be changed to impersonate the target.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
@@ -104,7 +111,7 @@ fun SpoofingScreen(
                 macAddress = it
                 onMacAddressChanged(it)
             },
-            label = { Text("New MAC Address") },
+            label = { Text("Spoof Adapter MAC To") },
             modifier = Modifier.fillMaxWidth(),
             isError = state.isError
         )

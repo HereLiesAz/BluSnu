@@ -123,6 +123,13 @@ fun BrakToothScreen(viewModel: BrakToothViewModel) {
                             }
                         )
                     }
+                    if (devices.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text("No devices found -- run a scan first") },
+                            onClick = { deviceExpanded = false },
+                            enabled = false
+                        )
+                    }
                 }
             }
 
