@@ -150,7 +150,7 @@ class GattRelayModule(
      */
     private fun <T> CancellableContinuation<T>.safeResume(value: T) {
         try {
-            resume(value)
+            resume(value, onCancellation = null)
         } catch (_: IllegalStateException) {
             // Continuation already resumed or cancelled — safe to ignore.
         }
