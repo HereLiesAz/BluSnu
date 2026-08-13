@@ -23,6 +23,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,6 +75,9 @@ import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingScreen
 import com.hereliesaz.blusnu.ui.btlejacking.BtlejackingViewModel
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceScreen
 import com.hereliesaz.blusnu.ui.btlejuice.BtlejuiceViewModel
+import com.hereliesaz.blusnu.data.DeveloperSettingsManager
+import com.hereliesaz.blusnu.ui.components.DeveloperSettingsGuideDialog
+import com.hereliesaz.blusnu.ui.components.DevSettingUiState
 import com.hereliesaz.blusnu.ui.components.DisclaimerDialog
 import com.hereliesaz.blusnu.ui.components.SystemRequirementsDialog
 import com.hereliesaz.blusnu.ui.components.UpdateAvailableDialog
@@ -186,6 +190,7 @@ import io.ktor.serialization.kotlinx.json.json
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 class MainActivity : ComponentActivity() {
@@ -209,6 +214,9 @@ class MainActivity : ComponentActivity() {
     }
     private val macLookupClient by lazy { MacLookupClient(httpClient) }
     private val appUpdateChecker by lazy { com.hereliesaz.blusnu.data.AppUpdateChecker(httpClient) }
+    private val developerSettingsManager by lazy {
+        DeveloperSettingsManager(getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE))
+    }
     private val bluetoothLog by lazy { com.hereliesaz.blusnu.data.BluetoothLog() }
     private val bluetoothScanner: com.hereliesaz.blusnu.data.BluetoothScanner by lazy {
         com.hereliesaz.blusnu.data.BluetoothScanner(applicationContext, deviceRepository, bluetoothAdapter, bluetoothLog)
@@ -438,6 +446,9 @@ class MainActivity : ComponentActivity() {
 
         requestRequiredPermissions()
 
+        // Restore any developer settings that were left enabled by a previous crashed session.
+        Thread { developerSettingsManager.restoreAll() }.start()
+
         setContent {
             BluSnuTheme {
                 var showDisclaimer by remember { mutableStateOf(!getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE).getBoolean("disclaimer_accepted", false)) }
@@ -463,6 +474,62 @@ class MainActivity : ComponentActivity() {
                     }
                     updateVersion?.let { version ->
                         UpdateAvailableDialog(latestVersion = version, onDismiss = { updateVersion = null })
+                    }
+
+                    // --- Developer Settings Guide: shown once per install ---
+                    var showDevSettingsGuide by remember {
+                        mutableStateOf(
+                            !getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE)
+                                .getBoolean("dev_settings_guide_shown", false)
+                        )
+                    }
+                    var devSettingStates by remember { mutableStateOf<List<DevSettingUiState>>(emptyList()) }
+                    val devSettingsScope = rememberCoroutineScope()
+
+                    LaunchedEffect(Unit) {
+                        devSettingStates = withContext(Dispatchers.IO) {
+                            DeveloperSettingsManager.ALL.map { setting ->
+                                val currentValue = developerSettingsManager.getCurrentValue(setting)
+                                val isEnabledByApp = developerSettingsManager.isEnabledByUs(setting)
+                                DevSettingUiState(
+                                    setting = setting,
+                                    isAlreadyOn = currentValue == setting.enableValue && !isEnabledByApp,
+                                    isEnabledByApp = isEnabledByApp
+                                )
+                            }
+                        }
+                    }
+
+                    if (showDevSettingsGuide && devSettingStates.isNotEmpty()) {
+                        DeveloperSettingsGuideDialog(
+                            settings = devSettingStates,
+                            onEnable = { setting ->
+                                devSettingsScope.launch {
+                                    withContext(Dispatchers.IO) {
+                                        developerSettingsManager.enableForSession(setting)
+                                    }
+                                    devSettingStates = withContext(Dispatchers.IO) {
+                                        DeveloperSettingsManager.ALL.map { s ->
+                                            val currentValue = developerSettingsManager.getCurrentValue(s)
+                                            val isEnabledByApp = developerSettingsManager.isEnabledByUs(s)
+                                            DevSettingUiState(
+                                                setting = s,
+                                                isAlreadyOn = currentValue == s.enableValue && !isEnabledByApp,
+                                                isEnabledByApp = isEnabledByApp
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            onOpenDeveloperSettings = {
+                                startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
+                            },
+                            onDismiss = {
+                                getSharedPreferences("blusnu_prefs", Context.MODE_PRIVATE)
+                                    .edit { putBoolean("dev_settings_guide_shown", true) }
+                                showDevSettingsGuide = false
+                            }
+                        )
                     }
 
                     // --- System Requirements Check (5C) ---
@@ -519,64 +586,69 @@ class MainActivity : ComponentActivity() {
                         azDivider()
 
                         // -- Classic Attacks --
-                        azRailItem(id = "bluebugging", text = "Bluebugging", route = "bluebugging")
-                        azRailItem(id = "bluesnarfing", text = "Snarfing", route = "bluesnarfing")
-                        azRailItem(id = "bluesmack", text = "BlueSmack", route = "bluesmack")
-                        azRailItem(id = "bluffs", text = "BLUFFS", route = "bluffs")
-                        azRailItem(id = "braktooth", text = "BrakTooth", route = "braktooth")
-                        azRailItem(id = "perfektblue", text = "PerfektBlue", route = "perfektblue")
-                        azRailItem(id = "knob", text = "KNOB", route = "knob")
-                        azRailItem(id = "bias", text = "BIAS", route = "bias")
-                        azRailItem(id = "methodconfusion", text = "Confusion", route = "methodconfusion")
-                        azRailItem(id = "bluespy", text = "BlueSpy", route = "bluespy")
-                        azRailItem(id = "stealtooth", text = "Stealtooth", route = "stealtooth")
-                        azRailItem(id = "bluetrust", text = "BlueTrust", route = "bluetrust")
-                        azRailItem(id = "lmpfuzzing", text = "LMP Fuzz", route = "lmpfuzzing")
-                        azRailItem(id = "passkeyreflection", text = "Passkey", route = "passkeyreflection")
+                        azRailHostItem(id = "classic_attacks", text = "Classic")
+                        azRailSubItem(id = "bluebugging", hostId = "classic_attacks", text = "Bluebugging", route = "bluebugging")
+                        azRailSubItem(id = "bluesnarfing", hostId = "classic_attacks", text = "Snarfing", route = "bluesnarfing")
+                        azRailSubItem(id = "bluesmack", hostId = "classic_attacks", text = "BlueSmack", route = "bluesmack")
+                        azRailSubItem(id = "bluffs", hostId = "classic_attacks", text = "BLUFFS", route = "bluffs")
+                        azRailSubItem(id = "braktooth", hostId = "classic_attacks", text = "BrakTooth", route = "braktooth")
+                        azRailSubItem(id = "perfektblue", hostId = "classic_attacks", text = "PerfektBlue", route = "perfektblue")
+                        azRailSubItem(id = "knob", hostId = "classic_attacks", text = "KNOB", route = "knob")
+                        azRailSubItem(id = "bias", hostId = "classic_attacks", text = "BIAS", route = "bias")
+                        azRailSubItem(id = "methodconfusion", hostId = "classic_attacks", text = "Confusion", route = "methodconfusion")
+                        azRailSubItem(id = "bluespy", hostId = "classic_attacks", text = "BlueSpy", route = "bluespy")
+                        azRailSubItem(id = "stealtooth", hostId = "classic_attacks", text = "Stealtooth", route = "stealtooth")
+                        azRailSubItem(id = "bluetrust", hostId = "classic_attacks", text = "BlueTrust", route = "bluetrust")
+                        azRailSubItem(id = "lmpfuzzing", hostId = "classic_attacks", text = "LMP Fuzz", route = "lmpfuzzing")
+                        azRailSubItem(id = "passkeyreflection", hostId = "classic_attacks", text = "Passkey", route = "passkeyreflection")
                         azDivider()
 
                         // -- BLE Attacks --
-                        azRailItem(id = "gattfuzzing", text = "Fuzzing", route = "gattfuzzing")
-                        azRailItem(id = "blespam", text = "Spam", route = "blespam")
-                        azRailItem(id = "gattrelay", text = "Relay", route = "gattrelay")
-                        azRailItem(id = "smpbypass", text = "SMP Audit", route = "smpbypass")
-                        azRailItem(id = "btlejacking", text = "BtleJacking", route = "btlejacking")
-                        azRailItem(id = "btlejuice", text = "BtleJuice", route = "btlejuice")
-                        azRailItem(id = "blesa", text = "BLESA", route = "blesa")
-                        azRailItem(id = "knobble", text = "KNOB-BLE", route = "knobble")
-                        azRailItem(id = "badbluetooth", text = "BadBT", route = "badbluetooth")
-                        azRailItem(id = "blewhisperer", text = "Whisperer", route = "blewhisperer")
-                        azRailItem(id = "meshprovisioning", text = "Mesh", route = "meshprovisioning")
-                        azRailItem(id = "blur", text = "BLUR", route = "blur")
-                        azRailItem(id = "bletracking", text = "Tracking", route = "bletracking")
-                        azRailItem(id = "nroottag", text = "nRootTag", route = "nroottag")
-                        azRailItem(id = "findhubtag", text = "FindHub", route = "findhubtag")
-                        azRailItem(id = "tiletracker", text = "Tile", route = "tiletracker")
-                        azRailItem(id = "batteryexhaustion", text = "Battery", route = "batteryexhaustion")
-                        azRailItem(id = "l2capfuzzing", text = "L2CAP Fuzz", route = "l2capfuzzing")
-                        azRailItem(id = "breaktooth", text = "Breaktooth", route = "breaktooth")
+                        azRailHostItem(id = "ble_attacks", text = "BLE")
+                        azRailSubItem(id = "gattfuzzing", hostId = "ble_attacks", text = "Fuzzing", route = "gattfuzzing")
+                        azRailSubItem(id = "blespam", hostId = "ble_attacks", text = "Spam", route = "blespam")
+                        azRailSubItem(id = "gattrelay", hostId = "ble_attacks", text = "Relay", route = "gattrelay")
+                        azRailSubItem(id = "smpbypass", hostId = "ble_attacks", text = "SMP Audit", route = "smpbypass")
+                        azRailSubItem(id = "btlejacking", hostId = "ble_attacks", text = "BtleJacking", route = "btlejacking")
+                        azRailSubItem(id = "btlejuice", hostId = "ble_attacks", text = "BtleJuice", route = "btlejuice")
+                        azRailSubItem(id = "blesa", hostId = "ble_attacks", text = "BLESA", route = "blesa")
+                        azRailSubItem(id = "knobble", hostId = "ble_attacks", text = "KNOB-BLE", route = "knobble")
+                        azRailSubItem(id = "badbluetooth", hostId = "ble_attacks", text = "BadBT", route = "badbluetooth")
+                        azRailSubItem(id = "blewhisperer", hostId = "ble_attacks", text = "Whisperer", route = "blewhisperer")
+                        azRailSubItem(id = "meshprovisioning", hostId = "ble_attacks", text = "Mesh", route = "meshprovisioning")
+                        azRailSubItem(id = "blur", hostId = "ble_attacks", text = "BLUR", route = "blur")
+                        azRailSubItem(id = "bletracking", hostId = "ble_attacks", text = "Tracking", route = "bletracking")
+                        azRailSubItem(id = "nroottag", hostId = "ble_attacks", text = "nRootTag", route = "nroottag")
+                        azRailSubItem(id = "findhubtag", hostId = "ble_attacks", text = "FindHub", route = "findhubtag")
+                        azRailSubItem(id = "tiletracker", hostId = "ble_attacks", text = "Tile", route = "tiletracker")
+                        azRailSubItem(id = "batteryexhaustion", hostId = "ble_attacks", text = "Battery", route = "batteryexhaustion")
+                        azRailSubItem(id = "l2capfuzzing", hostId = "ble_attacks", text = "L2CAP Fuzz", route = "l2capfuzzing")
+                        azRailSubItem(id = "breaktooth", hostId = "ble_attacks", text = "Breaktooth", route = "breaktooth")
                         azDivider()
 
                         // -- External Hardware --
-                        azRailItem(id = "sniffle", text = "Sniffle", route = "sniffle")
-                        azRailItem(id = "injectable", text = "InjectaBLE", route = "injectable")
-                        azRailItem(id = "sweyntooth", text = "SweynTooth", route = "sweyntooth")
-                        azRailItem(id = "rfjamming", text = "RF Jam", route = "rfjamming")
-                        azRailItem(id = "screamingchannels", text = "Screaming", route = "screamingchannels")
-                        azRailItem(id = "esp32hci", text = "ESP32 HCI", route = "esp32hci")
+                        azRailHostItem(id = "hardware", text = "Hardware")
+                        azRailSubItem(id = "sniffle", hostId = "hardware", text = "Sniffle", route = "sniffle")
+                        azRailSubItem(id = "injectable", hostId = "hardware", text = "InjectaBLE", route = "injectable")
+                        azRailSubItem(id = "sweyntooth", hostId = "hardware", text = "SweynTooth", route = "sweyntooth")
+                        azRailSubItem(id = "rfjamming", hostId = "hardware", text = "RF Jam", route = "rfjamming")
+                        azRailSubItem(id = "screamingchannels", hostId = "hardware", text = "Screaming", route = "screamingchannels")
+                        azRailSubItem(id = "esp32hci", hostId = "hardware", text = "ESP32 HCI", route = "esp32hci")
                         azDivider()
 
                         // -- Legacy --
-                        azRailItem(id = "blueborne", text = "BlueBorne", route = "blueborne")
-                        azRailItem(id = "bluefrag", text = "BlueFrag", route = "bluefrag")
-                        azRailItem(id = "androidbtrce", text = "BT RCE", route = "androidbtrce")
+                        azRailHostItem(id = "legacy", text = "Legacy")
+                        azRailSubItem(id = "blueborne", hostId = "legacy", text = "BlueBorne", route = "blueborne")
+                        azRailSubItem(id = "bluefrag", hostId = "legacy", text = "BlueFrag", route = "bluefrag")
+                        azRailSubItem(id = "androidbtrce", hostId = "legacy", text = "BT RCE", route = "androidbtrce")
                         azDivider()
 
                         // -- Tools --
-                        azRailItem(id = "spoofing", text = "Spoofing", route = "spoofing")
-                        azRailItem(id = "keystroke_injection", text = "Injection", route = "keystroke_injection")
-                        azRailItem(id = "hid", text = "HID", route = "hid")
-                        azRailItem(id = "file_transfer", text = "Files", route = "file_transfer")
+                        azRailHostItem(id = "tools", text = "Tools")
+                        azRailSubItem(id = "spoofing", hostId = "tools", text = "Spoofing", route = "spoofing")
+                        azRailSubItem(id = "keystroke_injection", hostId = "tools", text = "Injection", route = "keystroke_injection")
+                        azRailSubItem(id = "hid", hostId = "tools", text = "HID", route = "hid")
+                        azRailSubItem(id = "file_transfer", hostId = "tools", text = "Files", route = "file_transfer")
                         azDivider()
 
                         // -- Location --
@@ -584,15 +656,17 @@ class MainActivity : ComponentActivity() {
                         azDivider()
 
                         // -- Advanced --
-                        azRailItem(id = "attack_chaining", text = "Chaining", route = "attack_chaining")
-                        azRailItem(id = "raw_commands", text = "Commands", route = "raw_commands")
-                        azRailItem(id = "magisk", text = "Magisk", route = "magisk")
+                        azRailHostItem(id = "advanced", text = "Advanced")
+                        azRailSubItem(id = "attack_chaining", hostId = "advanced", text = "Chaining", route = "attack_chaining")
+                        azRailSubItem(id = "raw_commands", hostId = "advanced", text = "Commands", route = "raw_commands")
+                        azRailSubItem(id = "magisk", hostId = "advanced", text = "Magisk", route = "magisk")
                         azDivider()
 
                         // -- Info --
-                        azRailItem(id = "reporting", text = "Reporting", route = "reporting")
-                        azRailItem(id = "bluetooth_log", text = "BT Log", route = "bluetooth_log")
-                        azRailItem(id = "settings", text = "Settings", route = "settings")
+                        azRailHostItem(id = "info", text = "Info")
+                        azRailSubItem(id = "reporting", hostId = "info", text = "Reporting", route = "reporting")
+                        azRailSubItem(id = "bluetooth_log", hostId = "info", text = "BT Log", route = "bluetooth_log")
+                        azRailSubItem(id = "settings", hostId = "info", text = "Settings", route = "settings")
 
                         onscreen(Alignment.TopStart) {
                             AzNavHost(
@@ -919,6 +993,13 @@ class MainActivity : ComponentActivity() {
         }
 
         requestPermissionsLauncher.launch(requiredPermissions.toTypedArray())
+    }
+
+    override fun onDestroy() {
+        val t = Thread { developerSettingsManager.restoreAll() }
+        t.start()
+        t.join(5_000)
+        super.onDestroy()
     }
 
     /**
